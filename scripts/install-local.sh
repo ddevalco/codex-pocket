@@ -36,6 +36,56 @@ resolve_bun() {
   return 1
 }
 
+resolve_tailscale() {
+  if command -v tailscale >/dev/null 2>&1; then
+    command -v tailscale
+    return 0
+  fi
+  if [[ -x "/opt/homebrew/bin/tailscale" ]]; then
+    echo "/opt/homebrew/bin/tailscale"
+    return 0
+  fi
+  if [[ -x "/usr/local/bin/tailscale" ]]; then
+    echo "/usr/local/bin/tailscale"
+    return 0
+  fi
+  if [[ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]]; then
+    echo "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+    return 0
+  fi
+  return 1
+}
+
+install_bun() {
+  echo "Bun is required."
+  if command -v brew >/dev/null 2>&1; then
+    if confirm "Install Bun via Homebrew now?"; then
+      brew install bun
+      return 0
+    fi
+  fi
+  if confirm "Install Bun via official installer now?"; then
+    curl -fsSL https://bun.sh/install | bash
+    if [[ -d "$HOME/.bun/bin" ]]; then
+      export PATH="$HOME/.bun/bin:$PATH"
+    fi
+    return 0
+  fi
+  return 1
+}
+
+install_tailscale() {
+  echo "Tailscale is required for iPhone access."
+  if command -v brew >/dev/null 2>&1; then
+    if confirm "Install Tailscale via Homebrew Cask now?"; then
+      brew install --cask tailscale
+      return 0
+    fi
+  fi
+  echo "Install Tailscale from: https://tailscale.com/download" >&2
+  return 1
+}
+
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || abort "Missing dependency: $1"
 }
@@ -65,13 +115,32 @@ need_cmd git
 
 BUN_BIN="$(resolve_bun || true)"
 if [[ -z "${BUN_BIN:-}" ]]; then
-  echo "Missing dependency: bun" >&2
-  echo "Install Bun first: https://bun.sh" >&2
-  exit 1
+  if ! install_bun; then
+    echo "Missing dependency: bun" >&2
+    echo "Install Bun first: https://bun.sh" >&2
+    exit 1
+  fi
+  BUN_BIN="$(resolve_bun || true)"
+  if [[ -z "${BUN_BIN:-}" ]]; then
+    echo "bun installation did not put bun on PATH." >&2
+    echo "Try opening a new terminal and re-running the installer." >&2
+    exit 1
+  fi
 fi
 
-if ! need_cmd_or_prompt_install tailscale "Install Tailscale first: https://tailscale.com/download"; then
-  exit 1
+TAILSCALE_BIN="$(resolve_tailscale || true)"
+if [[ -z "${TAILSCALE_BIN:-}" ]]; then
+  if ! install_tailscale; then
+    echo "Missing dependency: tailscale" >&2
+    echo "Install Tailscale first: https://tailscale.com/download" >&2
+    exit 1
+  fi
+  TAILSCALE_BIN="$(resolve_tailscale || true)"
+  if [[ -z "${TAILSCALE_BIN:-}" ]]; then
+    echo "tailscale installation did not put tailscale on PATH." >&2
+    echo "Try opening a new terminal and re-running the installer." >&2
+    exit 1
+  fi
 fi
 
 if ! command -v codex >/dev/null 2>&1; then
@@ -79,12 +148,12 @@ if ! command -v codex >/dev/null 2>&1; then
 fi
 
 step "Checking Tailscale state"
-if tailscale status >/dev/null 2>&1; then
+if "$TAILSCALE_BIN" status >/dev/null 2>&1; then
   echo "Tailscale: running"
 else
   echo "Tailscale does not appear to be running or logged in."
   if confirm "Run 'tailscale up' now?"; then
-    tailscale up
+    "$TAILSCALE_BIN" up
   else
     cat <<'EOT' >&2
 You can still use Codex Remote locally at http://127.0.0.1:8790 once installed,
@@ -210,7 +279,7 @@ launchctl load "$PLIST"
 
 step "Expose via Tailscale (recommended)"
 if confirm "Configure 'tailscale serve' for iPhone access now?"; then
-  tailscale serve https / http://127.0.0.1:8790
+  "$TAILSCALE_BIN" serve https / http://127.0.0.1:8790
   echo "Tailscale serve configured."
 else
   echo "Skipping tailscale serve configuration."
