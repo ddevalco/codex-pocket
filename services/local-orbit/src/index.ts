@@ -2,6 +2,7 @@ import { hostname, homedir } from "node:os";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { Database } from "bun:sqlite";
+import QRCode from "qrcode";
 
 // Local Orbit: a minimal replacement for the Cloudflare Orbit/Auth stack.
 //
@@ -386,8 +387,11 @@ const server = Bun.serve<{ role: Role }>( {
   async fetch(req, server) {
     const url = new URL(req.url);
 
-    if (req.method === "GET" && url.pathname === "/health") {
-      return okJson({
+    const isHead = req.method === "HEAD";
+    const method = isHead ? "GET" : req.method;
+
+    if (method === "GET" && url.pathname === "/health") {
+      const res = okJson({
         status: "ok",
         host: HOST,
         port: PORT,
@@ -405,12 +409,13 @@ const server = Bun.serve<{ role: Role }>( {
           retentionDays: DB_RETENTION_DAYS,
         },
       });
+      return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
     }
 
     // Admin endpoints (token required)
-    if (url.pathname === "/admin/status" && req.method === "GET") {
+    if (url.pathname === "/admin/status" && method === "GET") {
       if (!authorised(req)) return unauth();
-      return okJson({
+      const res = okJson({
         server: { host: HOST, port: PORT },
         uiDistDir: UI_DIST_DIR,
         anchor: {
@@ -422,6 +427,7 @@ const server = Bun.serve<{ role: Role }>( {
         },
         db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS },
       });
+      return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
     }
 
     if (url.pathname === "/admin/pair/new" && req.method === "POST") {
@@ -436,6 +442,23 @@ const server = Bun.serve<{ role: Role }>( {
         expiresAt,
         pairUrl: `${origin}/pair?code=${encodeURIComponent(code)}`,
       });
+    }
+
+    if (url.pathname === "/admin/pair/qr.svg" && method === "GET") {
+      if (!authorised(req)) return unauth();
+      prunePairCodes();
+      const code = (url.searchParams.get("code") ?? "").trim().toUpperCase();
+      if (!code) return new Response("code is required", { status: 400 });
+      const rec = pairCodes.get(code);
+      if (!rec || Date.now() > rec.expiresAt) return new Response("invalid or expired code", { status: 400 });
+      const payloadUrl = `${url.protocol}//${url.host}/pair?code=${encodeURIComponent(code)}`;
+      try {
+        const svg = await QRCode.toString(payloadUrl, { type: "svg", margin: 1, width: 260, errorCorrectionLevel: "M" });
+        const headers = { "content-type": "image/svg+xml" };
+        return isHead ? new Response(null, { status: 200, headers }) : new Response(svg, { status: 200, headers });
+      } catch (e) {
+        return new Response(e instanceof Error ? e.message : "failed to render qr", { status: 500 });
+      }
     }
 
     if (url.pathname === "/pair/consume" && req.method === "POST") {
@@ -466,15 +489,16 @@ const server = Bun.serve<{ role: Role }>( {
       return okJson(res, { status: res.ok ? 200 : 500 });
     }
 
-    if (url.pathname === "/admin/logs" && req.method === "GET") {
+    if (url.pathname === "/admin/logs" && method === "GET") {
       if (!authorised(req)) return unauth();
       const svc = url.searchParams.get("service") ?? "anchor";
       if (svc !== "anchor") return new Response("Not found", { status: 404 });
       // Use Bun.file for simplicity; admin UI only needs tail-ish.
-      return new Response(Bun.file(ANCHOR_LOG_PATH), {
+      const res = new Response(Bun.file(ANCHOR_LOG_PATH), {
         status: 200,
         headers: { "content-type": "text/plain; charset=utf-8" },
       });
+      return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
     }
 
     // Compatibility endpoint for the existing web client.
@@ -515,14 +539,15 @@ const server = Bun.serve<{ role: Role }>( {
 
     // Static UI (built with Vite) + SPA fallback.
     // This lets a single process serve both the UI and the local services.
-    if (req.method === "GET") {
+    if (method === "GET") {
       try {
         const path = url.pathname === "/" ? "/index.html" : url.pathname;
         const filePath = `${UI_DIST_DIR}${path}`;
         const file = Bun.file(filePath);
         if (await file.exists()) {
           const ct = contentTypeForPath(path);
-          return new Response(file, ct ? { headers: { "content-type": ct } } : undefined);
+          const init = ct ? { headers: { "content-type": ct } } : undefined;
+          return isHead ? new Response(null, { status: 200, headers: (init as any)?.headers }) : new Response(file, init);
         }
       } catch {
         // fall through
@@ -530,7 +555,10 @@ const server = Bun.serve<{ role: Role }>( {
       // SPA fallback: serve index.html for non-file paths.
       try {
         const index = Bun.file(`${UI_DIST_DIR}/index.html`);
-        if (await index.exists()) return new Response(index, { headers: { "content-type": "text/html; charset=utf-8" } });
+        if (await index.exists()) {
+          const headers = { "content-type": "text/html; charset=utf-8" };
+          return isHead ? new Response(null, { status: 200, headers }) : new Response(index, { headers });
+        }
       } catch {
         // ignore
       }
