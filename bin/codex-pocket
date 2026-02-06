@@ -21,9 +21,11 @@ Commands:
   doctor                 Check dependencies and service health
   start                  Start the launchd service
   stop                   Stop the launchd service
+  restart                Restart the service
   status                 Show admin status JSON
   logs [anchor]          Tail logs (default: anchor)
   pair                   Create a one-time pairing link (prints URL)
+  open-admin             Open the local Admin page in your browser
 
 Environment:
   CODEX_POCKET_HOME       Defaults to ~/.codex-pocket
@@ -204,15 +206,33 @@ print(d.get('pairUrl',''))
 PY
 }
 
+cmd_restart() {
+  cmd_stop
+  cmd_start
+}
+
+cmd_open_admin() {
+  read_config
+  local base
+  base="$(base_url)"
+  local url="$base/admin"
+  if command -v open >/dev/null 2>&1; then
+    open "$url" >/dev/null 2>&1 || true
+  fi
+  echo "$url"
+}
+
 main() {
   local cmd="${1:-}"
   case "$cmd" in
     doctor) shift; cmd_doctor "$@";;
     start) shift; cmd_start "$@";;
     stop) shift; cmd_stop "$@";;
+    restart) shift; cmd_restart "$@";;
     status) shift; cmd_status "$@";;
     logs) shift; cmd_logs "$@";;
     pair) shift; cmd_pair "$@";;
+    open-admin) shift; cmd_open_admin "$@";;
     -h|--help|help|"") usage;;
     *) echo "Unknown command: $cmd" >&2; usage; exit 1;;
   esac

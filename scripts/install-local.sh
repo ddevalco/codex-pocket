@@ -260,6 +260,7 @@ chmod 600 "$CONFIG_JSON" || true
 LA_DIR="$HOME/Library/LaunchAgents"
 PLIST="$LA_DIR/com.codex.pocket.plist"
 PID_FILE="$APP_DIR/server.pid"
+STARTED_VIA="unknown"
 mkdir -p "$LA_DIR"
 
 start_background() {
@@ -280,6 +281,7 @@ start_background() {
     ZANE_LOCAL_AUTOSTART_ANCHOR="1" \
     "$BUN_BIN" run "$APP_DIR/app/services/local-orbit/src/index.ts" >>"$APP_DIR/server.log" 2>&1 &
   echo $! >"$PID_FILE"
+  STARTED_VIA="background(pid $(cat "$PID_FILE" 2>/dev/null || echo "?"))"
 }
 
 step "Installing launchd agent to $PLIST"
@@ -341,9 +343,12 @@ if echo "$load_out" | grep -qi "Load failed: 5"; then
   echo "Warning: launchd could not load the agent (launchctl error 5)." >&2
   echo "Falling back to starting the service in the background (no auto-start on login)." >&2
   start_background
+elif [[ -z "${load_out:-}" ]]; then
+  STARTED_VIA="launchd"
 elif [[ -n "$load_out" ]]; then
   # Non-fatal warnings (launchctl is chatty on newer macOS).
   echo "$load_out" >&2
+  STARTED_VIA="launchd"
 fi
 
 step "Waiting for service to start"
@@ -408,6 +413,7 @@ echo "Config:           $CONFIG_JSON"
 echo "Local URL:        http://127.0.0.1:8790"
 echo "Admin URL:        http://127.0.0.1:8790/admin"
 echo "Access Token:     $ZANE_LOCAL_TOKEN"
+echo "Service started via: $STARTED_VIA"
 echo "Launchd agent:    $PLIST"
 echo "Logs:             $APP_DIR/server.log"
 echo "Anchor logs:      $ANCHOR_LOG"
