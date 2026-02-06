@@ -7,7 +7,7 @@ set -euo pipefail
 # - Creates a launchd agent to run the local server on login
 
 APP_DIR="${ZANE_LOCAL_HOME:-$HOME/.zane-local}"
-REPO_URL="${ZANE_LOCAL_REPO:-https://github.com/YOUR_ORG/zane-local.git}"
+REPO_URL="${ZANE_LOCAL_REPO:-https://github.com/ddevalco/codex-remote.git}"
 BRANCH="${ZANE_LOCAL_BRANCH:-main}"
 
 bold=$'\033[1m'
