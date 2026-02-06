@@ -86,6 +86,24 @@ install_tailscale() {
   return 1
 }
 
+offer_tailscale_path_hint() {
+  # If the GUI app is installed, the CLI is often only inside the app bundle.
+  if [[ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]]; then
+    cat <<'EOT'
+
+Note: Tailscale is installed, but the `tailscale` command may not be on your shell PATH.
+You can run it directly as:
+
+  /Applications/Tailscale.app/Contents/MacOS/Tailscale status
+
+Optional: add it to your PATH (zsh):
+
+  echo 'export PATH="/Applications/Tailscale.app/Contents/MacOS:$PATH"' >> ~/.zshrc
+  exec zsh
+EOT
+  fi
+}
+
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || abort "Missing dependency: $1"
 }
@@ -142,6 +160,8 @@ if [[ -z "${TAILSCALE_BIN:-}" ]]; then
     exit 1
   fi
 fi
+
+offer_tailscale_path_hint
 
 if ! command -v codex >/dev/null 2>&1; then
   echo "Warning: codex CLI not found. Install it before using Anchor." >&2
@@ -313,6 +333,33 @@ step "Install CLI"
 mkdir -p "$APP_DIR/bin"
 cp "$APP_DIR/app/bin/codex-remote" "$APP_DIR/bin/codex-remote"
 chmod +x "$APP_DIR/bin/codex-remote"
+
+echo ""
+step "Summary"
+echo "Install dir:      $APP_DIR/app"
+echo "Config:           $CONFIG_JSON"
+echo "Local URL:        http://127.0.0.1:8790"
+echo "Admin URL:        http://127.0.0.1:8790/admin"
+echo "Token:            $ZANE_LOCAL_TOKEN"
+echo "Launchd agent:    $PLIST"
+echo "Logs:             $APP_DIR/server.log"
+echo "Anchor logs:      $ANCHOR_LOG"
+
+if "$TAILSCALE_BIN" status >/dev/null 2>&1; then
+  dns_name="$("$TAILSCALE_BIN" status --json 2>/dev/null | python3 - <<'PY'
+import json,sys
+try:
+  d=json.load(sys.stdin)
+  print(d.get('Self',{}).get('DNSName',''))
+except Exception:
+  print('')
+PY
+)"
+  if [[ -n "${dns_name:-}" ]]; then
+    echo "Tailnet URL:      https://$dns_name/"
+    echo "Tailnet Admin:    https://$dns_name/admin"
+  fi
+fi
 
 echo ""
 echo "Add to PATH (zsh):"
