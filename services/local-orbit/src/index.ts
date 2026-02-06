@@ -28,6 +28,7 @@ const ANCHOR_ARGS = (process.env.ZANE_LOCAL_ANCHOR_ARGS?.trim() || "run src/inde
 const ANCHOR_LOG_PATH = process.env.ZANE_LOCAL_ANCHOR_LOG ?? `${homedir()}/.zane-local/anchor.log`;
 const ANCHOR_HOST = process.env.ANCHOR_HOST ?? "127.0.0.1";
 const ANCHOR_PORT = Number(process.env.ANCHOR_PORT ?? 8788);
+const AUTOSTART_ANCHOR = process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
 const PAIR_TTL_SEC = Number(process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
 
 if (!AUTH_TOKEN) {
@@ -596,3 +597,10 @@ const server = Bun.serve<{ role: Role }>( {
 console.log(`[local-orbit] listening on http://${HOST}:${server.port}`);
 console.log(`[local-orbit] ws client: ws://${HOST}:${server.port}/ws/client`);
 console.log(`[local-orbit] ws anchor: ws://${HOST}:${server.port}/ws/anchor`);
+
+if (AUTOSTART_ANCHOR) {
+  const res = startAnchor();
+  if (!res.ok) {
+    console.warn(`[local-orbit] failed to autostart anchor: ${res.error ?? "unknown error"}`);
+  }
+}

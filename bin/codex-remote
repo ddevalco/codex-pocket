@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# codex-remote CLI
+#
+# This CLI manages the local Codex Remote service (launchd) and calls its admin API.
+
+APP_DIR="${CODEX_REMOTE_HOME:-$HOME/.zane-local}"
+CONFIG_JSON="$APP_DIR/config.json"
+LABEL="com.codex.remote"
+
+bold=$'\033[1m'
+reset=$'\033[0m'
+
+usage() {
+  cat <<USAGE
+Usage: codex-remote <command>
+
+Commands:
+  doctor                 Check dependencies and service health
+  start                  Start the launchd service
+  stop                   Stop the launchd service
+  status                 Show admin status JSON
+  logs [anchor]          Tail logs (default: anchor)
+  pair                   Create a one-time pairing link (prints URL)
+
+Environment:
+  CODEX_REMOTE_HOME       Defaults to ~/.zane-local
+USAGE
+}
+
+need_cmd() {
+  command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }
+}
+
+read_config() {
+  [[ -f "$CONFIG_JSON" ]] || { echo "Missing config: $CONFIG_JSON" >&2; exit 1; }
+}
+
+json_get() {
+  # Usage: json_get <python_expr>
+  python3 - "$@" <<'PY'
+import json,sys
+p=sys.argv[1]
+with open(sys.argv[2],'r') as f:
+  d=json.load(f)
+print(eval(p, {'d': d}))
+PY
+}
+
+base_url() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+print(f"http://{d.get('host','127.0.0.1')}:{d.get('port',8790)}")
+PY
+}
+
+token() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+print(d.get('token',''))
+PY
+}
+
+curl_auth() {
+  local url="$1"; shift
+  local tok
+  tok="$(token)"
+  curl -fsS -H "Authorization: Bearer $tok" "$url" "$@"
+}
+
+cmd_doctor() {
+  echo "${bold}Dependencies${reset}"
+  need_cmd git
+  need_cmd tailscale
+  need_cmd bun || true
+  if command -v codex >/dev/null 2>&1; then
+    echo "codex: ok"
+  else
+    echo "codex: missing (install if you want anchor to run)"
+  fi
+
+  echo ""
+  echo "${bold}Tailscale${reset}"
+  if tailscale status >/dev/null 2>&1; then
+    echo "tailscale: running"
+  else
+    echo "tailscale: not running/logged in"
+  fi
+
+  echo ""
+  echo "${bold}Service${reset}"
+  read_config
+  local base
+  base="$(base_url)"
+  if curl -fsS "$base/health" >/dev/null 2>&1; then
+    echo "local-orbit: reachable at $base"
+  else
+    echo "local-orbit: not reachable at $base (try: codex-remote start)"
+  fi
+}
+
+cmd_start() {
+  read_config
+  local plist="$HOME/Library/LaunchAgents/${LABEL}.plist"
+  if [[ ! -f "$plist" ]]; then
+    echo "Missing launchd plist: $plist" >&2
+    echo "Re-run installer." >&2
+    exit 1
+  fi
+  launchctl unload "$plist" >/dev/null 2>&1 || true
+  launchctl load "$plist"
+  echo "Started ($LABEL)"
+}
+
+cmd_stop() {
+  local plist="$HOME/Library/LaunchAgents/${LABEL}.plist"
+  if [[ -f "$plist" ]]; then
+    launchctl unload "$plist" >/dev/null 2>&1 || true
+  fi
+  echo "Stopped ($LABEL)"
+}
+
+cmd_status() {
+  read_config
+  local base
+  base="$(base_url)"
+  curl_auth "$base/admin/status"
+}
+
+cmd_logs() {
+  read_config
+  local svc="${1:-anchor}"
+  local base
+  base="$(base_url)"
+  curl_auth "$base/admin/logs?service=$svc"
+}
+
+cmd_pair() {
+  read_config
+  local base
+  base="$(base_url)"
+  curl_auth "$base/admin/pair/new" -X POST -H 'content-type: application/json' -d '{}' | python3 - <<'PY'
+import json,sys
+d=json.load(sys.stdin)
+print(d.get('pairUrl',''))
+PY
+}
+
+main() {
+  local cmd="${1:-}"
+  case "$cmd" in
+    doctor) shift; cmd_doctor "$@";;
+    start) shift; cmd_start "$@";;
+    stop) shift; cmd_stop "$@";;
+    status) shift; cmd_status "$@";;
+    logs) shift; cmd_logs "$@";;
+    pair) shift; cmd_pair "$@";;
+    -h|--help|help|"") usage;;
+    *) echo "Unknown command: $cmd" >&2; usage; exit 1;;
+  esac
+}
+
+main "$@"

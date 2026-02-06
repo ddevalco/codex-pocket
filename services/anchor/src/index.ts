@@ -679,7 +679,7 @@ async function startup() {
 
   const needsLogin = ORBIT_URL && (!ZANE_ANCHOR_JWT_SECRET || !USER_ID || FORCE_LOGIN);
 
-console.log(`\nZane Anchor`);
+console.log(`\nCodex Remote Anchor`);
   console.log(`  Local:     http://${HOST}:${server.port}`);
   console.log(`  WebSocket: ws://${HOST}:${server.port}/ws`);
 

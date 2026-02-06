@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Zane Local installer
+# Codex Remote installer (local-only, Tailscale-first)
 # - Installs to ~/.zane-local/app (by default)
 # - Builds the UI (Vite)
 # - Creates a launchd agent to run the local server on login
@@ -21,10 +21,34 @@ need_cmd() {
 
 step() { echo "${bold}$*${reset}"; }
 
+confirm() {
+  local prompt="$1"
+  printf "%s [Y/n] " "$prompt"
+  read -r answer
+  [[ -z "$answer" || "$answer" =~ ^[Yy]$ ]]
+}
+
+need_cmd_or_prompt_install() {
+  local cmd="$1"
+  local install_hint="$2"
+  if command -v "$cmd" >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "Missing dependency: $cmd" >&2
+  echo "$install_hint" >&2
+  return 1
+}
+
 step "Checking dependencies"
 need_cmd git
-need_cmd bun
-need_cmd tailscale
+
+if ! need_cmd_or_prompt_install bun "Install Bun first: https://bun.sh"; then
+  exit 1
+fi
+
+if ! need_cmd_or_prompt_install tailscale "Install Tailscale first: https://tailscale.com/download"; then
+  exit 1
+fi
 
 if ! command -v codex >/dev/null 2>&1; then
   echo "Warning: codex CLI not found. Install it before using Anchor." >&2
@@ -34,17 +58,15 @@ step "Checking Tailscale state"
 if tailscale status >/dev/null 2>&1; then
   echo "Tailscale: running"
 else
-  cat <<'EOT' >&2
-Tailscale does not appear to be running or logged in.
-
-Next steps:
-1. Install Tailscale and sign in (https://tailscale.com/download)
-2. Run: tailscale up
-3. Re-run this installer.
-
-You can still use Codex Remote on this Mac locally at http://127.0.0.1:8790 once installed,
-but remote iPhone access requires Tailscale.
+  echo "Tailscale does not appear to be running or logged in."
+  if confirm "Run 'tailscale up' now?"; then
+    tailscale up
+  else
+    cat <<'EOT' >&2
+You can still use Codex Remote locally at http://127.0.0.1:8790 once installed,
+but iPhone access requires Tailscale.
 EOT
+  fi
 fi
 
 mkdir -p "$APP_DIR"
@@ -103,7 +125,7 @@ JSON
 chmod 600 "$CONFIG_JSON" || true
 
 LA_DIR="$HOME/Library/LaunchAgents"
-PLIST="$LA_DIR/com.zane.local.plist"
+PLIST="$LA_DIR/com.codex.remote.plist"
 mkdir -p "$LA_DIR"
 
 step "Installing launchd agent to $PLIST"
@@ -113,7 +135,7 @@ cat > "$PLIST" <<PLISTXML
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.zane.local</string>
+  <string>com.codex.remote</string>
   <key>ProgramArguments</key>
   <array>
     <string>bun</string>
@@ -144,6 +166,8 @@ cat > "$PLIST" <<PLISTXML
     <string>127.0.0.1</string>
     <key>ANCHOR_PORT</key>
     <string>8788</string>
+    <key>ZANE_LOCAL_AUTOSTART_ANCHOR</key>
+    <string>1</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>
@@ -160,13 +184,19 @@ PLISTXML
 launchctl unload "$PLIST" >/dev/null 2>&1 || true
 launchctl load "$PLIST"
 
-step "Optional: expose via Tailscale"
+step "Expose via Tailscale (recommended)"
+if confirm "Configure 'tailscale serve' for iPhone access now?"; then
+  tailscale serve https / http://127.0.0.1:8790
+  echo "Tailscale serve configured."
+else
+  echo "Skipping tailscale serve configuration."
+fi
+
 cat <<EON
 
 To expose on your tailnet:
 
   tailscale serve https / http://127.0.0.1:8790
-  tailscale serve https /ws http://127.0.0.1:8790/ws
 
 Then open on iPhone:
   https://$(tailscale status --json 2>/dev/null | python3 - <<'PY'
@@ -183,5 +213,18 @@ Token (save this):
   ${ZANE_LOCAL_TOKEN}
 
 EON
+
+step "Install CLI"
+mkdir -p "$APP_DIR/bin"
+cp "$APP_DIR/app/bin/codex-remote" "$APP_DIR/bin/codex-remote"
+chmod +x "$APP_DIR/bin/codex-remote"
+
+echo ""
+echo "Add to PATH (zsh):"
+echo "  echo 'export PATH=\"$APP_DIR/bin:$PATH\"' >> ~/.zshrc"
+echo ""
+echo "Then you can run:"
+echo "  codex-remote doctor"
+echo "  codex-remote status"
 
 echo "Installed."

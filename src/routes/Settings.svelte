@@ -115,7 +115,7 @@
           </p>
         {:else if anchorList.length === 0}
           <p class="hint">
-            No devices connected. Open <a href="/admin">/admin</a> and click Start anchor.
+            No devices connected yet. If this is a fresh install, give it a few seconds. Otherwise check <a href="/admin">/admin</a>.
           </p>
         {:else}
           <ul class="anchor-list">

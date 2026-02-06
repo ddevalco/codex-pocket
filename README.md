@@ -2,7 +2,7 @@
 
 Remote control for your local Codex (on your Mac) from your iPhone over Tailscale.
 
-This is a local-only fork of Zane:
+This project started as a local-only fork of Zane:
 - No Cloudflare
 - No public internet exposure required
 - Local persistence via SQLite
@@ -50,4 +50,3 @@ Then open on iPhone:
 ## Developer Notes
 - Local server: `services/local-orbit/src/index.ts`
 - Anchor: `services/anchor/src/index.ts`
-

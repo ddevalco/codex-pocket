@@ -42,7 +42,7 @@
     }
   }
 
-  async function startAnchor() {
+  async function _startAnchor() {
     if (busy) return;
     busy = true;
     error = null;
@@ -182,11 +182,10 @@
             <div class="v"><code>{status.anchor.log}</code></div>
           </div>
 
-          <div class="row buttons">
-            <button class="primary" type="button" onclick={startAnchor} disabled={busy || status.anchor.running}>Start anchor</button>
-            <button class="danger" type="button" onclick={stopAnchor} disabled={busy || !status.anchor.running}>Stop anchor</button>
-            <button type="button" onclick={loadLogs} disabled={busy}>Refresh logs</button>
-          </div>
+        <div class="row buttons">
+          <button class="danger" type="button" onclick={stopAnchor} disabled={busy || !status.anchor.running}>Stop anchor</button>
+          <button type="button" onclick={loadLogs} disabled={busy}>Refresh logs</button>
+        </div>
         {/if}
       </div>
     </div>
