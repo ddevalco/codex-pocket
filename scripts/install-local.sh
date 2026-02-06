@@ -104,6 +104,19 @@ EOT
   fi
 }
 
+wait_for_local_orbit() {
+  # Wait briefly for launchd to start the service.
+  local url="http://127.0.0.1:8790/health"
+  local i
+  for i in {1..30}; do
+    if curl -fsS "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.5
+  done
+  return 1
+}
+
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || abort "Missing dependency: $1"
 }
@@ -115,6 +128,13 @@ confirm() {
   printf "%s [Y/n] " "$prompt"
   read -r answer
   [[ -z "$answer" || "$answer" =~ ^[Yy]$ ]]
+}
+
+pause() {
+  local prompt="${1:-Press Enter to continue...}"
+  printf "%s" "$prompt"
+  # shellcheck disable=SC2162
+  read
 }
 
 need_cmd_or_prompt_install() {
@@ -297,12 +317,31 @@ PLISTXML
 launchctl unload "$PLIST" >/dev/null 2>&1 || true
 launchctl load "$PLIST"
 
+step "Waiting for service to start"
+if wait_for_local_orbit; then
+  echo "Service: running"
+else
+  echo "Warning: service did not become healthy at http://127.0.0.1:8790/health" >&2
+  echo "Check logs: $APP_DIR/server.log" >&2
+fi
+
 step "Expose via Tailscale (recommended)"
 if confirm "Configure 'tailscale serve' for iPhone access now?"; then
-  # Tailscale Serve CLI changed; prefer the new syntax.
-  # We serve the local-orbit HTTP server; local-orbit handles UI + WebSockets on the same origin.
-  "$TAILSCALE_BIN" serve --bg http://127.0.0.1:8790
-  echo "Tailscale serve configured."
+  serve_out="$("$TAILSCALE_BIN" serve --bg http://127.0.0.1:8790 2>&1)" || true
+  if echo "$serve_out" | grep -qi "Serve is not enabled on your tailnet"; then
+    echo "$serve_out" >&2
+    echo "" >&2
+    pause "After enabling Serve (see link above), press Enter to retry..."
+    serve_out="$("$TAILSCALE_BIN" serve --bg http://127.0.0.1:8790 2>&1)" || true
+  fi
+
+  if echo "$serve_out" | grep -qi "Available within your tailnet"; then
+    echo "Tailscale serve configured."
+  else
+    echo "$serve_out" >&2
+    echo "Warning: tailscale serve may not be configured. You can retry later with:" >&2
+    echo "  $TAILSCALE_BIN serve --bg http://127.0.0.1:8790" >&2
+  fi
 else
   echo "Skipping tailscale serve configuration."
 fi
@@ -311,10 +350,10 @@ cat <<EON
 
 To expose on your tailnet:
 
-  tailscale serve --bg http://127.0.0.1:8790
+  $TAILSCALE_BIN serve --bg http://127.0.0.1:8790
 
 Then open on iPhone:
-  https://$(tailscale status --json 2>/dev/null | python3 - <<'PY'
+  https://$("$TAILSCALE_BIN" status --json 2>/dev/null | python3 - <<'PY'
 import json,sys
 try:
   d=json.load(sys.stdin)
@@ -358,6 +397,11 @@ PY
   if [[ -n "${dns_name:-}" ]]; then
     echo "Tailnet URL:      https://$dns_name/"
     echo "Tailnet Admin:    https://$dns_name/admin"
+    if curl -fsS "https://$dns_name/health" >/dev/null 2>&1; then
+      echo "Tailnet check:    ok"
+    else
+      echo "Tailnet check:    failed (you can still use Local URL)."
+    fi
   fi
 fi
 
@@ -370,3 +414,8 @@ echo "  codex-remote doctor"
 echo "  codex-remote status"
 
 echo "Installed."
+
+echo ""
+if confirm "Open the Admin page now (to pair your iPhone)?"; then
+  open "http://127.0.0.1:8790/admin" >/dev/null 2>&1 || true
+fi
