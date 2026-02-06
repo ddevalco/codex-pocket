@@ -57,6 +57,8 @@ Then open on iPhone:
 - CLI: `docs/CLI.md`
 - Architecture: `docs/ARCHITECTURE.md`
 - Security: `docs/SECURITY.md`
+- Config: `docs/CONFIG.md`
+- Security hardening: `docs/HARDENING.md`
 - Troubleshooting: `docs/TROUBLESHOOTING.md`
 
 ## Attribution
