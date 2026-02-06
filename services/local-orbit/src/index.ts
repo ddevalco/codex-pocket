@@ -22,6 +22,7 @@ const AUTH_TOKEN = (process.env.ZANE_LOCAL_TOKEN ?? "").trim();
 const DB_PATH = process.env.ZANE_LOCAL_DB ?? `${homedir()}/.codex-pocket/codex-pocket.db`;
 const DB_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_RETENTION_DAYS ?? 14);
 const UI_DIST_DIR = process.env.ZANE_LOCAL_UI_DIST_DIR ?? `${process.cwd()}/dist`;
+const PUBLIC_ORIGIN = (process.env.ZANE_LOCAL_PUBLIC_ORIGIN ?? "").trim().replace(/\/$/, "");
 
 const ANCHOR_CWD = process.env.ZANE_LOCAL_ANCHOR_CWD ?? `${process.cwd()}/services/anchor`;
 const ANCHOR_CMD = process.env.ZANE_LOCAL_ANCHOR_CMD?.trim() || "bun";
@@ -72,6 +73,17 @@ function contentTypeForPath(pathname: string): string | null {
   if (p.endsWith(".woff")) return "font/woff";
   if (p.endsWith(".ttf")) return "font/ttf";
   return null;
+}
+
+function requestOrigin(url: URL, req: Request): string {
+  // If we're behind a reverse proxy (like `tailscale serve`) then origin should be the externally
+  // visible URL, not necessarily what the local process thinks it is.
+  // Prefer explicit config, then forwarded headers, then URL host.
+  if (PUBLIC_ORIGIN) return PUBLIC_ORIGIN;
+  const xfProto = (req.headers.get("x-forwarded-proto") ?? "").split(",")[0].trim();
+  const xfHost = (req.headers.get("x-forwarded-host") ?? "").split(",")[0].trim();
+  if (xfProto && xfHost) return `${xfProto}://${xfHost}`;
+  return `${url.protocol}//${url.host}`;
 }
 
 function unauth(): Response {
@@ -436,7 +448,7 @@ const server = Bun.serve<{ role: Role }>( {
       const code = randomPairCode();
       const expiresAt = Date.now() + PAIR_TTL_SEC * 1000;
       pairCodes.set(code, { token: AUTH_TOKEN, expiresAt });
-      const origin = `${url.protocol}//${url.host}`;
+      const origin = requestOrigin(url, req);
       return okJson({
         code,
         expiresAt,
@@ -451,7 +463,7 @@ const server = Bun.serve<{ role: Role }>( {
       if (!code) return new Response("code is required", { status: 400 });
       const rec = pairCodes.get(code);
       if (!rec || Date.now() > rec.expiresAt) return new Response("invalid or expired code", { status: 400 });
-      const payloadUrl = `${url.protocol}//${url.host}/pair?code=${encodeURIComponent(code)}`;
+      const payloadUrl = `${requestOrigin(url, req)}/pair?code=${encodeURIComponent(code)}`;
       try {
         const svg = await QRCode.toString(payloadUrl, { type: "svg", margin: 1, width: 260, errorCorrectionLevel: "M" });
         const headers = { "content-type": "image/svg+xml" };

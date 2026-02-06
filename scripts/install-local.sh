@@ -237,6 +237,7 @@ step "Building UI"
 CONFIG_JSON="$APP_DIR/config.json"
 DB_PATH="$APP_DIR/codex-pocket.db"
 ANCHOR_LOG="$APP_DIR/anchor.log"
+PUBLIC_ORIGIN=""
 
 step "Writing config to $CONFIG_JSON"
 cat > "$CONFIG_JSON" <<JSON
@@ -245,6 +246,7 @@ cat > "$CONFIG_JSON" <<JSON
   "host": "127.0.0.1",
   "port": 8790,
   "db": "${DB_PATH}",
+  "publicOrigin": "${PUBLIC_ORIGIN}",
   "retentionDays": 14,
   "uiDist": "${APP_DIR}/app/dist",
   "anchor": {
@@ -272,6 +274,7 @@ start_background() {
     ZANE_LOCAL_HOST="127.0.0.1" \
     ZANE_LOCAL_PORT="8790" \
     ZANE_LOCAL_DB="$DB_PATH" \
+    ZANE_LOCAL_PUBLIC_ORIGIN="$PUBLIC_ORIGIN" \
     ZANE_LOCAL_RETENTION_DAYS="14" \
     ZANE_LOCAL_UI_DIST_DIR="$APP_DIR/app/dist" \
     ZANE_LOCAL_ANCHOR_CWD="$APP_DIR/app/services/anchor" \
@@ -308,10 +311,12 @@ cat > "$PLIST" <<PLISTXML
     <string>127.0.0.1</string>
     <key>ZANE_LOCAL_PORT</key>
     <string>8790</string>
-    <key>ZANE_LOCAL_DB</key>
-    <string>${DB_PATH}</string>
-    <key>ZANE_LOCAL_RETENTION_DAYS</key>
-    <string>14</string>
+  <key>ZANE_LOCAL_DB</key>
+  <string>${DB_PATH}</string>
+  <key>ZANE_LOCAL_PUBLIC_ORIGIN</key>
+  <string>${PUBLIC_ORIGIN}</string>
+  <key>ZANE_LOCAL_RETENTION_DAYS</key>
+  <string>14</string>
     <key>ZANE_LOCAL_UI_DIST_DIR</key>
     <string>${APP_DIR}/app/dist</string>
     <key>ZANE_LOCAL_ANCHOR_CWD</key>
@@ -427,6 +432,7 @@ try:
 except Exception:
   print("")')"
   if [[ -n "${dns_name:-}" ]]; then
+    PUBLIC_ORIGIN="https://$dns_name"
     echo "Tailnet URL:      https://$dns_name/"
     echo "Tailnet Admin:    https://$dns_name/admin"
     if curl -fsS "https://$dns_name/health" >/dev/null 2>&1; then
