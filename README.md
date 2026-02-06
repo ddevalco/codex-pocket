@@ -51,5 +51,13 @@ Then open on iPhone:
 - Local server: `services/local-orbit/src/index.ts`
 - Anchor: `services/anchor/src/index.ts`
 
+## Docs
+- Install: `docs/INSTALL.md`
+- Admin UI: `docs/ADMIN.md`
+- CLI: `docs/CLI.md`
+- Architecture: `docs/ARCHITECTURE.md`
+- Security: `docs/SECURITY.md`
+- Troubleshooting: `docs/TROUBLESHOOTING.md`
+
 ## Attribution
 See `docs/ATTRIBUTION.md`.
