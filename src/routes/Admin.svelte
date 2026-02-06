@@ -12,7 +12,8 @@
   };
 
   let status = $state<Status | null>(null);
-  let error = $state<string | null>(null);
+  let statusError = $state<string | null>(null);
+  let pairError = $state<string | null>(null);
   let busy = $state(false);
   let logs = $state<string>("");
   let pair = $state<{ code: string; pairUrl: string; expiresAt: number } | null>(null);
@@ -20,7 +21,7 @@
   let pairQrDataUrl = $state<string>("");
 
   async function loadStatus() {
-    error = null;
+    statusError = null;
     try {
       const headers: Record<string, string> = {};
       if (auth.token) headers.authorization = `Bearer ${auth.token}`;
@@ -34,7 +35,7 @@
       if (!res.ok) throw new Error(`status ${res.status}`);
       status = (await res.json()) as Status;
     } catch (e) {
-      error = e instanceof Error ? e.message : "Failed to load status";
+      statusError = e instanceof Error ? e.message : "Failed to load status";
     }
   }
 
@@ -52,7 +53,7 @@
   async function _startAnchor() {
     if (busy) return;
     busy = true;
-    error = null;
+    statusError = null;
     try {
       const headers: Record<string, string> = { "content-type": "application/json" };
       if (auth.token) headers.authorization = `Bearer ${auth.token}`;
@@ -66,7 +67,7 @@
         throw new Error(t || `start failed (${res.status})`);
       }
     } catch (e) {
-      error = e instanceof Error ? e.message : "Failed to start anchor";
+      statusError = e instanceof Error ? e.message : "Failed to start anchor";
     } finally {
       busy = false;
       await loadStatus();
@@ -77,7 +78,7 @@
   async function stopAnchor() {
     if (busy) return;
     busy = true;
-    error = null;
+    statusError = null;
     try {
       const headers: Record<string, string> = {};
       if (auth.token) headers.authorization = `Bearer ${auth.token}`;
@@ -87,7 +88,7 @@
         throw new Error(t || `stop failed (${res.status})`);
       }
     } catch (e) {
-      error = e instanceof Error ? e.message : "Failed to stop anchor";
+      statusError = e instanceof Error ? e.message : "Failed to stop anchor";
     } finally {
       busy = false;
       await loadStatus();
@@ -120,13 +121,13 @@
     } catch (e) {
       pairQrSvg = "";
       if (!pairQrDataUrl) {
-        error = e instanceof Error ? `QR generation failed: ${e.message}` : "QR generation failed";
+        pairError = e instanceof Error ? `QR generation failed: ${e.message}` : "QR generation failed";
       }
     }
   }
 
   async function newPair() {
-    error = null;
+    pairError = null;
     try {
       const headers: Record<string, string> = { "content-type": "application/json" };
       if (auth.token) headers.authorization = `Bearer ${auth.token}`;
@@ -143,7 +144,7 @@
       pair = { code: data.code, pairUrl: data.pairUrl, expiresAt: data.expiresAt };
       await updateQr();
     } catch (e) {
-      error = e instanceof Error ? e.message : "Failed to create pairing code";
+      pairError = e instanceof Error ? e.message : "Failed to create pairing code";
     }
   }
 
@@ -178,8 +179,8 @@
         <span class="section-title">Admin</span>
       </div>
       <div class="section-body stack">
-        {#if error}
-          <p class="hint hint-error">{error}</p>
+        {#if statusError}
+          <p class="hint hint-error">{statusError}</p>
         {/if}
 
         {#if !status}
@@ -216,6 +217,9 @@
       </div>
       <div class="section-body stack">
         <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
+        {#if pairError}
+          <p class="hint hint-error">{pairError}</p>
+        {/if}
         <div class="row buttons">
           <button class="primary" type="button" onclick={newPair} disabled={!auth.token}>New pairing code</button>
         </div>
