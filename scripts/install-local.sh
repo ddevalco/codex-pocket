@@ -202,6 +202,23 @@ EOT
   fi
 fi
 
+# Prefer generating pairing URLs that work from iPhone (MagicDNS over Tailscale).
+MAGICDNS_HOST=""
+PUBLIC_ORIGIN=""
+if "$TAILSCALE_BIN" status >/dev/null 2>&1; then
+  MAGICDNS_HOST="$("$TAILSCALE_BIN" status --json 2>/dev/null | python3 -c 'import json,sys
+try:
+  d=json.load(sys.stdin)
+  name=d.get("Self",{}).get("DNSName","")
+  # Tailscale typically includes a trailing dot.
+  print(name[:-1] if isinstance(name,str) and name.endswith(".") else name)
+except Exception:
+  print("")')"
+  if [[ -n "${MAGICDNS_HOST:-}" ]]; then
+    PUBLIC_ORIGIN="https://${MAGICDNS_HOST}"
+  fi
+fi
+
 mkdir -p "$APP_DIR"
 
 step "Installing app to $APP_DIR/app"
@@ -237,7 +254,6 @@ step "Building UI"
 CONFIG_JSON="$APP_DIR/config.json"
 DB_PATH="$APP_DIR/codex-pocket.db"
 ANCHOR_LOG="$APP_DIR/anchor.log"
-PUBLIC_ORIGIN=""
 
 step "Writing config to $CONFIG_JSON"
 cat > "$CONFIG_JSON" <<JSON
@@ -423,23 +439,13 @@ echo "Launchd agent:    $PLIST"
 echo "Logs:             $APP_DIR/server.log"
 echo "Anchor logs:      $ANCHOR_LOG"
 
-if "$TAILSCALE_BIN" status >/dev/null 2>&1; then
-  dns_name="$("$TAILSCALE_BIN" status --json 2>/dev/null | python3 -c 'import json,sys
-try:
-  d=json.load(sys.stdin)
-  name=d.get("Self",{}).get("DNSName","")
-  print(name[:-1] if isinstance(name,str) and name.endswith(".") else name)
-except Exception:
-  print("")')"
-  if [[ -n "${dns_name:-}" ]]; then
-    PUBLIC_ORIGIN="https://$dns_name"
-    echo "Tailnet URL:      https://$dns_name/"
-    echo "Tailnet Admin:    https://$dns_name/admin"
-    if curl -fsS "https://$dns_name/health" >/dev/null 2>&1; then
-      echo "Tailnet check:    ok"
-    else
-      echo "Tailnet check:    failed (you can still use Local URL)."
-    fi
+if [[ -n "${MAGICDNS_HOST:-}" ]]; then
+  echo "Tailnet URL:      https://$MAGICDNS_HOST/"
+  echo "Tailnet Admin:    https://$MAGICDNS_HOST/admin"
+  if curl -fsS "https://$MAGICDNS_HOST/health" >/dev/null 2>&1; then
+    echo "Tailnet check:    ok"
+  else
+    echo "Tailnet check:    failed (you can still use Local URL)."
   fi
 fi
 
