@@ -8,6 +8,12 @@
     let username = $state("");
     let newUsername = $state("");
     let mode = $state<"login" | "register">("login");
+
+    // sv-router initializes route state asynchronously; on a cold load, route.pathname can briefly
+    // appear as "/" before it matches the actual URL. Use location.pathname as the source of truth
+    // in the browser so we don't accidentally bypass auth on protected routes like /admin.
+    const currentPath = $derived(typeof window !== "undefined" ? window.location.pathname : route.pathname);
+    const isPublicRoute = $derived(currentPath === "/" || currentPath === "/pair");
 </script>
 
 {#if auth.status === "loading"}
@@ -17,7 +23,7 @@
             <div class="auth-subtitle">Loading local session...</div>
         </div>
     </div>
-{:else if auth.status === "signed_in" || route.pathname === "/"}
+{:else if auth.status === "signed_in" || isPublicRoute}
     {@render children()}
 {:else if auth.status === "needs_setup"}
     <div class="auth-shell stack">
