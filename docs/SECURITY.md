@@ -1,6 +1,6 @@
 # Security
 
-Codex Remote gives remote control of a local Codex session. Treat it like remote admin access.
+Codex Pocket gives remote control of a local Codex session. Treat it like remote admin access.
 
 ## Threat Model
 - Unauthorized control of your Codex session (can read/write files, run commands via Codex approvals).
@@ -28,7 +28,7 @@ Codex Remote gives remote control of a local Codex session. Treat it like remote
 - Pairing code TTL is configurable via `ZANE_LOCAL_PAIR_TTL_SEC` (default 300s).
 
 ### Local persistence
-- Events are stored in SQLite at `ZANE_LOCAL_DB` (default `~/.zane-local/zane.db`).
+- Events are stored in SQLite at `ZANE_LOCAL_DB` (default `~/.codex-pocket/codex-pocket.db`).
 - Retention is controlled by `ZANE_LOCAL_RETENTION_DAYS` (default 14).
 
 ## Operational Guidance
@@ -42,4 +42,3 @@ Codex Remote gives remote control of a local Codex session. Treat it like remote
 - No per-user accounts: single shared token.
 - No end-to-end encryption above TLS: traffic is secured by Tailscale HTTPS/WSS.
 - Event persistence is plaintext on disk.
-

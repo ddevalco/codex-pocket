@@ -1,29 +1,28 @@
 # CLI
 
-The `codex-remote` CLI manages the service and calls the admin API.
+The `codex-pocket` CLI manages the service and calls the admin API.
 
 ## Commands
 
-- `codex-remote doctor`
+- `codex-pocket doctor`
   - Checks dependencies and service reachability.
 
-- `codex-remote start`
-  - Starts the launchd agent (`com.codex.remote`).
+- `codex-pocket start`
+  - Starts the launchd agent (`com.codex.pocket`).
 
-- `codex-remote stop`
+- `codex-pocket stop`
   - Stops the launchd agent.
 
-- `codex-remote status`
+- `codex-pocket status`
   - Prints `/admin/status` JSON.
 
-- `codex-remote logs [anchor]`
+- `codex-pocket logs [anchor]`
   - Prints `/admin/logs?service=anchor`.
 
-- `codex-remote pair`
+- `codex-pocket pair`
   - Prints a one-time pairing URL (same as clicking "New pairing code" in `/admin`).
 
 ## Config
 
 The CLI reads:
-- `~/.zane-local/config.json`
-
+- `~/.codex-pocket/config.json`

@@ -32,7 +32,7 @@ If any device is lost/compromised, rotate the token.
 
 Fast rotate (re-run installer) or manually:
 1. Stop the service.
-2. Edit `~/Library/LaunchAgents/com.codex.remote.plist` and change `ZANE_LOCAL_TOKEN`.
+2. Edit `~/Library/LaunchAgents/com.codex.pocket.plist` and change `ZANE_LOCAL_TOKEN`.
 3. Restart the service.
 4. Re-pair iPhone via `/admin`.
 
@@ -46,9 +46,9 @@ If you want to disable persistence entirely, we can add a flag to stop writing e
 
 ## 5) Limit What Gets Logged
 
-- The Anchor log (`~/.zane-local/anchor.log`) can include sensitive content.
+- The Anchor log (`~/.codex-pocket/anchor.log`) can include sensitive content.
 - Prefer reviewing diffs/approvals rather than dumping secrets into prompts.
 
 ## 6) Separate Users (Optional)
 
-If multiple people use the same Mac account, create a dedicated macOS user for Codex Remote.
+If multiple people use the same Mac account, create a dedicated macOS user for Codex Pocket.

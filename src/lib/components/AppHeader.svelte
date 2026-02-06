@@ -68,7 +68,7 @@
 
 <header class="app-header">
     <div class="app-header-inner row">
-        <a href="/app" class="brand">codex-remote</a>
+        <a href="/app" class="brand">codex-pocket</a>
         <span class="separator">·</span>
         <button
             type="button"

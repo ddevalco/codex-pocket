@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Codex Remote installer (local-only, Tailscale-first)
-# - Installs to ~/.zane-local/app (by default)
+# Codex Pocket installer (macOS + iPhone, local-only, Tailscale-first)
+# - Installs to ~/.codex-pocket/app (by default)
 # - Builds the UI (Vite)
 # - Creates a launchd agent to run the local server on login
 
-APP_DIR="${ZANE_LOCAL_HOME:-$HOME/.zane-local}"
-REPO_URL="${ZANE_LOCAL_REPO:-https://github.com/ddevalco/codex-remote.git}"
+APP_DIR="${CODEX_POCKET_HOME:-$HOME/.codex-pocket}"
+REPO_URL="${CODEX_POCKET_REPO:-https://github.com/ddevalco/codex-remote.git}"
 BRANCH="${ZANE_LOCAL_BRANCH:-main}"
 
 bold=$'\033[1m'
@@ -196,7 +196,7 @@ else
     "$TAILSCALE_BIN" up
   else
     cat <<'EOT' >&2
-You can still use Codex Remote locally at http://127.0.0.1:8790 once installed,
+You can still use Codex Pocket locally at http://127.0.0.1:8790 once installed,
 but iPhone access requires Tailscale.
 EOT
   fi
@@ -258,7 +258,7 @@ JSON
 chmod 600 "$CONFIG_JSON" || true
 
 LA_DIR="$HOME/Library/LaunchAgents"
-PLIST="$LA_DIR/com.codex.remote.plist"
+PLIST="$LA_DIR/com.codex.pocket.plist"
 mkdir -p "$LA_DIR"
 
 step "Installing launchd agent to $PLIST"
@@ -268,7 +268,7 @@ cat > "$PLIST" <<PLISTXML
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.codex.remote</string>
+  <string>com.codex.pocket</string>
   <key>ProgramArguments</key>
   <array>
     <string>${BUN_BIN}</string>
@@ -369,8 +369,8 @@ EON
 
 step "Install CLI"
 mkdir -p "$APP_DIR/bin"
-cp "$APP_DIR/app/bin/codex-remote" "$APP_DIR/bin/codex-remote"
-chmod +x "$APP_DIR/bin/codex-remote"
+cp "$APP_DIR/app/bin/codex-pocket" "$APP_DIR/bin/codex-pocket"
+chmod +x "$APP_DIR/bin/codex-pocket"
 
 echo ""
 step "Summary"
@@ -407,8 +407,8 @@ echo "Add to PATH (zsh):"
 echo "  echo 'export PATH=\"$APP_DIR/bin:$PATH\"' >> ~/.zshrc"
 echo ""
 echo "Then you can run:"
-echo "  codex-remote doctor"
-echo "  codex-remote status"
+echo "  codex-pocket doctor"
+echo "  codex-pocket status"
 
 echo "Installed."
 

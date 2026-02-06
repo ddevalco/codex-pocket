@@ -104,7 +104,7 @@
 </script>
 
 <svelte:head>
-  <title>Codex Remote</title>
+  <title>Codex Pocket</title>
 </svelte:head>
 
 <div class="home stack">

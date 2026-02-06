@@ -1,6 +1,6 @@
 # Architecture
 
-Codex Remote is a local-first, Tailscale-first remote control surface for Codex running on your Mac.
+Codex Pocket is a local-first, Tailscale-first remote control surface for Codex running on your Mac.
 
 ## Components
 
@@ -52,4 +52,3 @@ Responsibilities:
 - Admin can mint a short-lived, one-time pairing link (`/admin/pair/new`).
 - iPhone opens `/pair?code=...` which exchanges the code for the bearer token via `/pair/consume`.
 - The code is one-time-use and expires.
-

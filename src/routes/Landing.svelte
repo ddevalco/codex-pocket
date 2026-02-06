@@ -32,12 +32,12 @@
 </script>
 
 <svelte:head>
-  <title>Codex Remote</title>
+  <title>Codex Pocket</title>
 </svelte:head>
 
 <div class="landing stack">
   <header class="landing-header">
-    <div class="brand">codex-remote</div>
+    <div class="brand">codex-pocket</div>
     <div class="header-actions">
       {#if pwa.canInstall && !pwa.isStandalone}
         <button class="ghost-btn" type="button" onclick={() => pwa.install()}>Install app</button>

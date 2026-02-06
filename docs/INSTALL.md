@@ -9,10 +9,10 @@ curl -fsSL https://raw.githubusercontent.com/ddevalco/codex-remote/main/scripts/
 The installer:
 - checks dependencies (git, bun, tailscale)
 - offers to run `tailscale up` if needed
-- clones/updates the repo into `~/.zane-local/app`
+- clones/updates the repo into `~/.codex-pocket/app`
 - installs dependencies
 - builds the web UI
-- writes config to `~/.zane-local/config.json`
+- writes config to `~/.codex-pocket/config.json`
 - installs a `launchd` agent to run the service at login
 - optionally configures `tailscale serve` so your iPhone can access it
 
@@ -25,13 +25,12 @@ The installer:
 1. Stop and remove launchd agent:
 
 ```bash
-launchctl unload "$HOME/Library/LaunchAgents/com.codex.remote.plist" || true
-rm -f "$HOME/Library/LaunchAgents/com.codex.remote.plist"
+launchctl unload "$HOME/Library/LaunchAgents/com.codex.pocket.plist" || true
+rm -f "$HOME/Library/LaunchAgents/com.codex.pocket.plist"
 ```
 
 2. Remove app data:
 
 ```bash
-rm -rf "$HOME/.zane-local"
+rm -rf "$HOME/.codex-pocket"
 ```
-

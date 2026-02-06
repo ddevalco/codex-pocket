@@ -28,7 +28,7 @@
 {:else if auth.status === "needs_setup"}
     <div class="auth-shell stack">
         <div class="auth-card stack">
-            <div class="auth-title">Welcome to Codex Remote</div>
+            <div class="auth-title">Welcome to Codex Pocket</div>
             <div class="auth-subtitle">Local mode does not support account registration. Use an access token.</div>
 
             {#if auth.error}
@@ -57,7 +57,7 @@
         <div class="auth-card stack">
             {#if mode === "login"}
                 <div class="auth-title">Sign in</div>
-                <div class="auth-subtitle">Enter your access token to unlock Codex Remote.</div>
+                <div class="auth-subtitle">Enter your access token to unlock Codex Pocket.</div>
 
                 {#if auth.error}
                     <div class="auth-error">{auth.error}</div>

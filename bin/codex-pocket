@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# codex-remote CLI
+# codex-pocket CLI
 #
-# This CLI manages the local Codex Remote service (launchd) and calls its admin API.
+# This CLI manages the local Codex Pocket service (launchd) and calls its admin API.
 
-APP_DIR="${CODEX_REMOTE_HOME:-$HOME/.zane-local}"
+APP_DIR="${CODEX_POCKET_HOME:-$HOME/.codex-pocket}"
 CONFIG_JSON="$APP_DIR/config.json"
-LABEL="com.codex.remote"
+LABEL="com.codex.pocket"
 
 bold=$'\033[1m'
 reset=$'\033[0m'
 
 usage() {
   cat <<USAGE
-Usage: codex-remote <command>
+Usage: codex-pocket <command>
 
 Commands:
   doctor                 Check dependencies and service health
@@ -25,7 +25,7 @@ Commands:
   pair                   Create a one-time pairing link (prints URL)
 
 Environment:
-  CODEX_REMOTE_HOME       Defaults to ~/.zane-local
+  CODEX_POCKET_HOME       Defaults to ~/.codex-pocket
 USAGE
 }
 
@@ -35,17 +35,6 @@ need_cmd() {
 
 read_config() {
   [[ -f "$CONFIG_JSON" ]] || { echo "Missing config: $CONFIG_JSON" >&2; exit 1; }
-}
-
-json_get() {
-  # Usage: json_get <python_expr>
-  python3 - "$@" <<'PY'
-import json,sys
-p=sys.argv[1]
-with open(sys.argv[2],'r') as f:
-  d=json.load(f)
-print(eval(p, {'d': d}))
-PY
 }
 
 base_url() {
@@ -76,7 +65,7 @@ curl_auth() {
 cmd_doctor() {
   echo "${bold}Dependencies${reset}"
   need_cmd git
-  need_cmd tailscale
+  need_cmd tailscale || true
   need_cmd bun || true
   if command -v codex >/dev/null 2>&1; then
     echo "codex: ok"
@@ -85,22 +74,14 @@ cmd_doctor() {
   fi
 
   echo ""
-  echo "${bold}Tailscale${reset}"
-  if tailscale status >/dev/null 2>&1; then
-    echo "tailscale: running"
-  else
-    echo "tailscale: not running/logged in"
-  fi
-
-  echo ""
   echo "${bold}Service${reset}"
   read_config
   local base
   base="$(base_url)"
   if curl -fsS "$base/health" >/dev/null 2>&1; then
-    echo "local-orbit: reachable at $base"
+    echo "service: reachable at $base"
   else
-    echo "local-orbit: not reachable at $base (try: codex-remote start)"
+    echo "service: not reachable at $base (try: codex-pocket start)"
   fi
 }
 

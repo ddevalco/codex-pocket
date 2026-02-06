@@ -1,6 +1,6 @@
-# Codex Remote
+# Codex Pocket
 
-Remote control for your local Codex (on your Mac) from your iPhone over Tailscale.
+Remote control for your local Codex on your Mac from your iPhone.
 
 This project started as a local-only fork of Zane (credit: https://github.com/z-siddiqi/zane):
 - No Cloudflare
@@ -43,9 +43,9 @@ Expose the service on your tailnet (run on Mac):
 tailscale serve --bg http://127.0.0.1:8790
 ```
 
-Then open on iPhone:
-- `https://<your-mac-magicdns-host>/admin`
-- Sign in once (token) or use the pairing QR
+Then open on your Mac (to pair your iPhone):
+- `http://127.0.0.1:8790/admin`
+- generate a pairing QR and scan it with your iPhone
 
 ## Developer Notes
 - Local server: `services/local-orbit/src/index.ts`
