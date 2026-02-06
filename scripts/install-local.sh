@@ -248,6 +248,11 @@ PY
   fi
 fi
 
+# Convenience: copy token to clipboard on macOS (best-effort).
+if command -v pbcopy >/dev/null 2>&1; then
+  printf "%s" "$ZANE_LOCAL_TOKEN" | pbcopy >/dev/null 2>&1 || true
+fi
+
 step "Building UI"
 (cd "$APP_DIR/app" && VITE_ZANE_LOCAL=1 "$BUN_BIN" run build)
 
