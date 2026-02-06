@@ -195,7 +195,7 @@
         <span class="section-title">Pair iPhone</span>
       </div>
       <div class="section-body stack">
-        <p class="hint">Generate a short-lived pairing code, then open the link on your iPhone (or scan once we add real QR).</p>
+        <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
         <div class="row buttons">
           <button class="primary" type="button" onclick={newPair} disabled={!auth.token}>New pairing code</button>
         </div>

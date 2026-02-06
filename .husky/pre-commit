@@ -1,2 +1,14 @@
-bunx lint-staged
-bunx tsc -p tsconfig.json --noEmit
+#!/usr/bin/env sh
+set -eu
+
+# Git hooks often run with a minimal PATH.
+# Ensure Bun installs (default: ~/.bun/bin) are available.
+export PATH="$HOME/.bun/bin:$PATH"
+
+if command -v bunx >/dev/null 2>&1; then
+  bunx lint-staged
+  bunx tsc -p tsconfig.json --noEmit
+else
+  bun x lint-staged
+  bun x tsc -p tsconfig.json --noEmit
+fi

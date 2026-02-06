@@ -235,7 +235,7 @@ step "Building UI"
 (cd "$APP_DIR/app" && VITE_ZANE_LOCAL=1 "$BUN_BIN" run build)
 
 CONFIG_JSON="$APP_DIR/config.json"
-DB_PATH="$APP_DIR/zane.db"
+DB_PATH="$APP_DIR/codex-pocket.db"
 ANCHOR_LOG="$APP_DIR/anchor.log"
 
 step "Writing config to $CONFIG_JSON"
