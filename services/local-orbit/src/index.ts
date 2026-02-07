@@ -1,5 +1,5 @@
 import { hostname, homedir } from "node:os";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
@@ -142,6 +142,12 @@ function startAnchor(): { ok: boolean; error?: string } {
   if (isAnchorRunning()) return { ok: true };
   try {
     mkdirSync(dirname(ANCHOR_LOG_PATH), { recursive: true });
+    // Ensure the log reflects the current run; stale log tails have been a major debugging footgun.
+    try {
+      writeFileSync(ANCHOR_LOG_PATH, "");
+    } catch {
+      // ignore
+    }
     const out = Bun.file(ANCHOR_LOG_PATH);
 
     // Anchor will connect back to this local-orbit instance as its Orbit endpoint.

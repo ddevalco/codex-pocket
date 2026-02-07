@@ -170,7 +170,9 @@
     if (!auth.token) return;
     if (pair) return;
     try {
-      const key = `codex-pocket:autoPairDone:${location.origin}`;
+      // Key includes a small token fingerprint so reinstall/new-token triggers auto-pair again.
+      const fp = auth.token.slice(-8);
+      const key = `codex-pocket:autoPairDone:${location.origin}:${fp}`;
       if (localStorage.getItem(key) === "1") {
         autoPairTried = true;
         return;
