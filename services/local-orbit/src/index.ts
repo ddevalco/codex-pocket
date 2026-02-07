@@ -521,6 +521,83 @@ function send(ws: WebSocket, data: unknown): void {
   }
 }
 
+type ThreadTitleMap = Record<string, string>;
+
+function getCodexGlobalStatePath(): string {
+  const env = (Bun.env.CODEX_GLOBAL_STATE_JSON || "").trim();
+  if (env) return env;
+  const home = (Bun.env.HOME || "").trim();
+  if (home) return `${home}/.codex/.codex-global-state.json`;
+  return ".codex/.codex-global-state.json";
+}
+
+let cachedThreadTitles: { path: string; mtimeMs: number; titles: ThreadTitleMap } | null = null;
+
+async function loadCodexThreadTitles(): Promise<ThreadTitleMap> {
+  const path = getCodexGlobalStatePath();
+  try {
+    const st = await Bun.file(path).stat();
+    const mtimeMs = st.mtimeMs ?? 0;
+    if (cachedThreadTitles && cachedThreadTitles.path === path && cachedThreadTitles.mtimeMs === mtimeMs) {
+      return cachedThreadTitles.titles;
+    }
+    const text = await Bun.file(path).text();
+    const json = JSON.parse(text) as any;
+    const titles = (json?.["thread-titles"]?.titles ?? json?.thread_titles?.titles ?? {}) as unknown;
+    const out: ThreadTitleMap = {};
+    if (titles && typeof titles === "object") {
+      for (const [k, v] of Object.entries(titles as Record<string, unknown>)) {
+        if (typeof k === "string" && typeof v === "string" && k.trim() && v.trim()) {
+          out[k] = v;
+        }
+      }
+    }
+    cachedThreadTitles = { path, mtimeMs, titles: out };
+    return out;
+  } catch {
+    cachedThreadTitles = { path, mtimeMs: 0, titles: {} };
+    return {};
+  }
+}
+
+async function injectThreadTitles(msg: Record<string, unknown>): Promise<void> {
+  const titles = await loadCodexThreadTitles();
+  if (!titles || Object.keys(titles).length === 0) return;
+
+  const method = typeof (msg as any).method === "string" ? ((msg as any).method as string) : null;
+  const params = (msg as any).params && typeof (msg as any).params === "object" ? (msg as any).params : null;
+  const result = (msg as any).result && typeof (msg as any).result === "object" ? (msg as any).result : null;
+
+  const applyToThread = (t: any) => {
+    if (!t || typeof t !== "object") return;
+    const id = typeof t.id === "string" ? t.id : typeof t.threadId === "string" ? t.threadId : null;
+    if (!id) return;
+    const title = titles[id];
+    if (!title) return;
+    // Only fill if upstream didn't already supply one.
+    if (typeof t.title !== "string" || !t.title.trim()) t.title = title;
+    if (typeof t.name !== "string" || !t.name.trim()) t.name = title;
+    if (typeof t.displayName !== "string" || !t.displayName.trim()) t.displayName = title;
+  };
+
+  if (method === "thread/started" && params?.thread) {
+    applyToThread(params.thread);
+    return;
+  }
+
+  if (method === "thread/list" && result?.data && Array.isArray(result.data)) {
+    for (const t of result.data) applyToThread(t);
+    return;
+  }
+
+  if (method === "thread/get" && result) {
+    if (result.thread) applyToThread(result.thread);
+    // Some upstream shapes return the thread object directly
+    if (typeof result.id === "string") applyToThread(result);
+    return;
+  }
+}
+
 // State
 const clientSockets = new Map<WebSocket, Set<string>>();
 const anchorSockets = new Map<WebSocket, Set<string>>();
@@ -570,7 +647,7 @@ function unsubscribeAll(role: Role, ws: WebSocket): void {
   subs.clear();
 }
 
-function relay(fromRole: Role, msgText: string): void {
+async function relay(fromRole: Role, msgText: string): Promise<void> {
   const msg = parseJsonMessage(msgText);
   if (!msg) return;
 
@@ -580,6 +657,20 @@ function relay(fromRole: Role, msgText: string): void {
       // handled in ws message handler (needs ws + role)
     }
     return;
+  }
+
+  // Best-effort: enrich thread objects with Codex desktop thread titles (if present locally).
+  // This keeps Codex Pocket thread list titles in sync with the Codex desktop UI.
+  // Only applies for server->client messages, since titles are a presentation concern.
+  let msgOut: string = msgText;
+  if (fromRole === "anchor") {
+    try {
+      const cloned = JSON.parse(msgText) as Record<string, unknown>;
+      await injectThreadTitles(cloned);
+      msgOut = JSON.stringify(cloned);
+    } catch {
+      // ignore
+    }
   }
 
   const threadId = extractThreadId(msg);
@@ -597,14 +688,14 @@ function relay(fromRole: Role, msgText: string): void {
       return;
     }
 
-    for (const ws of set ?? []) send(ws, msgText);
+    for (const ws of set ?? []) send(ws, msgOut);
     return;
   }
 
   // If no thread id, broadcast to all opposite-role sockets.
   const all = fromRole === "client" ? anchorSockets : clientSockets;
   logEvent(fromRole === "client" ? "client" : "server", fromRole, msgText);
-  for (const ws of all.keys()) send(ws, msgText);
+  for (const ws of all.keys()) send(ws, msgOut);
 }
 
 const server = Bun.serve<{ role: Role }>({
@@ -1016,7 +1107,7 @@ const server = Bun.serve<{ role: Role }>({
         broadcastToClients({ type: "orbit.anchor-connected", anchor: meta });
       }
     },
-    message(ws, message) {
+    async message(ws, message) {
       const role = ws.data.role;
       const text = typeof message === "string" ? message : new TextDecoder().decode(message);
 
@@ -1051,7 +1142,7 @@ const server = Bun.serve<{ role: Role }>({
         return;
       }
 
-      relay(role, text);
+      await relay(role, text);
     },
     close(ws) {
       const role = ws.data.role;
