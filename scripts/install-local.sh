@@ -106,7 +106,7 @@ EOT
 
 wait_for_local_orbit() {
   # Wait briefly for launchd to start the service.
-  local url="http://127.0.0.1:8790/health"
+  local url="http://127.0.0.1:${LOCAL_PORT}/health"
   local i
   for i in {1..30}; do
     if curl -fsS "$url" >/dev/null 2>&1; then
@@ -150,6 +150,10 @@ need_cmd_or_prompt_install() {
 
 step "Checking dependencies"
 need_cmd git
+
+# Default ports (may be auto-adjusted if in use)
+LOCAL_PORT="${ZANE_LOCAL_PORT:-8790}"
+ANCHOR_PORT="${ZANE_LOCAL_ANCHOR_PORT:-8788}"
 
 BUN_BIN="$(resolve_bun || true)"
 if [[ -z "${BUN_BIN:-}" ]]; then
@@ -265,7 +269,7 @@ cat > "$CONFIG_JSON" <<JSON
 {
   "token": "${ZANE_LOCAL_TOKEN}",
   "host": "127.0.0.1",
-  "port": 8790,
+  "port": ${LOCAL_PORT},
   "db": "${DB_PATH}",
   "publicOrigin": "${PUBLIC_ORIGIN}",
   "retentionDays": 14,
@@ -273,7 +277,7 @@ cat > "$CONFIG_JSON" <<JSON
   "anchor": {
     "cwd": "${APP_DIR}/app/services/anchor",
     "host": "127.0.0.1",
-    "port": 8788,
+    "port": ${ANCHOR_PORT},
     "log": "${ANCHOR_LOG}"
   }
 }
@@ -293,7 +297,7 @@ start_background() {
   nohup env \
     ZANE_LOCAL_TOKEN="$ZANE_LOCAL_TOKEN" \
     ZANE_LOCAL_HOST="127.0.0.1" \
-    ZANE_LOCAL_PORT="8790" \
+    ZANE_LOCAL_PORT="${LOCAL_PORT}" \
     ZANE_LOCAL_DB="$DB_PATH" \
     ZANE_LOCAL_PUBLIC_ORIGIN="$PUBLIC_ORIGIN" \
     ZANE_LOCAL_RETENTION_DAYS="14" \
@@ -301,7 +305,7 @@ start_background() {
     ZANE_LOCAL_ANCHOR_CWD="$APP_DIR/app/services/anchor" \
     ZANE_LOCAL_ANCHOR_LOG="$ANCHOR_LOG" \
     ANCHOR_HOST="127.0.0.1" \
-    ANCHOR_PORT="8788" \
+    ANCHOR_PORT="${ANCHOR_PORT}" \
     ZANE_LOCAL_AUTOSTART_ANCHOR="1" \
     "$BUN_BIN" run "$APP_DIR/app/services/local-orbit/src/index.ts" >>"$APP_DIR/server.log" 2>&1 &
   echo $! >"$PID_FILE"
@@ -330,8 +334,8 @@ cat > "$PLIST" <<PLISTXML
     <string>${ZANE_LOCAL_TOKEN}</string>
     <key>ZANE_LOCAL_HOST</key>
     <string>127.0.0.1</string>
-    <key>ZANE_LOCAL_PORT</key>
-    <string>8790</string>
+  <key>ZANE_LOCAL_PORT</key>
+  <string>${LOCAL_PORT}</string>
   <key>ZANE_LOCAL_DB</key>
   <string>${DB_PATH}</string>
   <key>ZANE_LOCAL_PUBLIC_ORIGIN</key>
@@ -346,8 +350,8 @@ cat > "$PLIST" <<PLISTXML
     <string>${ANCHOR_LOG}</string>
     <key>ANCHOR_HOST</key>
     <string>127.0.0.1</string>
-    <key>ANCHOR_PORT</key>
-    <string>8788</string>
+  <key>ANCHOR_PORT</key>
+  <string>${ANCHOR_PORT}</string>
     <key>ZANE_LOCAL_AUTOSTART_ANCHOR</key>
     <string>1</string>
   </dict>
@@ -376,13 +380,26 @@ fi
 # Safety net: only kill processes that match our script path.
 pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" >/dev/null 2>&1 || true
 
-# If something else is listening on 8790, offer options.
+find_free_port() {
+  local start="$1"
+  local end="$2"
+  local p
+  for p in $(seq "$start" "$end"); do
+    if ! lsof -nP -t -iTCP:"$p" -sTCP:LISTEN 2>/dev/null | head -n 1 | rg -q .; then
+      echo "$p"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# If something else is listening on LOCAL_PORT, offer options.
 if command -v lsof >/dev/null 2>&1; then
-  listener_pid="$(lsof -nP -t -iTCP:8790 -sTCP:LISTEN 2>/dev/null | head -n 1 || true)"
+  listener_pid="$(lsof -nP -t -iTCP:${LOCAL_PORT} -sTCP:LISTEN 2>/dev/null | head -n 1 || true)"
   if [[ -n "${listener_pid:-}" ]]; then
-    listener_line="$(lsof -nP -iTCP:8790 -sTCP:LISTEN 2>/dev/null | tail -n +2 | head -n 1 || true)"
+    listener_line="$(lsof -nP -iTCP:${LOCAL_PORT} -sTCP:LISTEN 2>/dev/null | tail -n +2 | head -n 1 || true)"
     echo "" >&2
-    echo "Port 8790 is already in use:" >&2
+    echo "Port ${LOCAL_PORT} is already in use:" >&2
     echo "  $listener_line" >&2
     if command -v ps >/dev/null 2>&1; then
       # Helpful context for non-technical users.
@@ -397,8 +414,15 @@ if command -v lsof >/dev/null 2>&1; then
         kill "$listener_pid" >/dev/null 2>&1 || true
         sleep 0.3
       else
-        echo "Aborting install. Re-run after stopping the process, or set ZANE_LOCAL_PORT to use a different port." >&2
-        exit 1
+        if confirm "Use a different port automatically instead?"; then
+          new_port="$(find_free_port 8791 8899 || true)"
+          [[ -n "${new_port:-}" ]] || abort "No free port found in 8791-8899."
+          LOCAL_PORT="$new_port"
+          echo "Using port ${LOCAL_PORT}." >&2
+        else
+          echo "Aborting install. Re-run after stopping the process, or set ZANE_LOCAL_PORT to use a different port." >&2
+          exit 1
+        fi
       fi
     else
       echo "This does not look like Codex Pocket (or it could not be verified)." >&2
@@ -409,14 +433,21 @@ if command -v lsof >/dev/null 2>&1; then
         kill "$listener_pid" >/dev/null 2>&1 || true
         sleep 0.3
       else
-        echo "Aborting install. Re-run after stopping the process, or set ZANE_LOCAL_PORT to use a different port." >&2
-        exit 1
+        if confirm "Use a different port automatically instead?"; then
+          new_port="$(find_free_port 8791 8899 || true)"
+          [[ -n "${new_port:-}" ]] || abort "No free port found in 8791-8899."
+          LOCAL_PORT="$new_port"
+          echo "Using port ${LOCAL_PORT}." >&2
+        else
+          echo "Aborting install. Re-run after stopping the process, or set ZANE_LOCAL_PORT to use a different port." >&2
+          exit 1
+        fi
       fi
     fi
 
     # Re-check after attempting to kill.
-    if lsof -nP -t -iTCP:8790 -sTCP:LISTEN 2>/dev/null | head -n 1 | rg -q .; then
-      echo "Error: port 8790 is still in use. Re-run after freeing it, or set ZANE_LOCAL_PORT to use a different port." >&2
+    if lsof -nP -t -iTCP:${LOCAL_PORT} -sTCP:LISTEN 2>/dev/null | head -n 1 | rg -q .; then
+      echo "Error: port ${LOCAL_PORT} is still in use. Re-run after freeing it, or set ZANE_LOCAL_PORT to use a different port." >&2
       exit 1
     fi
   fi
@@ -440,18 +471,18 @@ step "Waiting for service to start"
 if wait_for_local_orbit; then
   echo "Service: running"
 else
-  echo "Warning: service did not become healthy at http://127.0.0.1:8790/health" >&2
+  echo "Warning: service did not become healthy at http://127.0.0.1:${LOCAL_PORT}/health" >&2
   echo "Check logs: $APP_DIR/server.log" >&2
 fi
 
 step "Expose via Tailscale (recommended)"
 if confirm "Configure 'tailscale serve' for iPhone access now?"; then
-  serve_out="$("$TAILSCALE_BIN" serve --bg http://127.0.0.1:8790 2>&1)" || true
+  serve_out="$("$TAILSCALE_BIN" serve --bg http://127.0.0.1:${LOCAL_PORT} 2>&1)" || true
   if echo "$serve_out" | grep -qi "Serve is not enabled on your tailnet"; then
     echo "$serve_out" >&2
     echo "" >&2
     pause "After enabling Serve (see link above), press Enter to retry..."
-    serve_out="$("$TAILSCALE_BIN" serve --bg http://127.0.0.1:8790 2>&1)" || true
+    serve_out="$("$TAILSCALE_BIN" serve --bg http://127.0.0.1:${LOCAL_PORT} 2>&1)" || true
   fi
 
   if echo "$serve_out" | grep -qi "Available within your tailnet"; then
@@ -459,7 +490,7 @@ if confirm "Configure 'tailscale serve' for iPhone access now?"; then
   else
     echo "$serve_out" >&2
     echo "Warning: tailscale serve may not be configured. You can retry later with:" >&2
-    echo "  $TAILSCALE_BIN serve --bg http://127.0.0.1:8790" >&2
+    echo "  $TAILSCALE_BIN serve --bg http://127.0.0.1:${LOCAL_PORT}" >&2
   fi
 else
   echo "Skipping tailscale serve configuration."
@@ -469,7 +500,7 @@ cat <<EON
 
 To expose on your tailnet:
 
-  $TAILSCALE_BIN serve --bg http://127.0.0.1:8790
+  $TAILSCALE_BIN serve --bg http://127.0.0.1:${LOCAL_PORT}
 
 Then open on iPhone:
   https://$("$TAILSCALE_BIN" status --json 2>/dev/null | python3 -c 'import json,sys
@@ -495,8 +526,8 @@ echo ""
 step "Summary"
 echo "Install dir:      $APP_DIR/app"
 echo "Config:           $CONFIG_JSON"
-echo "Local URL:        http://127.0.0.1:8790"
-echo "Admin URL:        http://127.0.0.1:8790/admin"
+echo "Local URL:        http://127.0.0.1:${LOCAL_PORT}"
+echo "Admin URL:        http://127.0.0.1:${LOCAL_PORT}/admin"
 echo "Access Token:     $ZANE_LOCAL_TOKEN"
 echo "Service started via: $STARTED_VIA"
 echo "Launchd agent:    $PLIST"
