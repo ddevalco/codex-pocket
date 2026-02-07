@@ -15,6 +15,10 @@ This project started as a local-only fork of Zane (credit: https://github.com/z-
   - WebSockets (`/ws`) for realtime control
   - REST endpoints for event replay (`/threads/:id/events`)
 
+## Demo
+
+[![Codex Pocket demo](https://img.youtube.com/vi/kmH0hEY6Y7o/hqdefault.jpg)](https://www.youtube.com/watch?v=kmH0hEY6Y7o)
+
 ## Security Model
 - You must be on the same Tailscale tailnet as the Mac.
 - A single bearer token protects the WebSocket and admin API.
