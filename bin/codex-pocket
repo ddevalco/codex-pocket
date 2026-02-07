@@ -37,6 +37,27 @@ need_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }
 }
 
+resolve_tailscale() {
+  if command -v tailscale >/dev/null 2>&1; then
+    command -v tailscale
+    return 0
+  fi
+  # Tailscale's macOS GUI app bundles a CLI at this path.
+  if [[ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]]; then
+    echo "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+    return 0
+  fi
+  if [[ -x "/opt/homebrew/bin/tailscale" ]]; then
+    echo "/opt/homebrew/bin/tailscale"
+    return 0
+  fi
+  if [[ -x "/usr/local/bin/tailscale" ]]; then
+    echo "/usr/local/bin/tailscale"
+    return 0
+  fi
+  return 1
+}
+
 resolve_bun() {
   if command -v bun >/dev/null 2>&1; then
     command -v bun
@@ -203,8 +224,17 @@ wait_healthy() {
 cmd_doctor() {
   echo "${bold}Dependencies${reset}"
   need_cmd git
-  need_cmd tailscale || true
-  need_cmd bun || true
+  if ts="$(resolve_tailscale 2>/dev/null)"; then
+    echo "tailscale: ok ($ts)"
+  else
+    echo "Missing dependency: tailscale" >&2
+    echo "Install Tailscale first: https://tailscale.com/download" >&2
+  fi
+  if bunp="$(resolve_bun 2>/dev/null)"; then
+    echo "bun: ok ($bunp)"
+  else
+    echo "bun: missing (install Bun: https://bun.sh)" >&2
+  fi
   if command -v codex >/dev/null 2>&1; then
     echo "codex: ok"
   else
