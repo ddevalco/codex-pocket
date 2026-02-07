@@ -601,7 +601,7 @@ cmd_ensure() {
   echo "Validating..."
   local code body
   local resp
-  resp="$(curl_auth_soft_with_code "$base/admin/validate" 2>/dev/null || true)"
+  resp="$(curl_auth_soft_with_code "$base/admin/validate" || true)"
   CODE=""
   BODY=""
   printf '%s' "$resp" | split_code_body
@@ -635,7 +635,7 @@ cmd_ensure() {
   curl_auth "$base/admin/repair" -X POST -H 'content-type: application/json' -d '{"actions":["ensureUploadDir","startAnchor","pruneUploads","fixTailscaleServe"]}' >/dev/null 2>&1 || true
 
   echo "Re-validating..."
-  resp="$(curl_auth_soft_with_code "$base/admin/validate" 2>/dev/null || true)"
+  resp="$(curl_auth_soft_with_code "$base/admin/validate" || true)"
   CODE=""
   BODY=""
   printf '%s' "$resp" | split_code_body
@@ -686,7 +686,7 @@ cmd_smoke_test() {
   # 2) validate (requires token)
   local code body
   local resp
-  resp="$(curl_auth_soft_with_code "$base/admin/validate" 2>/dev/null || true)"
+  resp="$(curl_auth_soft_with_code "$base/admin/validate" || true)"
   CODE=""
   BODY=""
   printf '%s' "$resp" | split_code_body
