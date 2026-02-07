@@ -34,6 +34,27 @@ If anything doesn’t work, run:
 ~/.codex-pocket/bin/codex-pocket ensure
 ```
 
+### Common First-Run Issues
+
+- **"Serve is not enabled on your tailnet"**
+  - Tailscale may require you to explicitly enable Serve in your tailnet admin settings.
+  - Run `tailscale serve --bg http://127.0.0.1:8790` and follow the link Tailscale prints to enable Serve.
+
+- **Admin shows "Failed to fetch" or stays on "Loading..."**
+  - The browser can’t reach the local server.
+  - Run `~/.codex-pocket/bin/codex-pocket ensure`.
+
+- **Admin asks for the Access Token again**
+  - If you reinstalled or rotated the token, the browser must re-auth.
+  - Run `~/.codex-pocket/bin/codex-pocket token` to print it.
+
+- **iPhone opens the tailnet URL but shows disconnected / no device**
+  - Confirm Tailscale is connected on iPhone and Mac.
+  - Open `/admin` on the Mac and click **Validate** then **Repair**.
+
+- **Port conflict / service won’t start**
+  - Run `~/.codex-pocket/bin/codex-pocket diagnose` to see what’s listening and the latest logs.
+
 ## How Codex Pocket Differs From Zane
 Codex Pocket is a focused fork for a single use case: **run Codex locally on macOS and access it securely from iPhone over Tailscale**.
 
