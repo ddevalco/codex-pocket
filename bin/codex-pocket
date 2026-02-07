@@ -637,15 +637,35 @@ cmd_update() {
   (cd "$repo_dir" && "$bun_bin" run build)
 
   # Self-update the CLI if possible.
-  if [[ -f "$repo_dir/bin/codex-pocket" ]]; then
+  #
+  # IMPORTANT: Don't overwrite the currently-running script mid-flight.
+  # Bash reads scripts as it executes; truncating $0 can yield "unexpected EOF".
+  local cli_src="$repo_dir/bin/codex-pocket"
+  local cli_dst="$APP_DIR/bin/codex-pocket"
+  local cli_tmp="$APP_DIR/bin/codex-pocket.new"
+  local self_path
+  self_path="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+  local defer_cli_swap="0"
+  if [[ -f "$cli_src" ]]; then
     mkdir -p "$APP_DIR/bin" >/dev/null 2>&1 || true
-    cp "$repo_dir/bin/codex-pocket" "$APP_DIR/bin/codex-pocket" >/dev/null 2>&1 || true
-    chmod +x "$APP_DIR/bin/codex-pocket" >/dev/null 2>&1 || true
+    cp "$cli_src" "$cli_tmp" >/dev/null 2>&1 || true
+    chmod +x "$cli_tmp" >/dev/null 2>&1 || true
+    if [[ "$self_path" == "$cli_dst" ]]; then
+      defer_cli_swap="1"
+    else
+      mv -f "$cli_tmp" "$cli_dst" >/dev/null 2>&1 || true
+      defer_cli_swap="0"
+    fi
   fi
 
   # Start and verify health before returning.
   cmd_start
   echo "Updated ${old:-?} -> ${new:-?}"
+
+  # Finalize CLI swap only after all work is done.
+  if [[ "$defer_cli_swap" == "1" ]]; then
+    mv -f "$cli_tmp" "$cli_dst" >/dev/null 2>&1 || true
+  fi
 }
 
 main() {
