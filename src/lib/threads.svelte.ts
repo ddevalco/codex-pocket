@@ -13,6 +13,34 @@ const DEFAULT_SETTINGS: ThreadSettings = {
   mode: "code",
 };
 
+
+function normalizeThreadInfo(input: any): ThreadInfo {
+  const thread = input && typeof input === "object" ? input : {};
+  const id = String(thread.id ?? "");
+  const title = typeof thread.title === "string" ? thread.title : typeof thread.name === "string" ? thread.name : undefined;
+  const preview =
+    typeof thread.preview === "string"
+      ? thread.preview
+      : typeof thread.summary === "string"
+        ? thread.summary
+        : undefined;
+  const createdAt =
+    typeof thread.createdAt === "number"
+      ? thread.createdAt
+      : typeof thread.created_at === "number"
+        ? thread.created_at
+        : undefined;
+  const modelProvider = typeof thread.modelProvider === "string" ? thread.modelProvider : typeof thread.model_provider === "string" ? thread.model_provider : undefined;
+
+  return {
+    id,
+    ...(preview ? { preview } : {}),
+    ...(title ? { title, name: title } : {}),
+    ...(createdAt != null ? { createdAt } : {}),
+    ...(modelProvider ? { modelProvider } : {}),
+  };
+}
+
 class ThreadsStore {
   list = $state<ThreadInfo[]>([]);
   currentId = $state<string | null>(null);
@@ -150,10 +178,11 @@ class ThreadsStore {
 
   handleMessage(msg: RpcMessage) {
     if (msg.method === "thread/started") {
-      const params = msg.params as { thread: ThreadInfo };
+      const params = msg.params as { thread: any };
       if (params?.thread) {
-        socket.subscribeThread(params.thread.id);
-        this.#handleNewThread(params.thread);
+        const thread = normalizeThreadInfo(params.thread);
+        socket.subscribeThread(thread.id);
+        this.#handleNewThread(thread);
       }
       return;
     }
@@ -163,8 +192,8 @@ class ThreadsStore {
       this.#pendingRequests.delete(msg.id as number);
 
       if (type === "list" && msg.result) {
-        const result = msg.result as { data: ThreadInfo[] };
-        this.list = result.data || [];
+        const result = msg.result as { data: any[] };
+        this.list = (result.data || []).map(normalizeThreadInfo).filter((t) => t.id);
         this.loading = false;
       }
 
@@ -179,12 +208,12 @@ class ThreadsStore {
 
       if (type === "start" && msg.result) {
         const result = msg.result as {
-          thread?: ThreadInfo;
+          thread?: any;
           model?: string;
           reasoningEffort?: ReasoningEffort;
           sandbox?: { type?: string } | string;
         };
-        const thread = result.thread;
+        const thread = result.thread ? normalizeThreadInfo(result.thread) : null;
         if (thread?.id) {
           const sandbox = this.#normalizeSandbox(result.sandbox);
           this.updateSettings(thread.id, {

@@ -8,6 +8,8 @@ export type ConnectionStatus =
 export interface ThreadInfo {
   id: string;
   preview?: string;
+  title?: string;
+  name?: string;
   createdAt?: number;
   modelProvider?: string;
 }

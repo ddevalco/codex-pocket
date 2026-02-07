@@ -151,16 +151,19 @@
 
     <div class="footer split">
       <div class="tools row">
-        <!-- Image upload -->
-        <label class="tool-btn row" title="Attach image">
-          <input
-            class="file-input"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onchange={handlePickImage}
-            disabled={disabled || uploadBusy}
-          />
+	        <!-- Image upload -->
+	        <!--
+	          On iOS Safari, `capture` forces the camera UI and can hide the photo library picker.
+	          We want the user to be able to choose either Camera or Photo Library.
+	        -->
+	        <label class="tool-btn row" title="Attach image">
+	          <input
+	            class="file-input"
+	            type="file"
+	            accept="image/*"
+	            onchange={handlePickImage}
+	            disabled={disabled || uploadBusy}
+	          />
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15V8a2 2 0 0 0-2-2h-3l-2-2H10L8 6H5a2 2 0 0 0-2 2v7" />
             <path d="M3 15l4-4 4 4 4-4 6 6" />

@@ -149,7 +149,7 @@
             <li class="thread-item row">
               <a class="thread-link row" href="/thread/{thread.id}">
                 <span class="thread-icon">›</span>
-                <span class="thread-preview">{thread.preview || "New thread"}</span>
+                <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
                 <span class="thread-meta">{formatTime(thread.createdAt)}</span>
               </a>
               <button
