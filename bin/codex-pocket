@@ -790,6 +790,30 @@ print(f"http://{d.get('host','127.0.0.1')}:{d.get('port',8790)}")
 PY
 }
 
+cfg() {
+  # Print a config key (top-level) or empty string if missing.
+  local key="$1"
+  python3 - "$CONFIG_JSON" "$key" <<'PY'
+import json,sys
+path=sys.argv[1]; key=sys.argv[2]
+with open(path) as f:
+  d=json.load(f)
+v=d.get(key,"")
+if v is None: v=""
+print(v)
+PY
+}
+
+cfg_anchor_port() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+aport=((d.get("anchor") or {}).get("port")) or 8788
+print(aport)
+PY
+}
+
 stop_service() {
   launchctl unload "$HOME/Library/LaunchAgents/${LABEL}.plist" >/dev/null 2>&1 || true
   pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" >/dev/null 2>&1 || true
@@ -803,7 +827,30 @@ start_service() {
   if ! curl -fsS "$base/health" >/dev/null 2>&1; then
     # launchctl may fail; fallback to background. local-orbit can fully configure itself
     # from this JSON (includes token/ports/paths).
-    nohup env ZANE_LOCAL_CONFIG_JSON="$CONFIG_JSON" \
+    local tok host port db ret pub ui_dist aport
+    tok="$(cfg token)"
+    host="$(cfg host)"; [[ -n "$host" ]] || host="127.0.0.1"
+    port="$(cfg port)"; [[ -n "$port" ]] || port="8790"
+    db="$(cfg db)"
+    ret="$(cfg retentionDays)"; [[ -n "$ret" ]] || ret="14"
+    pub="$(cfg publicOrigin)"
+    ui_dist="$APP_DIR/app/dist"
+    aport="$(cfg_anchor_port)"
+    nohup env \
+      ZANE_LOCAL_TOKEN="$tok" \
+      ZANE_LOCAL_CONFIG_JSON="$CONFIG_JSON" \
+      ZANE_LOCAL_HOST="$host" \
+      ZANE_LOCAL_PORT="$port" \
+      ZANE_LOCAL_DB="$db" \
+      ZANE_LOCAL_RETENTION_DAYS="$ret" \
+      ZANE_LOCAL_PUBLIC_ORIGIN="$pub" \
+      ZANE_LOCAL_UI_DIST_DIR="$ui_dist" \
+      ZANE_LOCAL_ANCHOR_CWD="$APP_DIR/app/services/anchor" \
+      ZANE_LOCAL_ANCHOR_LOG="$APP_DIR/anchor.log" \
+      ANCHOR_HOST="127.0.0.1" \
+      ANCHOR_PORT="$aport" \
+      ZANE_LOCAL_ANCHOR_CMD="$bun_bin" \
+      ZANE_LOCAL_AUTOSTART_ANCHOR="1" \
       "$bun_bin" run "$APP_DIR/app/services/local-orbit/src/index.ts" >>"$APP_DIR/server.log" 2>&1 </dev/null &
   fi
   # Wait a moment for health
