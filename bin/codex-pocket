@@ -74,6 +74,24 @@ print(d.get('token',''))
 PY
 }
 
+public_origin() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+print(d.get('publicOrigin',''))
+PY
+}
+
+anchor_port() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+print(((d.get("anchor") or {}).get("port")) or 8788)
+PY
+}
+
 curl_auth() {
   local url="$1"; shift
   local tok
@@ -127,6 +145,10 @@ cmd_start() {
     echo "launchctl load failed (error 5). Starting in background instead (no auto-start on login)." >&2
     rm -f "$PID_FILE" >/dev/null 2>&1 || true
     touch "$APP_DIR/server.log" >/dev/null 2>&1 || true
+    local pub
+    pub="$(public_origin)"
+    local aport
+    aport="$(anchor_port)"
     nohup env \
       ZANE_LOCAL_TOKEN="$(token)" \
       ZANE_LOCAL_HOST="127.0.0.1" \
@@ -142,14 +164,16 @@ PY
 import json,sys
 with open(sys.argv[1]) as f:
   d=json.load(f)
-print(d.get("retentionDays",14))
+	print(d.get("retentionDays",14))
 PY
 )" \
+      ZANE_LOCAL_PUBLIC_ORIGIN="$pub" \
       ZANE_LOCAL_UI_DIST_DIR="$APP_DIR/app/dist" \
       ZANE_LOCAL_ANCHOR_CWD="$APP_DIR/app/services/anchor" \
       ZANE_LOCAL_ANCHOR_LOG="$APP_DIR/anchor.log" \
       ANCHOR_HOST="127.0.0.1" \
-      ANCHOR_PORT="8788" \
+      ANCHOR_PORT="$aport" \
+      ZANE_LOCAL_ANCHOR_CMD="$bun_bin" \
       ZANE_LOCAL_AUTOSTART_ANCHOR="1" \
       "$bun_bin" run "$APP_DIR/app/services/local-orbit/src/index.ts" >>"$APP_DIR/server.log" 2>&1 &
     echo $! >"$PID_FILE"
