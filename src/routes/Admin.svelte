@@ -18,6 +18,7 @@
   let logs = $state<string>("");
   let pair = $state<{ code: string; pairUrl: string; expiresAt: number } | null>(null);
   let pairQrObjectUrl = $state<string>("");
+  let autoPairTried = $state(false);
 
   async function loadStatus() {
     statusError = null;
@@ -161,6 +162,30 @@
       if (pairQrObjectUrl) URL.revokeObjectURL(pairQrObjectUrl);
     };
   });
+
+  $effect(() => {
+    // First-run UX: auto-generate a pairing code once after auth succeeds so the user immediately sees a QR.
+    // We persist a local flag to avoid minting a new code on every page refresh.
+    if (autoPairTried) return;
+    if (!auth.token) return;
+    if (pair) return;
+    try {
+      const key = `codex-pocket:autoPairDone:${location.origin}`;
+      if (localStorage.getItem(key) === "1") {
+        autoPairTried = true;
+        return;
+      }
+      autoPairTried = true;
+      void (async () => {
+        await newPair();
+        localStorage.setItem(key, "1");
+      })();
+    } catch {
+      // localStorage may be blocked; still try once per load.
+      autoPairTried = true;
+      void newPair();
+    }
+  });
 </script>
 
 <div class="admin stack">
@@ -227,7 +252,7 @@
           <p class="hint hint-error">{pairError}</p>
         {/if}
         <div class="row buttons">
-          <button class="primary" type="button" onclick={newPair} disabled={!auth.token}>New pairing code</button>
+          <button class="primary" type="button" onclick={newPair} disabled={!auth.token}>Regenerate pairing code</button>
         </div>
         {#if !auth.token}
           <p class="hint hint-error">Sign in first (token required) to create pairing codes.</p>

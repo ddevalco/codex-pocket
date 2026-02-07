@@ -117,6 +117,19 @@ wait_for_local_orbit() {
   return 1
 }
 
+wait_for_admin_auth() {
+  # Verify admin API works (auth token accepted) before telling the user we're ready.
+  local url="http://127.0.0.1:${LOCAL_PORT}/admin/status"
+  local i
+  for i in {1..30}; do
+    if curl -fsS -H "Authorization: Bearer ${ZANE_LOCAL_TOKEN}" "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.5
+  done
+  return 1
+}
+
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || abort "Missing dependency: $1"
 }
@@ -304,6 +317,7 @@ start_background() {
     ZANE_LOCAL_UI_DIST_DIR="$APP_DIR/app/dist" \
     ZANE_LOCAL_ANCHOR_CWD="$APP_DIR/app/services/anchor" \
     ZANE_LOCAL_ANCHOR_LOG="$ANCHOR_LOG" \
+    ZANE_LOCAL_ANCHOR_CMD="$BUN_BIN" \
     ANCHOR_HOST="127.0.0.1" \
     ANCHOR_PORT="${ANCHOR_PORT}" \
     ZANE_LOCAL_AUTOSTART_ANCHOR="1" \
@@ -379,6 +393,18 @@ if [[ -f "$PID_FILE" ]]; then
 fi
 # Safety net: only kill processes that match our script path.
 pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" >/dev/null 2>&1 || true
+pkill -f "$APP_DIR/app/services/anchor/src/index.ts" >/dev/null 2>&1 || true
+
+# Final safety net: kill anything still listening on our ports.
+if command -v lsof >/dev/null 2>&1; then
+  for p in "$LOCAL_PORT" "$ANCHOR_PORT"; do
+    lpids="$(lsof -nP -t -iTCP:"$p" -sTCP:LISTEN 2>/dev/null || true)"
+    if [[ -n "${lpids:-}" ]]; then
+      # shellcheck disable=SC2086
+      kill $lpids >/dev/null 2>&1 || true
+    fi
+  done
+fi
 
 find_free_port() {
   local start="$1"
@@ -475,6 +501,14 @@ else
   echo "Check logs: $APP_DIR/server.log" >&2
 fi
 
+step "Validating admin API"
+if wait_for_admin_auth; then
+  echo "Admin: authorized"
+else
+  echo "Warning: admin API did not authorize at http://127.0.0.1:${LOCAL_PORT}/admin/status" >&2
+  echo "You may have a stale process or token mismatch. Check logs: $APP_DIR/server.log" >&2
+fi
+
 step "Expose via Tailscale (recommended)"
 if confirm "Configure 'tailscale serve' for iPhone access now?"; then
   serve_out="$("$TAILSCALE_BIN" serve --bg http://127.0.0.1:${LOCAL_PORT} 2>&1)" || true
@@ -556,5 +590,10 @@ echo "Installed."
 
 echo ""
 if confirm "Open the Admin page now (to pair your iPhone)?"; then
-  open "http://127.0.0.1:8790/admin" >/dev/null 2>&1 || true
+  if curl -fsS "http://127.0.0.1:${LOCAL_PORT}/health" >/dev/null 2>&1; then
+    open "http://127.0.0.1:${LOCAL_PORT}/admin" >/dev/null 2>&1 || true
+  else
+    echo "Not opening Admin because the service is not reachable at http://127.0.0.1:${LOCAL_PORT}/health" >&2
+    echo "Check logs: $APP_DIR/server.log" >&2
+  fi
 fi
