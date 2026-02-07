@@ -75,6 +75,14 @@ class ThreadsStore {
       id,
       params: { threadId },
     });
+
+    // Some Codex app-server versions do not replay historical turns on thread/resume.
+    // Try a best-effort fetch to backfill transcript for existing threads.
+    socket.send({
+      method: "thread/get",
+      id: this.#nextId++,
+      params: { threadId, includeTurns: true, include_turns: true },
+    });
   }
 
   start(
