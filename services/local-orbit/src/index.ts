@@ -40,10 +40,13 @@ const ANCHOR_PORT = Number(process.env.ANCHOR_PORT ?? 8788);
 const AUTOSTART_ANCHOR = process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
 const PAIR_TTL_SEC = Number(process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
 
+const DEFAULT_CONFIG_JSON_PATH = join(homedir(), ".codex-pocket", "config.json");
+
 function loadConfigJson(): Record<string, unknown> | null {
-  if (!CONFIG_JSON_PATH) return null;
+  const path = CONFIG_JSON_PATH || (existsSync(DEFAULT_CONFIG_JSON_PATH) ? DEFAULT_CONFIG_JSON_PATH : "");
+  if (!path) return null;
   try {
-    const text = Bun.file(CONFIG_JSON_PATH).textSync();
+    const text = Bun.file(path).textSync();
     return JSON.parse(text) as Record<string, unknown>;
   } catch {
     return null;
