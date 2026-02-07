@@ -531,6 +531,7 @@ cmd_ensure() {
 
   echo "Validating..."
   local v
+  # Don't hide parse failures: capture stdout only, but tolerate non-JSON bodies.
   v="$(curl_auth "$base/admin/validate" 2>/dev/null || true)"
   if [[ -z "${v:-}" ]]; then
     echo "Validate failed (auth?). If /admin is asking for a token, run: codex-pocket token" >&2
@@ -539,7 +540,13 @@ cmd_ensure() {
 
   echo "$v" | python3 - <<'PY'
 import json,sys
-d=json.load(sys.stdin)
+raw=sys.stdin.read()
+try:
+  d=json.loads(raw)
+except Exception as e:
+  print("Validate returned non-JSON. First 200 bytes:", file=sys.stderr)
+  print(raw[:200], file=sys.stderr)
+  raise
 print("OK" if d.get("ok") else "ISSUES")
 PY
 
@@ -549,7 +556,13 @@ PY
   echo "Re-validating..."
   curl_auth "$base/admin/validate" | python3 - <<'PY'
 import json,sys
-d=json.load(sys.stdin)
+raw=sys.stdin.read()
+try:
+  d=json.loads(raw)
+except Exception:
+  print("Re-validate returned non-JSON. First 200 bytes:", file=sys.stderr)
+  print(raw[:200], file=sys.stderr)
+  raise
 ok=bool(d.get('ok'))
 print("OK" if ok else "NOT OK")
 if not ok:
