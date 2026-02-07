@@ -591,10 +591,15 @@ async function deviceLogin(): Promise<boolean> {
 console.log(`[anchor] starting (local listen disabled) host=${HOST} port=${PORT}`);
 
 async function startup() {
+  // Prefer explicit env (local-orbit passes a shared bearer token via env).
+  // Saved credentials are only used as a fallback.
+  ZANE_ANCHOR_JWT_SECRET = (process.env.ZANE_ANCHOR_JWT_SECRET ?? "").trim();
+  USER_ID = (process.env.ZANE_USER_ID ?? "").trim() || undefined;
+
   const saved = await loadCredentials();
   if (saved) {
-    ZANE_ANCHOR_JWT_SECRET = saved.anchorJwtSecret;
-    USER_ID = saved.userId;
+    if (!ZANE_ANCHOR_JWT_SECRET) ZANE_ANCHOR_JWT_SECRET = saved.anchorJwtSecret;
+    if (!USER_ID) USER_ID = saved.userId;
   }
 
   // Local-only mode: when AUTH_URL is unset/empty we cannot do "device login".
