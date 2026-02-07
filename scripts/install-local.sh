@@ -376,14 +376,49 @@ fi
 # Safety net: only kill processes that match our script path.
 pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" >/dev/null 2>&1 || true
 
-# If something else is listening on 8790, abort with a clear error.
+# If something else is listening on 8790, offer options.
 if command -v lsof >/dev/null 2>&1; then
-  listener="$(lsof -nP -iTCP:8790 -sTCP:LISTEN 2>/dev/null | tail -n +2 | head -n 1 || true)"
-  if [[ -n "${listener:-}" ]]; then
-    echo "Error: port 8790 is already in use:" >&2
-    echo "  $listener" >&2
-    echo "Stop the process using 8790, or change ZANE_LOCAL_PORT in the installer/config." >&2
-    exit 1
+  listener_pid="$(lsof -nP -t -iTCP:8790 -sTCP:LISTEN 2>/dev/null | head -n 1 || true)"
+  if [[ -n "${listener_pid:-}" ]]; then
+    listener_line="$(lsof -nP -iTCP:8790 -sTCP:LISTEN 2>/dev/null | tail -n +2 | head -n 1 || true)"
+    echo "" >&2
+    echo "Port 8790 is already in use:" >&2
+    echo "  $listener_line" >&2
+    if command -v ps >/dev/null 2>&1; then
+      # Helpful context for non-technical users.
+      echo "Process details:" >&2
+      ps -p "$listener_pid" -o pid=,comm=,args= 2>/dev/null || true
+    fi
+    echo "" >&2
+
+    # If it looks like a previous codex-pocket/local-orbit Bun process, we can kill it safely.
+    if ps -p "$listener_pid" -o args= 2>/dev/null | grep -q "$APP_DIR/app/services/local-orbit/src/index.ts"; then
+      if confirm "It looks like an old Codex Pocket server. Kill it and continue?"; then
+        kill "$listener_pid" >/dev/null 2>&1 || true
+        sleep 0.3
+      else
+        echo "Aborting install. Re-run after stopping the process, or set ZANE_LOCAL_PORT to use a different port." >&2
+        exit 1
+      fi
+    else
+      echo "This does not look like Codex Pocket (or it could not be verified)." >&2
+      echo "Options:" >&2
+      echo "  1) Stop that process and re-run this installer." >&2
+      echo "  2) Re-run with a different port, e.g.: ZANE_LOCAL_PORT=8791" >&2
+      if confirm "Kill PID $listener_pid anyway and continue?"; then
+        kill "$listener_pid" >/dev/null 2>&1 || true
+        sleep 0.3
+      else
+        echo "Aborting install. Re-run after stopping the process, or set ZANE_LOCAL_PORT to use a different port." >&2
+        exit 1
+      fi
+    fi
+
+    # Re-check after attempting to kill.
+    if lsof -nP -t -iTCP:8790 -sTCP:LISTEN 2>/dev/null | head -n 1 | rg -q .; then
+      echo "Error: port 8790 is still in use. Re-run after freeing it, or set ZANE_LOCAL_PORT to use a different port." >&2
+      exit 1
+    fi
   fi
 fi
 
