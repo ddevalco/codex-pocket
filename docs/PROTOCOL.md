@@ -1,0 +1,104 @@
+# Codex Pocket Protocol (local-orbit)
+
+This document describes the lightweight protocol used between:
+- **Client**: the web UI (Mac/iPhone browser)
+- **local-orbit**: the local server (`services/local-orbit/src/index.ts`)
+- **Anchor**: the Mac agent (`services/anchor/src/index.ts`) which spawns `codex app-server`
+
+Codex Pocket aims to be permissive about upstream `codex app-server` response shapes, but this document captures what Codex Pocket itself sends and expects.
+
+## Transports
+
+- HTTP: local-orbit serves static UI, admin endpoints, pairing, and event replay.
+- WebSocket: realtime bidirectional relay.
+
+### WebSocket endpoints
+
+- `GET /ws` (alias for `/ws/client`)
+- `GET /ws/client`
+- `GET /ws/anchor`
+
+All WS endpoints require auth:
+- `?token=<access-token>` query param, or
+- `Authorization: Bearer <access-token>` header
+
+## Orbit Control Messages (non-JSON-RPC)
+
+These are JSON objects with a `type` field.
+
+### Client -> local-orbit
+
+- `{ "type": "ping" }`
+  - Heartbeat. Server responds with `{ "type": "pong" }`.
+
+- `{ "type": "orbit.list-anchors" }`
+  - Requests current anchors.
+
+- `{ "type": "orbit.subscribe", "threadId": "..." }`
+  - Subscribe client to a thread.
+
+- `{ "type": "orbit.unsubscribe", "threadId": "..." }`
+  - Unsubscribe client from a thread.
+
+### Anchor -> local-orbit
+
+- `{ "type": "anchor.hello", "hostname": "...", "platform": "...", "ts": "..." }`
+  - Announces anchor identity.
+
+### local-orbit -> Client
+
+- `{ "type": "orbit.hello", "role": "client"|"anchor", "ts": "..." }`
+- `{ "type": "orbit.anchors", "anchors": [ ... ] }`
+- `{ "type": "orbit.anchor-connected", "anchor": { ... } }`
+- `{ "type": "orbit.anchor-disconnected", "anchor": { ... } }`
+
+### local-orbit -> Anchor
+
+- `{ "type": "orbit.client-subscribed", "threadId": "..." }`
+  - Used by Anchor to optionally replay buffered approval prompts.
+
+## JSON-RPC Relay
+
+After subscription, the web UI sends JSON-RPC messages (e.g. `thread/list`, `thread/resume`, `turn/start`) over the WS.
+
+local-orbit does not implement the full RPC surface. Instead, it:
+- stores selected events in SQLite
+- relays client JSON-RPC to Anchor
+- relays Anchor/app-server output back to subscribed clients
+
+### Important routing behavior
+
+If a client sends a thread-scoped JSON-RPC message before any anchor is subscribed to that thread,
+local-orbit will broadcast the message to all anchors so the anchor can observe the `threadId` and subscribe.
+
+## Pairing
+
+### Admin mints pairing codes
+
+- `POST /admin/pair/new` (auth required)
+  - returns `{ code, expiresAt, pairUrl }`
+
+- `GET /admin/pair/qr.svg?code=...` (auth required)
+  - returns an SVG QR code encoding the pairing URL.
+
+### iPhone consumes pairing code
+
+- `POST /pair/consume` (no auth)
+  - body: `{ "code": "..." }`
+  - returns `{ "token": "..." }`
+  - codes are one-time use and expire.
+
+## Persistence
+
+local-orbit stores events in SQLite (default `~/.codex-pocket/codex-pocket.db`).
+
+- `GET /threads/:id/events` (auth required)
+  - returns NDJSON (one JSON object per line)
+
+## Admin debug
+
+- `GET /admin/debug/events?limit=50` (auth required)
+  - returns the last N stored event payloads (redacted).
+
+- `POST /admin/token/rotate` (auth required)
+  - rotates the Access Token, persists it to `config.json` (if configured), clears pairing codes, and disconnects clients.

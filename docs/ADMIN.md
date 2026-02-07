@@ -19,3 +19,7 @@ Open `/admin` in the browser.
 ## SQLite persistence
 - local-orbit stores selected events in SQLite (default `~/.codex-pocket/codex-pocket.db`).
 - Retention is configured via `ZANE_LOCAL_RETENTION_DAYS` (default 14 days).
+
+## Debug tools
+- "Debug" shows the last stored events (redacted). This helps diagnose issues where threads appear but transcripts are blank.
+- "Rotate access token" rotates the bearer token and disconnects all devices. After rotating, you must sign in again on Mac/iPhone.

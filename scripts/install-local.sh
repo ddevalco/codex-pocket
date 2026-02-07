@@ -323,6 +323,7 @@ start_background() {
   touch "$APP_DIR/server.log" >/dev/null 2>&1 || true
   nohup env \
     ZANE_LOCAL_TOKEN="$ZANE_LOCAL_TOKEN" \
+    ZANE_LOCAL_CONFIG_JSON="$CONFIG_JSON" \
     ZANE_LOCAL_HOST="127.0.0.1" \
     ZANE_LOCAL_PORT="${LOCAL_PORT}" \
     ZANE_LOCAL_DB="$DB_PATH" \
@@ -357,11 +358,13 @@ cat > "$PLIST" <<PLISTXML
   <key>WorkingDirectory</key>
   <string>${APP_DIR}/app</string>
   <key>EnvironmentVariables</key>
-  <dict>
-    <key>ZANE_LOCAL_TOKEN</key>
-    <string>${ZANE_LOCAL_TOKEN}</string>
-    <key>ZANE_LOCAL_HOST</key>
-    <string>127.0.0.1</string>
+<dict>
+  <key>ZANE_LOCAL_TOKEN</key>
+  <string>${ZANE_LOCAL_TOKEN}</string>
+  <key>ZANE_LOCAL_CONFIG_JSON</key>
+  <string>${CONFIG_JSON}</string>
+  <key>ZANE_LOCAL_HOST</key>
+  <string>127.0.0.1</string>
   <key>ZANE_LOCAL_PORT</key>
   <string>${LOCAL_PORT}</string>
   <key>ZANE_LOCAL_DB</key>

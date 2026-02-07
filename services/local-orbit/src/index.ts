@@ -18,7 +18,8 @@ import QRCode from "qrcode";
 
 const PORT = Number(process.env.ZANE_LOCAL_PORT ?? 8790);
 const HOST = process.env.ZANE_LOCAL_HOST ?? "127.0.0.1";
-const AUTH_TOKEN = (process.env.ZANE_LOCAL_TOKEN ?? "").trim();
+const CONFIG_JSON_PATH = (process.env.ZANE_LOCAL_CONFIG_JSON ?? "").trim();
+let AUTH_TOKEN = (process.env.ZANE_LOCAL_TOKEN ?? "").trim();
 const DB_PATH = process.env.ZANE_LOCAL_DB ?? `${homedir()}/.codex-pocket/codex-pocket.db`;
 const DB_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_RETENTION_DAYS ?? 14);
 const UI_DIST_DIR = process.env.ZANE_LOCAL_UI_DIST_DIR ?? `${process.cwd()}/dist`;
@@ -33,8 +34,23 @@ const ANCHOR_PORT = Number(process.env.ANCHOR_PORT ?? 8788);
 const AUTOSTART_ANCHOR = process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
 const PAIR_TTL_SEC = Number(process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
 
+function loadTokenFromConfigJson(): string | null {
+  if (!CONFIG_JSON_PATH) return null;
+  try {
+    const text = Bun.file(CONFIG_JSON_PATH).textSync();
+    const json = JSON.parse(text) as Record<string, unknown>;
+    const token = json.token;
+    return typeof token === "string" && token.trim() ? token.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+// Prefer config.json (so token rotation persists across restarts), fall back to env.
+AUTH_TOKEN = loadTokenFromConfigJson() ?? AUTH_TOKEN;
+
 if (!AUTH_TOKEN) {
-  console.error("[local-orbit] ZANE_LOCAL_TOKEN is required");
+  console.error("[local-orbit] Access Token is required (set ZANE_LOCAL_TOKEN or provide ZANE_LOCAL_CONFIG_JSON)");
   process.exit(1);
 }
 
@@ -224,6 +240,51 @@ function authorised(req: Request): boolean {
       }
     })();
   return Boolean(provided && timingSafeEqual(provided, AUTH_TOKEN));
+}
+
+function randomTokenHex(bytes = 32): string {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return Array.from(buf)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function persistTokenToConfigJson(nextToken: string): void {
+  if (!CONFIG_JSON_PATH) return;
+  try {
+    const text = Bun.file(CONFIG_JSON_PATH).textSync();
+    const json = JSON.parse(text) as Record<string, unknown>;
+    json.token = nextToken;
+    Bun.write(CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
+  } catch {
+    // ignore
+  }
+}
+
+function redactSensitive(text: string): string {
+  let out = text;
+  if (AUTH_TOKEN) out = out.split(AUTH_TOKEN).join("<redacted-token>");
+  // Also redact any obvious 64-hex tokens that might be logged/copied.
+  out = out.replace(/\b[a-f0-9]{64}\b/gi, "<redacted-hex>");
+  return out;
+}
+
+function closeAllSockets(reason: string): void {
+  for (const ws of clientSockets.keys()) {
+    try {
+      ws.close(1000, reason);
+    } catch {
+      // ignore
+    }
+  }
+  for (const ws of anchorSockets.keys()) {
+    try {
+      ws.close(1000, reason);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 // Avoid leaking token timing; Bun/Node doesn't expose a built-in constant-time compare.
@@ -462,6 +523,39 @@ const server = Bun.serve<{ role: Role }>({
         db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
+    }
+
+    if (url.pathname === "/admin/debug/events" && method === "GET") {
+      if (!authorised(req)) return unauth();
+      const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit") ?? 50) || 50));
+      try {
+        const rows = db
+          .prepare("SELECT payload FROM events ORDER BY id DESC LIMIT ?")
+          .all(limit) as Array<{ payload: string }>;
+        const data = rows
+          .map((r) => redactSensitive(r.payload))
+          .reverse();
+        return okJson({ limit, data });
+      } catch {
+        return new Response("Failed to query events", { status: 500 });
+      }
+    }
+
+    if (url.pathname === "/admin/token/rotate" && req.method === "POST") {
+      if (!authorised(req)) return unauth();
+      const next = randomTokenHex(32);
+
+      // Update in-memory token and persist to config.json if available.
+      AUTH_TOKEN = next;
+      persistTokenToConfigJson(next);
+
+      // Invalidate pairing codes minted under the old token.
+      pairCodes.clear();
+
+      // Force connected clients/anchors to reconnect and re-auth with the new token.
+      closeAllSockets("token rotated");
+
+      return okJson({ ok: true, token: next });
     }
 
     if (url.pathname === "/admin/pair/new" && req.method === "POST") {

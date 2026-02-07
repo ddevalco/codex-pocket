@@ -77,6 +77,7 @@ Note about the Codex desktop app:
 - Architecture: `docs/ARCHITECTURE.md`
 - Security: `docs/SECURITY.md`
 - Config: `docs/CONFIG.md`
+- Protocol: `docs/PROTOCOL.md`
 - Security hardening: `docs/HARDENING.md`
 - Troubleshooting: `docs/TROUBLESHOOTING.md`
 

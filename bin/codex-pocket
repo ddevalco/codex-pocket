@@ -169,6 +169,7 @@ cmd_start() {
     aport="$(anchor_port)"
     nohup env \
       ZANE_LOCAL_TOKEN="$(token)" \
+      ZANE_LOCAL_CONFIG_JSON="$CONFIG_JSON" \
       ZANE_LOCAL_HOST="127.0.0.1" \
       ZANE_LOCAL_PORT="8790" \
       ZANE_LOCAL_DB="$(db_path)" \

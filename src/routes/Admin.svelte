@@ -19,6 +19,9 @@
   let pair = $state<{ code: string; pairUrl: string; expiresAt: number } | null>(null);
   let pairQrObjectUrl = $state<string>("");
   let autoPairTried = $state(false);
+  let debugEvents = $state<string>("");
+  let rotatingToken = $state(false);
+  let rotatedToken = $state<string | null>(null);
 
   async function loadStatus() {
     statusError = null;
@@ -47,6 +50,50 @@
       logs = res.ok ? await res.text() : "";
     } catch {
       logs = "";
+    }
+  }
+
+  async function loadDebugEvents() {
+    try {
+      const headers: Record<string, string> = {};
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/debug/events?limit=50", { headers });
+      if (!res.ok) {
+        debugEvents = "";
+        return;
+      }
+      const data = (await res.json()) as { data?: string[] };
+      debugEvents = (data.data ?? []).join("\n");
+    } catch {
+      debugEvents = "";
+    }
+  }
+
+  async function rotateToken() {
+    if (rotatingToken) return;
+    rotatedToken = null;
+    rotatingToken = true;
+    try {
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/token/rotate", { method: "POST", headers, body: "{}" });
+      const data = (await res.json().catch(() => null)) as null | { ok?: boolean; token?: string; error?: string };
+      if (!res.ok || !data?.ok || !data.token) {
+        throw new Error(data?.error || `rotate failed (${res.status})`);
+      }
+      rotatedToken = data.token;
+      try {
+        await navigator.clipboard.writeText(data.token);
+      } catch {
+        // ignore
+      }
+      // Force sign-out so the admin UI re-prompts for the new token.
+      await auth.signOut();
+    } catch (e) {
+      statusError = e instanceof Error ? e.message : "Failed to rotate token";
+    } finally {
+      rotatingToken = false;
+      await loadStatus();
     }
   }
 
@@ -147,6 +194,7 @@
   $effect(() => {
     loadStatus();
     loadLogs();
+    loadDebugEvents();
     const id = setInterval(() => {
       loadStatus();
     }, 5000);
@@ -283,6 +331,26 @@
       </div>
       <div class="section-body">
         <pre class="logs">{logs || "(no logs yet)"}</pre>
+      </div>
+    </div>
+
+    <div class="section stack">
+      <div class="section-header">
+        <span class="section-title">Debug</span>
+      </div>
+      <div class="section-body stack">
+        <p class="hint">Last 50 stored events (redacted). Useful for diagnosing blank threads or protocol mismatches.</p>
+        <div class="row buttons">
+          <button type="button" onclick={loadDebugEvents} disabled={busy}>Refresh events</button>
+          <button class="danger" type="button" onclick={rotateToken} disabled={!auth.token || rotatingToken}>
+            {rotatingToken ? "Rotating..." : "Rotate access token"}
+          </button>
+        </div>
+        {#if rotatedToken}
+          <p class="hint">New token copied to clipboard. You will need to sign in again on all devices.</p>
+          <p><code>{rotatedToken}</code></p>
+        {/if}
+        <pre class="logs">{debugEvents || "(no events yet)"}</pre>
       </div>
     </div>
   </div>
