@@ -106,6 +106,7 @@
       await fetch("/admin/uploads/prune", { method: "POST", headers, body: "{}" });
     } finally {
       pruningUploads = false;
+      await loadStatus();
       await loadOpsLog();
     }
   }
@@ -158,6 +159,7 @@
       statusError = e instanceof Error ? e.message : "Failed to save upload retention";
     } finally {
       savingUploadRetention = false;
+      await loadStatus();
       await loadDebugEvents();
       await loadOpsLog();
     }
