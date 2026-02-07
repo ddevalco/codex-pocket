@@ -93,6 +93,21 @@ class MessagesStore {
     return this.#lastActivityByThread.get(threadId) ?? null;
   }
 
+  getThreadIndicator(threadId: string): "blocked" | "working" | "idle" {
+    // "blocked" means a turn is waiting on user action (approval / user input).
+    // "working" means the model is actively running.
+    // "idle" means nothing is currently pending.
+    const msgs = this.getThreadMessages(threadId);
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i] as any;
+      if (m?.kind === "approval-request" && m?.approval?.status === "pending") return "blocked";
+      if (m?.kind === "user-input-request" && m?.userInputRequest?.status === "pending") return "blocked";
+    }
+    const status = (this.getTurnStatus(threadId) ?? "").toLowerCase();
+    if (status === "inprogress") return "working";
+    return "idle";
+  }
+
   #touch(threadId: string) {
     // Use seconds to align with thread.createdAt format in thread/list.
     const now = Math.floor(Date.now() / 1000);

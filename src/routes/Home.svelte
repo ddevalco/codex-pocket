@@ -97,17 +97,40 @@
 
   const visibleThreads = $derived.by(() => {
     const list = threads.list || [];
-    // Sort by most recently active (observed), then createdAt as a fallback.
+    // Sort by most recently active:
+    // 1) observed local activity (while Pocket is connected)
+    // 2) upstream updatedAt/lastActivity (if provided by Codex)
+    // 3) createdAt fallback
     return [...list].sort((a, b) => {
-      const aAct = messages.getLastActivity(a.id) ?? a.createdAt ?? 0;
-      const bAct = messages.getLastActivity(b.id) ?? b.createdAt ?? 0;
+      const aUp = (a as any).updatedAt ?? (a as any).lastActivity ?? (a as any).lastActiveAt ?? null;
+      const bUp = (b as any).updatedAt ?? (b as any).lastActivity ?? (b as any).lastActiveAt ?? null;
+      const aUpNorm = typeof aUp === "number" ? (aUp > 1e12 ? Math.floor(aUp / 1000) : aUp) : null;
+      const bUpNorm = typeof bUp === "number" ? (bUp > 1e12 ? Math.floor(bUp / 1000) : bUp) : null;
+
+      const aAct = messages.getLastActivity(a.id) ?? aUpNorm ?? a.createdAt ?? 0;
+      const bAct = messages.getLastActivity(b.id) ?? bUpNorm ?? b.createdAt ?? 0;
       return bAct - aAct;
     });
   });
 
   function threadTime(ts?: number, id?: string) {
     const activity = id ? messages.getLastActivity(id) : null;
-    return activity ?? ts;
+    if (activity) return activity;
+    // Prefer upstream updatedAt if present
+    const t = id ? threads.list.find((x) => x.id === id) : null;
+    const up = (t as any)?.updatedAt ?? (t as any)?.lastActivity ?? (t as any)?.lastActiveAt ?? null;
+    if (typeof up === "number") return up > 1e12 ? Math.floor(up / 1000) : up;
+    return ts;
+  }
+
+  function threadIndicator(threadId: string): "blocked" | "working" | "idle" {
+    return messages.getThreadIndicator(threadId);
+  }
+
+  function indicatorTitle(ind: "blocked" | "working" | "idle"): string {
+    if (ind === "blocked") return "Waiting for your action";
+    if (ind === "working") return "Working";
+    return "Idle";
   }
 
   $effect(() => {
@@ -192,9 +215,13 @@
                 <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
                 <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
               </a>
-              {#if (messages.getTurnStatus(thread.id) ?? "").toLowerCase() === "inprogress"}
-                <span class="thread-active" title="Working">●</span>
-              {/if}
+              <span
+                class="thread-indicator"
+                class:thread-indicator-idle={threadIndicator(thread.id) === "idle"}
+                class:thread-indicator-working={threadIndicator(thread.id) === "working"}
+                class:thread-indicator-blocked={threadIndicator(thread.id) === "blocked"}
+                title={indicatorTitle(threadIndicator(thread.id))}
+              >●</span>
               <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>
               <button
                 class="archive-btn"
@@ -560,6 +587,22 @@
     color: var(--cli-success);
     font-size: var(--text-xs);
     line-height: 1;
+  }
+
+  .thread-indicator {
+    flex-shrink: 0;
+    padding: 0 var(--space-sm);
+    font-size: var(--text-xs);
+    line-height: 1;
+  }
+  .thread-indicator-idle {
+    color: #2fd47a;
+  }
+  .thread-indicator-working {
+    color: #f2c94c;
+  }
+  .thread-indicator-blocked {
+    color: #eb5757;
   }
 
   .archive-btn {
