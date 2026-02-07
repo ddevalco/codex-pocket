@@ -820,40 +820,19 @@ stop_service() {
   pkill -f "$APP_DIR/app/services/anchor/src/index.ts" >/dev/null 2>&1 || true
 }
 
-start_service() {
+restart_via_cli() {
+  local cli="$APP_DIR/bin/codex-pocket"
   local base
   base="$(base_url)"
-  launchctl load "$HOME/Library/LaunchAgents/${LABEL}.plist" >/dev/null 2>&1 || true
-  if ! curl -fsS "$base/health" >/dev/null 2>&1; then
-    # launchctl may fail; fallback to background. local-orbit can fully configure itself
-    # from this JSON (includes token/ports/paths).
-    local tok host port db ret pub ui_dist aport
-    tok="$(cfg token)"
-    host="$(cfg host)"; [[ -n "$host" ]] || host="127.0.0.1"
-    port="$(cfg port)"; [[ -n "$port" ]] || port="8790"
-    db="$(cfg db)"
-    ret="$(cfg retentionDays)"; [[ -n "$ret" ]] || ret="14"
-    pub="$(cfg publicOrigin)"
-    ui_dist="$APP_DIR/app/dist"
-    aport="$(cfg_anchor_port)"
-    nohup env \
-      ZANE_LOCAL_TOKEN="$tok" \
-      ZANE_LOCAL_CONFIG_JSON="$CONFIG_JSON" \
-      ZANE_LOCAL_HOST="$host" \
-      ZANE_LOCAL_PORT="$port" \
-      ZANE_LOCAL_DB="$db" \
-      ZANE_LOCAL_RETENTION_DAYS="$ret" \
-      ZANE_LOCAL_PUBLIC_ORIGIN="$pub" \
-      ZANE_LOCAL_UI_DIST_DIR="$ui_dist" \
-      ZANE_LOCAL_ANCHOR_CWD="$APP_DIR/app/services/anchor" \
-      ZANE_LOCAL_ANCHOR_LOG="$APP_DIR/anchor.log" \
-      ANCHOR_HOST="127.0.0.1" \
-      ANCHOR_PORT="$aport" \
-      ZANE_LOCAL_ANCHOR_CMD="$bun_bin" \
-      ZANE_LOCAL_AUTOSTART_ANCHOR="1" \
-      "$bun_bin" run "$APP_DIR/app/services/local-orbit/src/index.ts" >>"$APP_DIR/server.log" 2>&1 </dev/null &
+
+  if [[ -x "$cli" ]]; then
+    # Use the installed CLI's start logic (includes token/env + port conflict handling).
+    "$cli" restart >/dev/null 2>&1 || true
+  else
+    # Last resort: run local-orbit with only config json.
+    nohup env ZANE_LOCAL_CONFIG_JSON="$CONFIG_JSON" "$bun_bin" run "$APP_DIR/app/services/local-orbit/src/index.ts" >>"$APP_DIR/server.log" 2>&1 </dev/null &
   fi
-  # Wait a moment for health
+
   for _ in $(seq 1 50); do
     curl -fsS "$base/health" >/dev/null 2>&1 && return 0
     sleep 0.1
@@ -906,7 +885,7 @@ if [[ -f "$repo_dir/bin/codex-pocket" ]]; then
   mv -f "$APP_DIR/bin/codex-pocket.new" "$APP_DIR/bin/codex-pocket" >/dev/null 2>&1 || true
 fi
 
-  if ! start_service; then
+  if ! restart_via_cli; then
     echo "ERROR: service did not become healthy after update." >&2
     echo "Last 80 lines of server.log:" >&2
     tail -n 80 "$APP_DIR/server.log" >&2 || true
