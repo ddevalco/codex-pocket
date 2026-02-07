@@ -336,7 +336,8 @@ start_background() {
     ANCHOR_HOST="127.0.0.1" \
     ANCHOR_PORT="${ANCHOR_PORT}" \
     ZANE_LOCAL_AUTOSTART_ANCHOR="1" \
-    "$BUN_BIN" run "$APP_DIR/app/services/local-orbit/src/index.ts" >>"$APP_DIR/server.log" 2>&1 &
+    "$BUN_BIN" run "$APP_DIR/app/services/local-orbit/src/index.ts" >>"$APP_DIR/server.log" 2>&1 </dev/null &
+  disown >/dev/null 2>&1 || true
   echo $! >"$PID_FILE"
   STARTED_VIA="background(pid $(cat "$PID_FILE" 2>/dev/null || echo "?"))"
 }
