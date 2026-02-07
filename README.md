@@ -29,7 +29,14 @@ curl -fsSL https://raw.githubusercontent.com/ddevalco/codex-remote/main/scripts/
 
 After install:
 - The service listens locally on `http://127.0.0.1:8790`.
-- Your token is printed by the installer.
+- Your **Access Token** is printed by the installer and is also copied to your clipboard automatically (macOS `pbcopy`, best-effort).
+
+What the installer does:
+- Checks dependencies (git, bun, tailscale) and helps you install missing pieces.
+- Builds the web UI (so you get a single self-contained local server + static UI).
+- Writes state/config under `~/.codex-pocket/`.
+- Attempts to install a `launchd` agent. If your system blocks `launchctl` (common on managed Macs), it will fall back to running in the background and prints `Service started via: ...`.
+- Optionally configures `tailscale serve` so your iPhone can reach the service via MagicDNS.
 
 ## Enable iPhone Access (Tailscale)
 
@@ -46,6 +53,10 @@ tailscale serve --bg http://127.0.0.1:8790
 Then open on your Mac (to pair your iPhone):
 - `http://127.0.0.1:8790/admin`
 - generate a pairing QR and scan it with your iPhone
+
+What to expect after pairing:
+- Your iPhone will open `https://<your-mac-magicdns-host>/` and connect automatically (no manual “server URL” setup).
+- Threads/models populate after the Anchor connects (usually a few seconds). If you see “No device connected”, check `/admin` and `~/.codex-pocket/anchor.log`.
 
 ## Developer Notes
 - Local server: `services/local-orbit/src/index.ts`

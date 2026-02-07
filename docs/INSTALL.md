@@ -16,6 +16,10 @@ The installer:
 - installs a `launchd` agent to run the service at login
 - optionally configures `tailscale serve` so your iPhone can access it
 
+Notes:
+- The installer prints an **Access Token** and also copies it to your clipboard automatically (macOS `pbcopy`, best-effort).
+- Some machines (often managed/MDM) block `launchctl load` with `error 5`. In that case Codex Pocket falls back to a background process (it will print `Service started via: background(pid ...)`).
+
 ## After install
 - Local access: `http://127.0.0.1:8790`
 - Tailnet access: `https://<your-mac-magicdns-host>/`
