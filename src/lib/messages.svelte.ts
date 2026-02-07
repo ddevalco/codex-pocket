@@ -404,12 +404,32 @@ class MessagesStore {
 
   handleMessage(msg: RpcMessage) {
     if (msg.result && !msg.method) {
-      const result = msg.result as { thread?: { id: string; turns?: Array<{ items?: unknown[] }> } };
-      if (result.thread?.turns) {
-        const threadId = result.thread.id;
+      // Thread history can come back in slightly different shapes depending on the upstream
+      // Codex app-server version. Be permissive.
+      const result = msg.result as any;
+      const thread =
+        result?.thread ??
+        result?.data?.thread ??
+        (result && typeof result === "object" && "id" in result && "turns" in result ? result : null);
+      const turns: Array<{ items?: unknown[] }> | null =
+        thread?.turns ??
+        result?.turns ??
+        result?.data?.turns ??
+        result?.items ??
+        null;
+
+      const threadId: string | null =
+        (thread?.id as string | undefined) ??
+        (result?.threadId as string | undefined) ??
+        (result?.thread_id as string | undefined) ??
+        (result?.data?.threadId as string | undefined) ??
+        (result?.data?.thread_id as string | undefined) ??
+        null;
+
+      if (threadId && Array.isArray(turns)) {
         if (!this.#loadedThreads.has(threadId)) {
           this.#loadedThreads.add(threadId);
-          this.#loadThread(threadId, result.thread.turns);
+          this.#loadThread(threadId, turns);
         }
       }
       return;
