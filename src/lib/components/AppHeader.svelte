@@ -189,7 +189,9 @@
 
 <style>
     .app-header {
-        position: relative;
+        position: sticky;
+        top: 0;
+        z-index: 50;
         width: 100vw;
         margin-left: calc(50% - 50vw);
         background: var(--cli-bg-elevated);

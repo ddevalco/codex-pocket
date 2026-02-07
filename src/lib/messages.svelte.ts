@@ -148,6 +148,7 @@ class MessagesStore {
 
   clearThread(threadId: string) {
     this.#byThread.delete(threadId);
+    // Allow re-opening a thread to rehydrate history after we intentionally cleared it.
     this.#loadedThreads.delete(threadId);
     for (const key of this.#streamingText.keys()) {
       if (key.startsWith(`${threadId}:`)) {
