@@ -20,8 +20,12 @@
   let pairQrObjectUrl = $state<string>("");
   let autoPairTried = $state(false);
   let debugEvents = $state<string>("");
+  let opsLog = $state<string>("");
+  let pruningUploads = $state(false);
   let rotatingToken = $state(false);
   let rotatedToken = $state<string | null>(null);
+  let uploadRetentionDays = $state<number>(0);
+  let savingUploadRetention = $state(false);
 
   async function loadStatus() {
     statusError = null;
@@ -37,6 +41,14 @@
       }
       if (!res.ok) throw new Error(`status ${res.status}`);
       status = (await res.json()) as Status;
+      try {
+        const rd = (status.db as any)?.uploadRetentionDays;
+        if (typeof rd === "number" && Number.isFinite(rd)) {
+          uploadRetentionDays = rd;
+        }
+      } catch {
+        // ignore
+      }
     } catch (e) {
       statusError = e instanceof Error ? e.message : "Failed to load status";
     }
@@ -69,6 +81,36 @@
     }
   }
 
+  async function loadOpsLog() {
+    try {
+      const headers: Record<string, string> = {};
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/ops?limit=80", { headers });
+      if (!res.ok) {
+        opsLog = "";
+        return;
+      }
+      const data = (await res.json()) as { data?: string[] };
+      opsLog = (data.data ?? []).join("\n");
+    } catch {
+      opsLog = "";
+    }
+  }
+
+  async function pruneUploadsNow() {
+    if (pruningUploads) return;
+    pruningUploads = true;
+    try {
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      await fetch("/admin/uploads/prune", { method: "POST", headers, body: "{}" });
+    } finally {
+      pruningUploads = false;
+      await loadOpsLog();
+    }
+  }
+
+
   async function rotateToken() {
     if (rotatingToken) return;
     rotatedToken = null;
@@ -94,6 +136,30 @@
     } finally {
       rotatingToken = false;
       await loadStatus();
+    }
+  }
+
+  async function saveUploadRetention() {
+    if (savingUploadRetention) return;
+    savingUploadRetention = true;
+    try {
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/uploads/retention", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ retentionDays: uploadRetentionDays }),
+      });
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(t || `save failed (${res.status})`);
+      }
+    } catch (e) {
+      statusError = e instanceof Error ? e.message : "Failed to save upload retention";
+    } finally {
+      savingUploadRetention = false;
+      await loadDebugEvents();
+      await loadOpsLog();
     }
   }
 
@@ -340,8 +406,27 @@
       </div>
       <div class="section-body stack">
         <p class="hint">Last 50 stored events (redacted). Useful for diagnosing blank threads or protocol mismatches.</p>
+        <div class="field stack" style="margin-top: var(--space-sm);">
+          <label for="upload-retention">upload retention (days)</label>
+          <input
+            id="upload-retention"
+            type="number"
+            min="0"
+            max="3650"
+            bind:value={uploadRetentionDays}
+          />
+          <p class="hint">0 = keep uploads forever. Cleanup runs periodically on the Mac.</p>
+          <button type="button" onclick={saveUploadRetention} disabled={!auth.token || savingUploadRetention}>
+            {savingUploadRetention ? "Saving..." : "Save upload retention"}
+          </button>
+        </div>
+
         <div class="row buttons">
           <button type="button" onclick={loadDebugEvents} disabled={busy}>Refresh events</button>
+          <button type="button" onclick={loadOpsLog} disabled={busy}>Refresh ops log</button>
+          <button type="button" onclick={pruneUploadsNow} disabled={!auth.token || pruningUploads}>
+            {pruningUploads ? "Pruning..." : "Run upload cleanup"}
+          </button>
           <button class="danger" type="button" onclick={rotateToken} disabled={!auth.token || rotatingToken}>
             {rotatingToken ? "Rotating..." : "Rotate access token"}
           </button>
@@ -351,6 +436,8 @@
           <p><code>{rotatedToken}</code></p>
         {/if}
         <pre class="logs">{debugEvents || "(no events yet)"}</pre>
+        <p class="hint" style="margin-top: var(--space-md);">Ops log (server maintenance + installer actions).</p>
+        <pre class="logs">{opsLog || "(no ops logs yet)"}</pre>
       </div>
     </div>
   </div>
@@ -410,6 +497,23 @@
     padding: var(--space-md);
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .field input {
+    width: 100%;
+    padding: var(--space-sm);
+    background: var(--cli-bg);
+    color: var(--cli-text);
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .field input:focus {
+    outline: none;
+    border-color: var(--cli-text-muted);
+    box-shadow: var(--shadow-focus);
   }
   .qr {
     margin-top: var(--space-md);

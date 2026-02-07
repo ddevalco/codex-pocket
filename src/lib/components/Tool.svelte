@@ -78,7 +78,7 @@
 
     if (kind === "image") {
       const match = text.match(/^Image:\s*(.+?)(?:\n|$)/);
-      return { title: match?.[1] || "Image", content: "" };
+      return { title: match?.[1] || "Image", content: match?.[1] || "" };
     }
 
     if (kind === "plan") {

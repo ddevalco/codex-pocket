@@ -1,6 +1,7 @@
 import { hostname, homedir } from "node:os";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { readdir, stat, unlink, mkdir as mkdirAsync } from "node:fs/promises";
+import { dirname, join, basename } from "node:path";
 import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
 
@@ -25,6 +26,11 @@ const DB_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_RETENTION_DAYS ?? 14);
 const UI_DIST_DIR = process.env.ZANE_LOCAL_UI_DIST_DIR ?? `${process.cwd()}/dist`;
 const PUBLIC_ORIGIN = (process.env.ZANE_LOCAL_PUBLIC_ORIGIN ?? "").trim().replace(/\/$/, "");
 
+let UPLOAD_DIR = (process.env.ZANE_LOCAL_UPLOAD_DIR ?? `${homedir()}/.codex-pocket/uploads`).trim();
+let UPLOAD_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_UPLOAD_RETENTION_DAYS ?? 0); // 0 = keep forever
+const UPLOAD_MAX_BYTES = Number(process.env.ZANE_LOCAL_UPLOAD_MAX_BYTES ?? 25 * 1024 * 1024);
+const UPLOAD_URL_TTL_SEC = Number(process.env.ZANE_LOCAL_UPLOAD_URL_TTL_SEC ?? 7 * 24 * 60 * 60);
+
 const ANCHOR_CWD = process.env.ZANE_LOCAL_ANCHOR_CWD ?? `${process.cwd()}/services/anchor`;
 const ANCHOR_CMD = process.env.ZANE_LOCAL_ANCHOR_CMD?.trim() || "bun";
 const ANCHOR_ARGS = (process.env.ZANE_LOCAL_ANCHOR_ARGS?.trim() || "run src/index.ts").split(/\s+/);
@@ -34,20 +40,40 @@ const ANCHOR_PORT = Number(process.env.ANCHOR_PORT ?? 8788);
 const AUTOSTART_ANCHOR = process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
 const PAIR_TTL_SEC = Number(process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
 
-function loadTokenFromConfigJson(): string | null {
+function loadConfigJson(): Record<string, unknown> | null {
   if (!CONFIG_JSON_PATH) return null;
   try {
     const text = Bun.file(CONFIG_JSON_PATH).textSync();
-    const json = JSON.parse(text) as Record<string, unknown>;
-    const token = json.token;
-    return typeof token === "string" && token.trim() ? token.trim() : null;
+    return JSON.parse(text) as Record<string, unknown>;
   } catch {
     return null;
   }
 }
 
+function tokenFromConfigJson(json: Record<string, unknown> | null): string | null {
+  if (!json) return null;
+  const token = json.token;
+  return typeof token === "string" && token.trim() ? token.trim() : null;
+}
+
+function uploadConfigFromConfigJson(json: Record<string, unknown> | null): void {
+  if (!json) return;
+  const dir = (json.uploadDir as string | undefined) ?? (json.upload_dir as string | undefined);
+  if (typeof dir === "string" && dir.trim()) {
+    UPLOAD_DIR = dir.trim();
+  }
+  const rd = (json.uploadRetentionDays as number | string | undefined) ?? (json.upload_retention_days as any);
+  const n = typeof rd === "string" ? Number(rd) : typeof rd === "number" ? rd : NaN;
+  if (Number.isFinite(n) && n >= 0) {
+    UPLOAD_RETENTION_DAYS = n;
+  }
+}
+
+const loadedConfig = loadConfigJson();
+uploadConfigFromConfigJson(loadedConfig);
+
 // Prefer config.json (so token rotation persists across restarts), fall back to env.
-AUTH_TOKEN = loadTokenFromConfigJson() ?? AUTH_TOKEN;
+AUTH_TOKEN = tokenFromConfigJson(loadedConfig) ?? AUTH_TOKEN;
 
 if (!AUTH_TOKEN) {
   console.error("[local-orbit] Access Token is required (set ZANE_LOCAL_TOKEN or provide ZANE_LOCAL_CONFIG_JSON)");
@@ -131,9 +157,56 @@ db.exec(
   "CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at);"
 );
 
+db.exec(
+  "CREATE TABLE IF NOT EXISTS upload_tokens (" +
+    "token TEXT PRIMARY KEY," +
+    "path TEXT NOT NULL," +
+    "mime TEXT NOT NULL," +
+    "bytes INTEGER NOT NULL," +
+    "created_at INTEGER NOT NULL," +
+    "expires_at INTEGER NOT NULL" +
+  ");" +
+  "CREATE INDEX IF NOT EXISTS idx_upload_tokens_expires ON upload_tokens(expires_at);"
+);
+
 const insertEvent = db.prepare(
   "INSERT INTO events (thread_id, turn_id, direction, role, method, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
 );
+
+const insertUploadToken = db.prepare(
+  "INSERT INTO upload_tokens (token, path, mime, bytes, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)"
+);
+
+const getUploadToken = db.prepare(
+  "SELECT token, path, mime, bytes, created_at, expires_at FROM upload_tokens WHERE token = ?"
+);
+
+const deleteUploadToken = db.prepare("DELETE FROM upload_tokens WHERE token = ?");
+
+function nowSec(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
+function logAdmin(message: string): void {
+  const entry = {
+    ts: new Date().toISOString(),
+    direction: "admin",
+    message: { type: "admin.log", message },
+  };
+  try {
+    insertEvent.run(
+      "admin",
+      null,
+      "server",
+      "client",
+      "admin.log",
+      JSON.stringify(entry),
+      nowSec()
+    );
+  } catch {
+    // ignore
+  }
+}
 
 function pruneOldEvents(): void {
   if (!Number.isFinite(DB_RETENTION_DAYS) || DB_RETENTION_DAYS <= 0) return;
@@ -145,8 +218,62 @@ function pruneOldEvents(): void {
   }
 }
 
+async function ensureUploadDir(): Promise<void> {
+  try {
+    await mkdirAsync(UPLOAD_DIR, { recursive: true });
+  } catch {
+    // ignore
+  }
+}
+
+async function pruneUploads(): Promise<void> {
+  // Retention disabled (keep forever)
+  if (!Number.isFinite(UPLOAD_RETENTION_DAYS) || UPLOAD_RETENTION_DAYS <= 0) return;
+  const cutoffMs = Date.now() - UPLOAD_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  try {
+    await ensureUploadDir();
+    const entries = await readdir(UPLOAD_DIR);
+    let deleted = 0;
+    for (const name of entries) {
+      const p = join(UPLOAD_DIR, name);
+      let st;
+      try {
+        st = await stat(p);
+      } catch {
+        continue;
+      }
+      if (!st.isFile()) continue;
+      if (st.mtimeMs < cutoffMs) {
+        try {
+          await unlink(p);
+          deleted += 1;
+        } catch {
+          // ignore
+        }
+      }
+    }
+    if (deleted > 0) {
+      logAdmin(`upload retention: deleted ${deleted} file(s) older than ${UPLOAD_RETENTION_DAYS} day(s)`);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function pruneExpiredUploadTokens(): void {
+  try {
+    db.prepare("DELETE FROM upload_tokens WHERE expires_at < ?").run(nowSec());
+  } catch {
+    // ignore
+  }
+}
+
 setInterval(pruneOldEvents, 6 * 60 * 60 * 1000).unref?.();
+setInterval(() => void pruneUploads(), 6 * 60 * 60 * 1000).unref?.();
+setInterval(pruneExpiredUploadTokens, 10 * 60 * 1000).unref?.();
 pruneOldEvents();
+void pruneUploads();
+pruneExpiredUploadTokens();
 
 let anchorProc: Bun.Subprocess | null = null;
 
@@ -285,6 +412,16 @@ function closeAllSockets(reason: string): void {
       // ignore
     }
   }
+}
+
+function safeExtFromMime(mime: string): string {
+  const m = mime.toLowerCase();
+  if (m === "image/jpeg" || m === "image/jpg") return "jpg";
+  if (m === "image/png") return "png";
+  if (m === "image/webp") return "webp";
+  if (m === "image/gif") return "gif";
+  if (m === "image/svg+xml") return "svg";
+  return "bin";
 }
 
 // Avoid leaking token timing; Bun/Node doesn't expose a built-in constant-time compare.
@@ -473,8 +610,8 @@ function relay(fromRole: Role, msgText: string): void {
 const server = Bun.serve<{ role: Role }>({
   hostname: HOST,
   port: PORT,
-  async fetch(req, server) {
-    const url = new URL(req.url);
+	  async fetch(req, server) {
+	    const url = new URL(req.url);
 
     const isHead = req.method === "HEAD";
     const method = isHead ? "GET" : req.method;
@@ -507,7 +644,7 @@ const server = Bun.serve<{ role: Role }>({
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
     }
 
-    // Admin endpoints (token required)
+	    // Admin endpoints (token required)
     if (url.pathname === "/admin/status" && method === "GET") {
       if (!authorised(req)) return unauth();
       const res = okJson({
@@ -520,9 +657,43 @@ const server = Bun.serve<{ role: Role }>({
           port: ANCHOR_PORT,
           log: ANCHOR_LOG_PATH,
         },
-        db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS },
+        db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS, uploadDir: UPLOAD_DIR, uploadRetentionDays: UPLOAD_RETENTION_DAYS },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
+    }
+
+    if (url.pathname === "/admin/uploads/retention" && req.method === "POST") {
+      if (!authorised(req)) return unauth();
+      const body = (await req.json().catch(() => null)) as null | { retentionDays?: number };
+      const next = Number(body?.retentionDays ?? NaN);
+      if (!Number.isFinite(next) || next < 0 || next > 3650) {
+        return okJson({ error: "retentionDays must be a number between 0 and 3650" }, { status: 400 });
+      }
+      UPLOAD_RETENTION_DAYS = next;
+      if (CONFIG_JSON_PATH) {
+        try {
+          const text = Bun.file(CONFIG_JSON_PATH).textSync();
+          const json = JSON.parse(text) as Record<string, unknown>;
+          json.uploadRetentionDays = next;
+          json.uploadDir = UPLOAD_DIR;
+          Bun.write(CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
+        } catch {
+          // ignore
+        }
+      }
+      logAdmin(`upload retention set to ${next} day(s)`);
+      return okJson({ ok: true, retentionDays: next });
+    }
+
+    if (url.pathname === "/admin/uploads/prune" && req.method === "POST") {
+      if (!authorised(req)) return unauth();
+      // Manual maintenance hook for the admin UI.
+      const before = nowSec();
+      await pruneUploads();
+      pruneExpiredUploadTokens();
+      const after = nowSec();
+      logAdmin(`upload retention: manual prune completed (${after - before}s)`);
+      return okJson({ ok: true });
     }
 
     if (url.pathname === "/admin/debug/events" && method === "GET") {
@@ -541,7 +712,23 @@ const server = Bun.serve<{ role: Role }>({
       }
     }
 
-    if (url.pathname === "/admin/token/rotate" && req.method === "POST") {
+    if (url.pathname === "/admin/ops" && method === "GET") {
+      if (!authorised(req)) return unauth();
+      const limit = Math.min(500, Math.max(1, Number(url.searchParams.get("limit") ?? 100) || 100));
+      try {
+        const rows = db
+          .prepare("SELECT payload FROM events WHERE thread_id = ? ORDER BY id DESC LIMIT ?")
+          .all("admin", limit) as Array<{ payload: string }>;
+        const data = rows
+          .map((r) => redactSensitive(r.payload))
+          .reverse();
+        return okJson({ limit, data });
+      } catch {
+        return new Response("Failed to query ops log", { status: 500 });
+      }
+    }
+
+	    if (url.pathname === "/admin/token/rotate" && req.method === "POST") {
       if (!authorised(req)) return unauth();
       const next = randomTokenHex(32);
 
@@ -555,8 +742,114 @@ const server = Bun.serve<{ role: Role }>({
       // Force connected clients/anchors to reconnect and re-auth with the new token.
       closeAllSockets("token rotated");
 
-      return okJson({ ok: true, token: next });
-    }
+	      return okJson({ ok: true, token: next });
+	    }
+
+	    // Uploads (token required)
+	    if (url.pathname === "/uploads/new" && req.method === "POST") {
+	      if (!authorised(req)) return unauth();
+	      const body = (await req.json().catch(() => null)) as null | {
+	        filename?: string;
+	        mime?: string;
+	        bytes?: number;
+	      };
+	      const mime = (body?.mime ?? "").trim() || "application/octet-stream";
+	      const bytes = Number(body?.bytes ?? 0);
+	      if (!Number.isFinite(bytes) || bytes <= 0) {
+	        return okJson({ error: "bytes is required" }, { status: 400 });
+	      }
+	      if (bytes > UPLOAD_MAX_BYTES) {
+	        return okJson({
+	          error: `file too large (max ${UPLOAD_MAX_BYTES} bytes)`,
+	        }, { status: 413 });
+	      }
+	      const token = randomTokenHex(16);
+	      const ext = safeExtFromMime(mime);
+	      const fileName = `${token}.${ext}`;
+	      const filePath = join(UPLOAD_DIR, fileName);
+	      const createdAt = nowSec();
+	      const ttl =
+	        Number.isFinite(UPLOAD_RETENTION_DAYS) && UPLOAD_RETENTION_DAYS > 0
+	          ? UPLOAD_RETENTION_DAYS * 24 * 60 * 60
+	          : 10 * 365 * 24 * 60 * 60;
+	      const expiresAt = createdAt + Math.max(ttl, UPLOAD_URL_TTL_SEC);
+
+	      try {
+	        await ensureUploadDir();
+	        insertUploadToken.run(token, filePath, mime, bytes, createdAt, expiresAt);
+	      } catch {
+	        return okJson({ error: "failed to create upload token" }, { status: 500 });
+	      }
+
+	      const origin = requestOrigin(url, req);
+	      return okJson({
+	        token,
+	        uploadUrl: `${origin}/uploads/${encodeURIComponent(token)}`,
+	        viewUrl: `${origin}/u/${encodeURIComponent(token)}`,
+	        expiresAt: expiresAt * 1000,
+	      });
+	    }
+
+	    if (url.pathname.startsWith("/uploads/") && req.method === "PUT") {
+	      if (!authorised(req)) return unauth();
+	      const token = url.pathname.split("/").filter(Boolean)[1] ?? "";
+	      if (!token) return new Response("Not found", { status: 404 });
+	      const rec = (getUploadToken.get(token) as any) as null | {
+	        token: string;
+	        path: string;
+	        mime: string;
+	        bytes: number;
+	        created_at: number;
+	        expires_at: number;
+	      };
+	      if (!rec) return new Response("invalid upload token", { status: 400 });
+	      if (nowSec() > rec.expires_at) {
+	        deleteUploadToken.run(token);
+	        return new Response("upload token expired", { status: 400 });
+	      }
+	      const ct = (req.headers.get("content-type") ?? "").trim() || rec.mime;
+	      if (ct && rec.mime && ct !== rec.mime) {
+	        return new Response("content-type mismatch", { status: 400 });
+	      }
+	      const buf = await req.arrayBuffer();
+	      if (buf.byteLength > UPLOAD_MAX_BYTES) {
+	        return new Response("file too large", { status: 413 });
+	      }
+	      try {
+	        await ensureUploadDir();
+	        await Bun.write(rec.path, new Uint8Array(buf));
+	        logAdmin(`upload: saved ${basename(rec.path)} (${buf.byteLength} bytes)`);
+	      } catch {
+	        return new Response("failed to write upload", { status: 500 });
+	      }
+	      return okJson({ ok: true, url: `/u/${encodeURIComponent(token)}` });
+	    }
+
+	    if (url.pathname.startsWith("/u/") && method === "GET") {
+	      const token = url.pathname.split("/").filter(Boolean)[1] ?? "";
+	      if (!token) return new Response("Not found", { status: 404 });
+	      const rec = (getUploadToken.get(token) as any) as null | {
+	        path: string;
+	        mime: string;
+	        expires_at: number;
+	      };
+	      if (!rec) return new Response("Not found", { status: 404 });
+	      if (nowSec() > rec.expires_at) {
+	        deleteUploadToken.run(token);
+	        return new Response("Not found", { status: 404 });
+	      }
+	      const file = Bun.file(rec.path);
+	      if (!(await file.exists().catch(() => false))) {
+	        return new Response("Not found", { status: 404 });
+	      }
+	      return new Response(file, {
+	        status: 200,
+	        headers: {
+	          "content-type": rec.mime || "application/octet-stream",
+	          "cache-control": "private, max-age=31536000, immutable",
+	        },
+	      });
+	    }
 
     if (url.pathname === "/admin/pair/new" && req.method === "POST") {
       if (!authorised(req)) return unauth();

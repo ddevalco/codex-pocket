@@ -6,6 +6,28 @@
   import { socket } from "../lib/socket.svelte";
   import AppHeader from "../lib/components/AppHeader.svelte";
   import NotificationSettings from "../lib/components/NotificationSettings.svelte";
+
+  const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
+  type EnterBehavior = "newline" | "send";
+  let enterBehavior = $state<EnterBehavior>("newline");
+
+  $effect(() => {
+    try {
+      const saved = localStorage.getItem(ENTER_BEHAVIOR_KEY);
+      if (saved === "send" || saved === "newline") enterBehavior = saved;
+    } catch {
+      // ignore
+    }
+  });
+
+  function setEnterBehavior(v: EnterBehavior) {
+    enterBehavior = v;
+    try {
+      localStorage.setItem(ENTER_BEHAVIOR_KEY, v);
+    } catch {
+      // ignore
+    }
+  }
   import { anchors } from "../lib/anchors.svelte";
   const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1";
 
@@ -137,6 +159,22 @@
 
     <div class="section stack">
       <div class="section-header">
+        <span class="section-title">Composer</span>
+      </div>
+      <div class="section-body stack">
+        <div class="field stack">
+          <label for="enter-behavior">enter key</label>
+          <select id="enter-behavior" bind:value={enterBehavior} onchange={(e) => setEnterBehavior((e.target as HTMLSelectElement).value as EnterBehavior)}>
+            <option value="newline">Enter inserts newline (Cmd/Ctrl+Enter sends)</option>
+            <option value="send">Enter sends (Shift+Enter newline)</option>
+          </select>
+        </div>
+        <p class="hint">Default is newline on all devices. This is stored per-device in your browser.</p>
+      </div>
+    </div>
+
+    <div class="section stack">
+      <div class="section-header">
         <span class="section-title">Account</span>
       </div>
       <div class="section-body stack">
@@ -206,6 +244,23 @@
     border-radius: var(--radius-sm);
     color: var(--cli-text);
     font-family: var(--font-mono);
+  }
+
+  .field select {
+    width: 100%;
+    padding: var(--space-sm);
+    background: var(--cli-bg);
+    color: var(--cli-text);
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .field select:focus {
+    outline: none;
+    border-color: var(--cli-text-muted);
+    box-shadow: var(--shadow-focus);
   }
 
   .field input:focus {

@@ -80,4 +80,13 @@ export const api = {
   post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
   patch: <T>(path: string, body: unknown) => request<T>("PATCH", path, body),
   delete: <T>(path: string) => request<T>("DELETE", path),
+  putRaw: async (path: string, body: ArrayBuffer, contentType: string): Promise<Response> => {
+    const baseUrl = getBaseUrl();
+    if (!baseUrl) throw new ApiError(0, "No API URL configured");
+    const headers: Record<string, string> = {
+      "content-type": contentType,
+    };
+    if (auth.token) headers["authorization"] = `Bearer ${auth.token}`;
+    return await fetch(`${baseUrl}${path}`, { method: "PUT", headers, body });
+  },
 };

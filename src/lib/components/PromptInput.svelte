@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ModeKind, ModelOption, ReasoningEffort } from "../types";
+  import { api } from "../api";
 
   interface Props {
     model: string;
@@ -33,7 +34,24 @@
   let modelOpen = $state(false);
   let reasoningOpen = $state(false);
 
+  const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
+  type EnterBehavior = "newline" | "send";
+  let enterBehavior = $state<EnterBehavior>("newline");
+
+  $effect(() => {
+    try {
+      const saved = localStorage.getItem(ENTER_BEHAVIOR_KEY);
+      if (saved === "send" || saved === "newline") {
+        enterBehavior = saved;
+      }
+    } catch {
+      // ignore
+    }
+  });
+
   const canSubmit = $derived(input.trim().length > 0 && !disabled);
+  let uploadBusy = $state(false);
+  let uploadError = $state<string | null>(null);
 
   const reasoningOptions: { value: ReasoningEffort; label: string }[] = [
     { value: "low", label: "Low" },
@@ -57,7 +75,16 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key !== "Enter") return;
+    if (enterBehavior === "send") {
+      if (!e.shiftKey) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
+      return;
+    }
+    // newline mode: allow Enter; Cmd+Enter (or Ctrl+Enter) sends
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
@@ -72,6 +99,40 @@
     const target = e.target as HTMLElement;
     if (!target.closest(".dropdown")) {
       closeAllDropdowns();
+    }
+  }
+
+  async function handlePickImage(e: Event) {
+    const el = e.target as HTMLInputElement;
+    const file = el.files?.[0];
+    el.value = "";
+    if (!file) return;
+
+    uploadError = null;
+    uploadBusy = true;
+    try {
+      const meta = await api.post<{ token: string; uploadUrl: string; viewUrl: string }>("/uploads/new", {
+        filename: file.name,
+        mime: file.type || "application/octet-stream",
+        bytes: file.size,
+      });
+
+      const buf = await file.arrayBuffer();
+      const putPath = `/uploads/${encodeURIComponent(meta.token)}`;
+      const res = await api.putRaw(putPath, buf, file.type || "application/octet-stream");
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(t || `upload failed (${res.status})`);
+      }
+
+      // Insert as markdown so it renders inline in the chat UI.
+      const alt = (file.name || "image").replace(/[\r\n\t\u0000]/g, " ").trim();
+      const md = `![${alt}](${meta.viewUrl})`;
+      input = `${input}${input ? "\n" : ""}${md}`;
+    } catch (err) {
+      uploadError = err instanceof Error ? err.message : "Upload failed";
+    } finally {
+      uploadBusy = false;
     }
   }
 </script>
@@ -90,6 +151,23 @@
 
     <div class="footer split">
       <div class="tools row">
+        <!-- Image upload -->
+        <label class="tool-btn row" title="Attach image">
+          <input
+            class="file-input"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onchange={handlePickImage}
+            disabled={disabled || uploadBusy}
+          />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15V8a2 2 0 0 0-2-2h-3l-2-2H10L8 6H5a2 2 0 0 0-2 2v7" />
+            <path d="M3 15l4-4 4 4 4-4 6 6" />
+          </svg>
+          <span class="collapsible-label">{uploadBusy ? "Uploading..." : "Image"}</span>
+        </label>
+
         <!-- Model Selector -->
         <div class="dropdown" class:open={modelOpen}>
           <button
@@ -237,6 +315,9 @@
         </button>
       {/if}
     </div>
+    {#if uploadError}
+      <div class="hint hint-error" style="padding: 0 var(--space-md) var(--space-sm);">{uploadError}</div>
+    {/if}
   </div>
 </form>
 
@@ -307,6 +388,10 @@
     font-size: var(--text-xs);
     cursor: pointer;
     transition: all var(--transition-fast);
+  }
+
+  .file-input {
+    display: none;
   }
 
   .tool-btn:hover {

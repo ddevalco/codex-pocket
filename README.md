@@ -9,6 +9,8 @@ This project started as a local-only fork of Zane (credit: https://github.com/z-
 
 ## What You Get
 - Web UI (mobile-friendly): create tasks, watch live output, approve/deny writes, review diffs
+- Image attachments: upload from iPhone, embed inline in threads
+- Composer UX: Enter inserts newline by default (configurable per-device)
 - Admin UI (`/admin`): status, logs, start/stop Anchor, one-time pairing QR for your iPhone
 - One local server (`local-orbit`) that serves:
   - UI (static)
@@ -24,6 +26,12 @@ This project started as a local-only fork of Zane (credit: https://github.com/z-
 - A single bearer token protects the WebSocket and admin API.
 - Pairing: `/admin` can mint a short-lived one-time pairing code (shown as a QR).
   - Scan it on iPhone to store the bearer token locally.
+
+## Uploads (Images)
+- Uploads are stored locally on your Mac (default: `~/.codex-pocket/uploads`).
+- Upload retention is **permanent by default** (`0` days). You can set retention (days) in `/admin`.
+- Uploaded images are served via capability URLs (`/u/<token>`). This avoids putting your **Access Token** in image URLs and allows `<img>` tags to load on iPhone.
+
 
 ## Install (macOS)
 
@@ -42,6 +50,20 @@ What the installer does:
 - Attempts to install a `launchd` agent. If your system blocks `launchctl` (common on managed Macs), it will fall back to running in the background and prints `Service started via: ...`.
 - Optionally configures `tailscale serve` so your iPhone can reach the service via MagicDNS.
 
+
+
+## Wipe / Reset
+If you want a clean slate (stop service, disable `tailscale serve`, remove launchd agent, delete `~/.codex-pocket`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ddevalco/codex-remote/main/scripts/reset-and-install.sh | bash
+```
+
+If you only want to wipe without reinstalling, run the local script after install:
+
+```bash
+~/.codex-pocket/app/scripts/wipe-local.sh
+```
 ## Enable iPhone Access (Tailscale)
 
 If you do not have Tailscale yet:

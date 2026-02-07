@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { marked } from "marked";
+  import DOMPurify from "dompurify";
   import type { Message } from "../types";
   import ShimmerDot from "./ShimmerDot.svelte";
   import Reasoning from "./Reasoning.svelte";
@@ -13,9 +15,9 @@
   const isReasoning = $derived(message.role === "assistant" && message.kind === "reasoning");
   const isTool = $derived(
     message.role === "tool" &&
-    message.kind !== "terminal" &&
-    message.kind !== "wait" &&
-    message.kind !== "compaction"
+      message.kind !== "terminal" &&
+      message.kind !== "wait" &&
+      message.kind !== "compaction"
   );
   const isTerminal = $derived(message.role === "tool" && message.kind === "terminal");
   const isWait = $derived(message.role === "tool" && message.kind === "wait");
@@ -40,14 +42,56 @@
     if (lines[lines.length - 1] === "") lines.pop();
     return lines;
   });
+
+  const renderedHtml = $derived.by(() => {
+    if (isReasoning || isTool || isTerminal || isWait || isCompaction) return "";
+
+    // For normal messages, render markdown (sanitized). This enables inline images for uploads.
+    const raw = message.text ?? "";
+    try {
+      const html = marked.parse(raw, {
+        async: false,
+        breaks: true,
+        headerIds: false,
+        mangle: false,
+      }) as string;
+
+      return DOMPurify.sanitize(html, {
+        // Keep the sanitizer fairly strict, but allow images + links.
+        // Upload URLs are capability tokens (e.g. /u/<token>) so they can render without auth headers.
+        ALLOWED_TAGS: [
+          "a",
+          "p",
+          "br",
+          "strong",
+          "em",
+          "code",
+          "pre",
+          "blockquote",
+          "ul",
+          "ol",
+          "li",
+          "hr",
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+          "img",
+        ],
+        ALLOWED_ATTR: ["href", "title", "src", "alt"],
+      });
+    } catch {
+      // If markdown parsing fails for any reason, fall back to plain text.
+      return DOMPurify.sanitize(raw);
+    }
+  });
 </script>
 
 <div class="message-block {prefixConfig.bgClass}">
   {#if isReasoning}
-    <Reasoning
-      content={message.text}
-      defaultOpen={false}
-    />
+    <Reasoning content={message.text} defaultOpen={false} />
   {:else if isTool}
     <Tool {message} />
   {:else if isWait}
@@ -77,7 +121,7 @@
   {:else}
     <div class="message-line row">
       <span class="prefix" style:color={prefixConfig.color}>{prefixConfig.prefix}</span>
-      <span class="text">{message.text}</span>
+      <div class="text markdown">{@html renderedHtml}</div>
     </div>
   {/if}
 </div>
@@ -96,7 +140,6 @@
     box-shadow: none;
     padding-left: var(--space-md);
   }
-
 
   .message-line {
     --row-gap: var(--space-sm);
@@ -140,12 +183,43 @@
 
   .text {
     color: var(--cli-text);
-    white-space: pre-wrap;
     word-break: break-word;
+    min-width: 0;
   }
 
   .text.dim {
     color: var(--cli-text-dim);
     font-style: italic;
+  }
+
+  /* Markdown rendering */
+  .markdown :global(p) {
+    margin: 0;
+  }
+
+  .markdown :global(pre) {
+    margin: 0;
+    padding: var(--space-sm);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    overflow: auto;
+  }
+
+  .markdown :global(code) {
+    font-family: var(--font-mono);
+  }
+
+  .markdown :global(img) {
+    max-width: min(520px, 100%);
+    height: auto;
+    display: block;
+    margin-top: var(--space-xs);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .markdown :global(a) {
+    color: var(--cli-link);
   }
 </style>
