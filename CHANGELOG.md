@@ -6,6 +6,18 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi (se
 
 ## Unreleased
 
+### Ops / Self-Heal
+- Admin now includes **Validate** and **Repair** buttons to run server-side health checks and apply safe repairs.
+- CLI: added `codex-pocket ensure` (restart if needed, validate, repair, re-validate).
+- Repair now attempts to automatically configure `tailscale serve` (best-effort; may require enabling Serve in the Tailscale admin console).
+
+### Thread List UX
+- Threads are now sorted by most recently active (based on activity observed while Pocket is connected).
+- Added a small active indicator for threads currently working (turn status InProgress).
+
+### Docs
+- Added first-time setup checklist + "Why Tailscale" and common first-run issues in `README.md`.
+
 ## 2026-02-07
 
 ### Thread Titles / Rename Sync

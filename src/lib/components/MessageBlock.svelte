@@ -90,6 +90,17 @@
 </script>
 
 <div class="message-block {prefixConfig.bgClass}">
+  <button
+    type="button"
+    class="copy-btn"
+    class:copied={copyState === "copied"}
+    class:error={copyState === "error"}
+    onclick={copyMessage}
+    title={copyState === "copied" ? "Copied" : "Copy message"}
+    aria-label="Copy message"
+  >
+    {copyState === "copied" ? "copied" : "copy"}
+  </button>
   {#if isReasoning}
     <Reasoning content={message.text} defaultOpen={false} />
   {:else if isTool}
@@ -128,6 +139,7 @@
 
 <style>
   .message-block {
+    position: relative;
     padding: var(--space-xs) var(--space-md);
     font-family: var(--font-mono);
     font-size: var(--text-sm);
@@ -222,4 +234,48 @@
   .markdown :global(a) {
     color: var(--cli-link);
   }
+
+  .copy-btn {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--cli-border);
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--cli-text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .message-block:hover .copy-btn,
+  .message-block:focus-within .copy-btn {
+    opacity: 1;
+  }
+
+  .copy-btn:hover {
+    color: var(--cli-text);
+  }
+
+  .copy-btn.copied {
+    opacity: 1;
+    border-color: #2c8a5a;
+    color: #9be3bf;
+  }
+
+  .copy-btn.error {
+    opacity: 1;
+    border-color: var(--cli-error);
+    color: var(--cli-error);
+  }
+
+  @media (max-width: 520px) {
+    .copy-btn {
+      opacity: 1;
+    }
+  }
+
 </style>

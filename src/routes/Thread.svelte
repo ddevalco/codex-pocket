@@ -29,6 +29,86 @@
     const threadId = $derived(route.params.id);
 
 
+    const threadTitle = $derived.by(() => {
+        const id = threadId;
+        if (!id) return "";
+        const info = threads.list.find((t) => t.id === id);
+        return (info?.title || info?.name || "").trim();
+    });
+
+    function threadToMarkdown(): string {
+        const id = threadId;
+        if (!id) return "";
+        const title = threadTitle || id.slice(0, 8);
+        const out: string[] = [];
+        out.push(`# ${title}`);
+        out.push("");
+        out.push(`Thread: ${id}`);
+        out.push("");
+
+        const msgs = messages.getThreadMessages(id);
+        for (const m of msgs) {
+            const role = m.role === "tool" ? (m.kind ? `Tool (${m.kind})` : "Tool") : m.role === "assistant" ? "Assistant" : m.role === "user" ? "User" : "Approval";
+            out.push(`## ${role}`);
+            out.push("");
+            const text = (m.text ?? "").trim();
+            if (m.role === "tool") {
+                out.push("```text");
+                out.push(text);
+                out.push("```");
+            } else {
+                out.push(text);
+            }
+            out.push("");
+        }
+        return out.join("\n").trim() + "\n";
+    }
+
+    async function copyThread() {
+        try {
+            const md = threadToMarkdown();
+            if (!md) return;
+            await navigator.clipboard.writeText(md);
+        } catch {
+            // ignore
+        }
+    }
+
+    async function shareThread() {
+        const id = threadId;
+        if (!id) return;
+        const md = threadToMarkdown();
+        if (!md) return;
+        const title = threadTitle || id.slice(0, 8);
+        try {
+            // Prefer native share sheet when available (iOS).
+            const nav = navigator as any;
+            if (nav?.share) {
+                await nav.share({ title: `Codex Pocket: ${title}`, text: md });
+                return;
+            }
+        } catch {
+            // fall back to copy
+        }
+        await copyThread();
+    }
+
+    function downloadThread() {
+        const id = threadId;
+        if (!id) return;
+        const md = threadToMarkdown();
+        if (!md) return;
+        const title = (threadTitle || id.slice(0, 8)).replace(/[^a-z0-9\- _]+/gi, "").trim() || id.slice(0, 8);
+        const blob = new Blob([md], { type: "text/markdown" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${title}.md`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+
     const turnStatus = $derived.by(() => {
         const id = threadId;
         return id ? messages.getTurnStatus(id) : null;
@@ -214,6 +294,9 @@
     >
         {#snippet actions()}
             <a href={`/thread/${threadId}/review`}>review</a>
+            <button type="button" onclick={copyThread} title="Copy thread as Markdown">copy</button>
+            <button type="button" onclick={shareThread} title="Share thread">share</button>
+            <button type="button" onclick={downloadThread} title="Download thread as .md">export</button>
             <a href="/settings">Settings</a>
             <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
                 {themeIcons[theme.current]}
