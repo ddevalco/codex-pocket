@@ -201,7 +201,8 @@
       if (auth.token) headers.authorization = `Bearer ${auth.token}`;
 
       // Conservative repairs only.
-      const actions = ["ensureUploadDir", "startAnchor", "pruneUploads"];
+      // Note: fixTailscaleServe is best-effort and may fail if Serve is not enabled on the tailnet.
+      const actions = ["ensureUploadDir", "startAnchor", "pruneUploads", "fixTailscaleServe"];
       const res = await fetch("/admin/repair", {
         method: "POST",
         headers,

@@ -544,7 +544,7 @@ print("OK" if d.get("ok") else "ISSUES")
 PY
 
   echo "Repairing (safe actions)..."
-  curl_auth "$base/admin/repair" -X POST -H 'content-type: application/json' -d '{"actions":["ensureUploadDir","startAnchor","pruneUploads"]}' >/dev/null 2>&1 || true
+  curl_auth "$base/admin/repair" -X POST -H 'content-type: application/json' -d '{"actions":["ensureUploadDir","startAnchor","pruneUploads","fixTailscaleServe"]}' >/dev/null 2>&1 || true
 
   echo "Re-validating..."
   curl_auth "$base/admin/validate" | python3 - <<'PY'

@@ -176,6 +176,40 @@ function runCmd(cmd: string, args: string[], timeoutMs = 2500): { ok: boolean; o
   }
 }
 
+function parseServeMentionsTarget(out: string, target: string): boolean {
+  // Very loose check; output formats vary across Tailscale versions.
+  return out.includes(target);
+}
+
+function fixTailscaleServe(): { ok: boolean; detail: string } {
+  if (!PUBLIC_ORIGIN) {
+    return { ok: false, detail: "PUBLIC_ORIGIN not set (no tailnet URL configured)" };
+  }
+  const ts = resolveTailscaleCmd();
+  if (!ts) return { ok: false, detail: "tailscale CLI not found" };
+
+  const target = wantServeTarget();
+  const st = runCmd(ts, ["serve", "status"], 3000);
+  if (st.ok && parseServeMentionsTarget(st.out, target)) {
+    return { ok: true, detail: "serve already configured" };
+  }
+
+  // Best-effort: configure serve in background. This may fail if Serve isn't enabled on the tailnet.
+  const cfg = runCmd(ts, ["serve", "--bg", `http://${target}`], 8000);
+  if (!cfg.ok) {
+    return { ok: false, detail: cfg.out || "tailscale serve failed" };
+  }
+
+  const st2 = runCmd(ts, ["serve", "status"], 3000);
+  const ok = st2.ok && parseServeMentionsTarget(st2.out, target);
+  return { ok, detail: st2.out || cfg.out };
+}
+
+function wantServeTarget(): string {
+  // Always serve the loopback target; local-orbit is intended to bind to 127.0.0.1.
+  return `127.0.0.1:${PORT}`;
+}
+
 async function validateSystem(_req: Request, _url: URL): Promise<{ ok: boolean; checks: DiagnoseCheck[] }>{
   const checks: DiagnoseCheck[] = [];
 
@@ -244,7 +278,7 @@ async function validateSystem(_req: Request, _url: URL): Promise<{ ok: boolean; 
 
     // If we have a public origin, check that serve status mentions our local port.
     if (PUBLIC_ORIGIN) {
-      const want = `127.0.0.1:${PORT}`;
+      const want = wantServeTarget();
       const mentions = serve.out.includes(want);
       checks.push({
         id: "tailscale-serve",
@@ -1016,6 +1050,17 @@ const server = Bun.serve<{ role: Role }>({
           logAdmin("repair: pruned uploads");
         } catch (e) {
           errors.push(`pruneUploads: ${e instanceof Error ? e.message : "failed"}`);
+        }
+      }
+
+      if (actions.includes("fixTailscaleServe")) {
+        try {
+          const res = fixTailscaleServe();
+          if (!res.ok) throw new Error(res.detail || "failed");
+          applied.push("fixTailscaleServe");
+          logAdmin("repair: tailscale serve configured");
+        } catch (e) {
+          errors.push(`fixTailscaleServe: ${e instanceof Error ? e.message : "failed"}`);
         }
       }
 
