@@ -1,81 +1,104 @@
 # Troubleshooting
 
-## Quick triage (run this first)
+This page is written for a real-world failure mode: you installed Codex Pocket, it worked once, and then later Safari shows a blank screen, `/admin` asks for a token again, or iPhone can't connect.
 
-```bash
-~/.codex-pocket/bin/codex-pocket diagnose
-```
+## Quick Fix (Most Common)
 
-If you send bug reports, paste the output of `diagnose` (it includes the last lines of logs).
-
-## iPhone can't open the site
-- Ensure you ran `tailscale up` on the Mac.
-- Ensure you configured serving:
-
-```bash
-tailscale serve status
-```
-
-- Ensure the service is running:
-
-```bash
-curl -i http://127.0.0.1:8790/health
-```
-
-## `/admin` asks for the Access Token again
-You can always print it from your local config:
-
-```bash
-~/.codex-pocket/bin/codex-pocket token
-```
-
-## WebSocket won't connect
-- Confirm the Orbit URL is `wss://<your-host>/ws`.
-- In local mode it should auto-populate; if not, open Settings and verify.
-
-## Pairing code fails
-- Pairing codes are one-time and expire (default 5 minutes).
-- Generate a fresh code from `/admin`.
-
-## Anchor not connected
-- Wait a few seconds after service start; anchor auto-starts.
-- Check `/admin` logs.
-- Confirm `codex` is installed and authenticated.
-
-## Admin says “Failed to fetch” / stays on “Loading…”
-This usually means the UI can’t reach the server API at all (not an auth problem).
-
-1. Check service health:
-
-```bash
-~/.codex-pocket/bin/codex-pocket doctor
-curl -fsS http://127.0.0.1:8790/health
-```
-
-2. If health fails, restart:
+1. Restart the service:
 
 ```bash
 ~/.codex-pocket/bin/codex-pocket restart
 ```
 
-3. If it still fails, run:
+2. Then validate and auto-repair:
+
+```bash
+~/.codex-pocket/bin/codex-pocket ensure
+```
+
+## Common Symptoms
+
+### "This site can't be reached" / "Failed to fetch"
+
+This usually means the browser can't reach the local server at all (not an auth issue).
+
+Run:
+
+```bash
+curl -fsS http://127.0.0.1:8790/health
+```
+
+If it fails, restart:
+
+```bash
+~/.codex-pocket/bin/codex-pocket restart
+curl -fsS http://127.0.0.1:8790/health
+```
+
+If it still fails, capture diagnostics:
 
 ```bash
 ~/.codex-pocket/bin/codex-pocket diagnose
 ```
 
-## Threads show up but transcript is blank
-Depending on your `codex app-server` version, thread history may not be replayed to third-party clients on open.
-In that case:
-- You may still see thread metadata in the list.
-- Only new activity observed while Codex Pocket is connected will appear in the transcript/review.
+### Admin Asks For Access Token Again
 
-To verify whether Codex Pocket has stored any events for a thread:
-1. Open `http://127.0.0.1:8790/thread/<threadId>/review`
-2. If it says "No activity found", the service has not observed any events for that thread yet.
+Get your current token:
 
-## Codex desktop app doesn't show messages sent from Codex Pocket
-Codex Pocket communicates with `codex app-server` directly and renders its own UI.
-If a message appears in Codex Pocket but not in the Codex desktop app UI:
-- refresh/reopen the thread in the desktop app
-- if needed, restart the desktop app
+```bash
+~/.codex-pocket/bin/codex-pocket token
+```
+
+If you lost the token and the `config.json` is gone, you'll need to reinstall.
+
+### "Serve is not enabled on your tailnet"
+
+Tailscale may require you to enable Serve in the admin console once per tailnet.
+
+Run (on the Mac):
+
+```bash
+/Applications/Tailscale.app/Contents/MacOS/Tailscale serve --bg http://127.0.0.1:8790
+```
+
+If it prints a URL to enable Serve, open it and enable Serve, then rerun the command.
+
+### iPhone Opens The Tailnet URL But Shows Disconnected / No Device
+
+1. Confirm Tailscale is connected on iPhone and Mac.
+2. Confirm `tailscale serve` is enabled and pointing at `http://127.0.0.1:8790`.
+3. If you recently ran `codex-pocket update`, restart the service:
+
+```bash
+~/.codex-pocket/bin/codex-pocket restart
+```
+
+Then re-open the tailnet URL.
+
+### Port In Use (EADDRINUSE)
+
+Codex Pocket defaults to `8790` (server) and `8788` (anchor).
+
+If another process is listening, you'll usually see logs mentioning `EADDRINUSE`.
+
+The installer and CLI try to auto-kill stale Codex Pocket listeners, but if you want to check manually:
+
+```bash
+lsof -nP -iTCP:8790 -sTCP:LISTEN || true
+lsof -nP -iTCP:8788 -sTCP:LISTEN || true
+```
+
+Then restart:
+
+```bash
+~/.codex-pocket/bin/codex-pocket restart
+```
+
+## Where Things Live
+
+- Config: `~/.codex-pocket/config.json`
+- Server log: `~/.codex-pocket/server.log`
+- Anchor log: `~/.codex-pocket/anchor.log`
+- Uploads: `~/.codex-pocket/uploads`
+- DB: `~/.codex-pocket/codex-pocket.db`
+

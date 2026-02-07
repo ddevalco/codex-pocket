@@ -10,6 +10,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi (se
 - Admin now includes **Validate** and **Repair** buttons to run server-side health checks and apply safe repairs.
 - CLI: added `codex-pocket ensure` (restart if needed, validate, repair, re-validate).
 - Repair now attempts to automatically configure `tailscale serve` (best-effort; may require enabling Serve in the Tailscale admin console).
+- CLI: fixed `codex-pocket update` so its fallback start no longer breaks on shell/Python quoting issues; fallback now starts local-orbit using `ZANE_LOCAL_CONFIG_JSON` only. (commit `bd9fe0d`)
 
 ### Thread List UX
 - Threads are now sorted by most recently active (based on activity observed while Pocket is connected).
