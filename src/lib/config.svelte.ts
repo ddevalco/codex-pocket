@@ -4,14 +4,6 @@ interface SavedConfig {
   url: string;
 }
 
-function isLocalMode(): boolean {
-  try {
-    return (import.meta as any)?.env?.VITE_ZANE_LOCAL === "1";
-  } catch {
-    return false;
-  }
-}
-
 function defaultWsUrlFromLocation(): string {
   if (typeof window === "undefined") return "";
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -23,10 +15,15 @@ class ConfigStore {
 
   constructor() {
     this.#load();
-    // In local mode, auto-default the WS URL to the same origin and keep it stable.
-    if (isLocalMode() && !this.#url) {
-      this.#url = defaultWsUrlFromLocation();
-      this.#save();
+    // Auto-default the WS URL to the current site origin when unset.
+    // This is required for iPhone pairing UX: after scanning a pairing link, the user should not
+    // have to manually set the Orbit URL.
+    if (!this.#url) {
+      const derived = defaultWsUrlFromLocation();
+      if (derived) {
+        this.#url = derived;
+        this.#save();
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { auth } from "../lib/auth.svelte";
+  import { config } from "../lib/config.svelte";
   import { navigate } from "../router";
 
   const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1";
@@ -44,6 +45,14 @@
 
       // In local mode, signIn(username) treats username as the token.
       await auth.signIn(data.token);
+
+      // Ensure the WS URL is set for this device so the user doesn't have to.
+      // config store will also derive it on init, but setting it here makes the pairing redirect robust.
+      if (!config.url) {
+        const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+        config.url = `${proto}//${window.location.host}/ws`;
+      }
+
       status = "ok";
       navigate("/app");
     } catch (e) {
@@ -103,4 +112,3 @@
     opacity: 0.9;
   }
 </style>
-
