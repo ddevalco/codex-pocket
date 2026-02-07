@@ -1,8 +1,13 @@
 import { hostname, homedir } from "node:os";
 import { readdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { WsClient } from "./types";
 
+// Anchor does not need to bind a local HTTP server. Its job is to:
+// 1) spawn `codex app-server`
+// 2) connect to local-orbit via WebSocket and relay messages
+//
+// Older versions exposed a local health endpoint and bound to ANCHOR_PORT. That caused frequent
+// EADDRINUSE conflicts (and broke "No device connected" UX). We keep these env vars for logging only.
 const PORT = Number(process.env.ANCHOR_PORT ?? 8788);
 const HOST = process.env.ANCHOR_HOST ?? "127.0.0.1";
 const ORBIT_URL = process.env.ANCHOR_ORBIT_URL ?? "";
@@ -11,13 +16,11 @@ const ANCHOR_JWT_TTL_SEC = Number(process.env.ANCHOR_JWT_TTL_SEC ?? 300);
 const AUTH_URL = process.env.AUTH_URL ?? "";
 const FORCE_LOGIN = process.env.ZANE_FORCE_LOGIN === "1";
 const CREDENTIALS_FILE = process.env.ZANE_CREDENTIALS_FILE ?? "";
-const startedAt = Date.now();
 
 let ZANE_ANCHOR_JWT_SECRET = "";
 let USER_ID: string | undefined;
 
 const MAX_SUBSCRIBED_THREADS = 1000;
-const clients = new Set<WsClient>();
 const subscribedThreads = new Set<string>();
 let appServer: Bun.Subprocess | null = null;
 let appServerStarting = false;
@@ -107,22 +110,6 @@ function ensureAppServer(): void {
           orbitSocket.send(line);
         } catch (err) {
           console.warn("[anchor] failed to relay app-server output to orbit", err);
-        }
-      }
-
-      for (const client of clients) {
-        try {
-          client.send(line);
-        } catch (err) {
-          console.warn("[anchor] failed to send to client", err);
-        }
-      }
-
-      if (orbitSocket && orbitSocket.readyState === WebSocket.OPEN) {
-        try {
-          orbitSocket.send(line);
-        } catch (err) {
-          console.warn("[anchor] failed to send to orbit", err);
         }
       }
     });
@@ -601,83 +588,7 @@ async function deviceLogin(): Promise<boolean> {
   }
 }
 
-const server = Bun.serve({
-  hostname: HOST,
-  port: PORT,
-  fetch(req, server) {
-    const url = new URL(req.url);
-
-    if (req.method === "GET" && url.pathname === "/health") {
-      const orbitStatus = !ORBIT_URL
-        ? "disabled"
-        : orbitSocket && orbitSocket.readyState === WebSocket.OPEN
-          ? "connected"
-          : "disconnected";
-      return Response.json({
-        status: "ok",
-        appServer: appServer !== null,
-        orbit: orbitStatus,
-        uptime: Math.floor((Date.now() - startedAt) / 1000),
-        port: PORT,
-      });
-    }
-
-    if (url.pathname === "/ws/anchor" || url.pathname === "/ws") {
-      if (server.upgrade(req)) return new Response(null, { status: 101 });
-      return new Response("Upgrade required", { status: 426 });
-    }
-
-    return new Response("Not found", { status: 404 });
-  },
-  websocket: {
-    open(ws) {
-      clients.add(ws as WsClient);
-      ensureAppServer();
-      ws.send(JSON.stringify({
-        type: "anchor.hello",
-        ts: new Date().toISOString(),
-        hostname: hostname(),
-        platform: process.platform,
-      }));
-    },
-    message(ws, message) {
-      const text = typeof message === "string" ? message : new TextDecoder().decode(message);
-
-      // Forward orbit protocol messages (push-subscribe, push-test, etc.) to orbit
-      try {
-        const obj = JSON.parse(text) as JsonObject;
-        if (typeof obj.type === "string" && (obj.type as string).startsWith("orbit.")) {
-          if (orbitSocket && orbitSocket.readyState === WebSocket.OPEN) {
-            orbitSocket.send(text);
-          }
-          return;
-        }
-      } catch {
-        // not JSON — fall through to app-server path
-      }
-
-      // Handle anchor-local RPC methods
-      const parsed = parseJsonRpcMessage(text);
-      if (parsed && parsed.method === "anchor.listDirs" && parsed.id != null) {
-        void handleListDirs(parsed.id as number | string, asRecord(parsed.params)).then((resp) => {
-          try { (ws as WsClient).send(JSON.stringify(resp)); } catch { /* ignore */ }
-        });
-        return;
-      }
-
-      ensureAppServer();
-      if (!appServer) return;
-      if (parsed && ("method" in parsed || "id" in parsed)) {
-        sendToAppServer(text.trim() + "\n");
-      }
-    },
-    close(ws) {
-      clients.delete(ws as WsClient);
-    },
-  },
-});
-
-ensureAppServer();
+console.log(`[anchor] starting (local listen disabled) host=${HOST} port=${PORT}`);
 
 async function startup() {
   const saved = await loadCredentials();
@@ -689,8 +600,7 @@ async function startup() {
   const needsLogin = ORBIT_URL && (!ZANE_ANCHOR_JWT_SECRET || !USER_ID || FORCE_LOGIN);
 
 console.log(`\nCodex Pocket Anchor`);
-  console.log(`  Local:     http://${HOST}:${server.port}`);
-  console.log(`  WebSocket: ws://${HOST}:${server.port}/ws`);
+  console.log(`  Local:     disabled (no local listen)`);
 
   if (needsLogin) {
     const ok = await deviceLogin();
