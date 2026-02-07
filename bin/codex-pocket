@@ -92,6 +92,24 @@ print(((d.get("anchor") or {}).get("port")) or 8788)
 PY
 }
 
+db_path() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+print(d.get("db",""))
+PY
+}
+
+retention_days() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+print(d.get("retentionDays",14))
+PY
+}
+
 curl_auth() {
   local url="$1"; shift
   local tok
@@ -153,20 +171,8 @@ cmd_start() {
       ZANE_LOCAL_TOKEN="$(token)" \
       ZANE_LOCAL_HOST="127.0.0.1" \
       ZANE_LOCAL_PORT="8790" \
-      ZANE_LOCAL_DB="$(python3 - "$CONFIG_JSON" <<'PY'
-import json,sys
-with open(sys.argv[1]) as f:
-  d=json.load(f)
-print(d.get("db",""))
-PY
-)" \
-      ZANE_LOCAL_RETENTION_DAYS="$(python3 - "$CONFIG_JSON" <<'PY'
-import json,sys
-with open(sys.argv[1]) as f:
-  d=json.load(f)
-	print(d.get("retentionDays",14))
-PY
-)" \
+      ZANE_LOCAL_DB="$(db_path)" \
+      ZANE_LOCAL_RETENTION_DAYS="$(retention_days)" \
       ZANE_LOCAL_PUBLIC_ORIGIN="$pub" \
       ZANE_LOCAL_UI_DIST_DIR="$APP_DIR/app/dist" \
       ZANE_LOCAL_ANCHOR_CWD="$APP_DIR/app/services/anchor" \
@@ -201,6 +207,9 @@ cmd_stop() {
     fi
     rm -f "$PID_FILE" >/dev/null 2>&1 || true
   fi
+
+  # Safety net: in environments where PID tracking fails (permissions/sandbox), kill by script path.
+  pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" 2>/dev/null || true
   echo "Stopped ($LABEL)"
 }
 
