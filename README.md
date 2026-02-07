@@ -7,6 +7,33 @@ This project started as a local-only fork of Zane (credit: https://github.com/z-
 - No public internet exposure required
 - Local persistence via SQLite
 
+## First-Time Setup (Checklist)
+
+1. Create a (free) Tailscale account: https://tailscale.com/
+2. Install Tailscale on your Mac + iPhone and sign in to both.
+3. Install Codex Pocket on your Mac:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ddevalco/codex-pocket/main/scripts/install-local.sh | bash
+```
+
+4. Expose it on your tailnet (Mac):
+
+```bash
+tailscale up
+tailscale serve --bg http://127.0.0.1:8790
+```
+
+5. Pair your iPhone:
+  - On Mac: open `http://127.0.0.1:8790/admin` and sign in with your **Access Token**.
+  - Scan the pairing QR with your iPhone.
+
+If anything doesn’t work, run:
+
+```bash
+~/.codex-pocket/bin/codex-pocket ensure
+```
+
 ## How Codex Pocket Differs From Zane
 Codex Pocket is a focused fork for a single use case: **run Codex locally on macOS and access it securely from iPhone over Tailscale**.
 
@@ -42,6 +69,22 @@ Key differences:
 - A single bearer token protects the WebSocket and admin API.
 - Pairing: `/admin` can mint a short-lived one-time pairing code (shown as a QR).
   - Scan it on iPhone to store the bearer token locally.
+
+## Why Tailscale?
+
+Codex Pocket is built around a simple security goal: **don’t expose your local Codex to the public internet**.
+Tailscale is what makes that practical.
+
+What it provides in this setup:
+- **Private access**: your iPhone can reach your Mac as if it’s on the same LAN, but only inside your **tailnet**.
+- **Encryption in transit**: traffic is encrypted between devices.
+- **Stable device URL**: **MagicDNS** gives your Mac a stable hostname (e.g. `my-mac.tailXXXX.ts.net`).
+- **No public tunnel vendor**: you don’t need Cloudflare (or any third-party tunnel) to make the UI reachable.
+
+How it fits Codex Pocket:
+- Codex Pocket binds locally to `127.0.0.1`.
+- `tailscale serve` publishes that local-only service to your tailnet over HTTPS/WSS.
+- The Admin/WS endpoints remain protected by your Codex Pocket **Access Token** (and the iPhone pairing QR).
 
 ## Uploads (Images)
 - Uploads are stored locally on your Mac (default: `~/.codex-pocket/uploads`).
