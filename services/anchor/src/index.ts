@@ -597,12 +597,30 @@ async function startup() {
     USER_ID = saved.userId;
   }
 
-  const needsLogin = ORBIT_URL && (!ZANE_ANCHOR_JWT_SECRET || !USER_ID || FORCE_LOGIN);
+  // Local-only mode: when AUTH_URL is unset/empty we cannot do "device login".
+  // In that case we treat ZANE_ANCHOR_JWT_SECRET as a shared bearer token (not a JWT)
+  // and allow Orbit connection without a USER_ID.
+  const canDeviceLogin = Boolean(AUTH_URL);
+  if (ORBIT_URL && ZANE_ANCHOR_JWT_SECRET && !USER_ID && !canDeviceLogin) {
+    USER_ID = "local";
+  }
+
+  const needsLogin =
+    Boolean(ORBIT_URL) &&
+    (FORCE_LOGIN || !ZANE_ANCHOR_JWT_SECRET || (canDeviceLogin && !USER_ID));
 
 console.log(`\nCodex Pocket Anchor`);
   console.log(`  Local:     disabled (no local listen)`);
 
   if (needsLogin) {
+    if (!canDeviceLogin) {
+      console.error(
+        "[anchor] FORCE_LOGIN requested but AUTH_URL is empty; skipping device login and leaving Orbit disconnected"
+      );
+      console.log(`  Orbit:     not connected (login required)`);
+      console.log();
+      return;
+    }
     const ok = await deviceLogin();
     if (!ok) {
       console.log(`  Orbit:     not connected (login required)`);
