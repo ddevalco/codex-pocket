@@ -363,6 +363,30 @@ cat > "$PLIST" <<PLISTXML
 </plist>
 PLISTXML
 
+step "Stopping any existing Codex Pocket service"
+# Try to stop a prior install cleanly to avoid EADDRINUSE on port 8790.
+launchctl unload "$PLIST" >/dev/null 2>&1 || true
+if [[ -f "$PID_FILE" ]]; then
+  old_pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  if [[ -n "${old_pid:-}" ]]; then
+    kill "$old_pid" >/dev/null 2>&1 || true
+  fi
+  rm -f "$PID_FILE" >/dev/null 2>&1 || true
+fi
+# Safety net: only kill processes that match our script path.
+pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" >/dev/null 2>&1 || true
+
+# If something else is listening on 8790, abort with a clear error.
+if command -v lsof >/dev/null 2>&1; then
+  listener="$(lsof -nP -iTCP:8790 -sTCP:LISTEN 2>/dev/null | tail -n +2 | head -n 1 || true)"
+  if [[ -n "${listener:-}" ]]; then
+    echo "Error: port 8790 is already in use:" >&2
+    echo "  $listener" >&2
+    echo "Stop the process using 8790, or change ZANE_LOCAL_PORT in the installer/config." >&2
+    exit 1
+  fi
+fi
+
 launchctl unload "$PLIST" >/dev/null 2>&1 || true
 load_out="$(launchctl load "$PLIST" 2>&1)" || true
 if echo "$load_out" | grep -qi "Load failed: 5"; then
