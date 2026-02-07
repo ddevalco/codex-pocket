@@ -20,6 +20,7 @@ Key differences:
 - **Concurrency**: composing in thread B while thread A runs now works (per-thread progress tracking).
 - **Image uploads**: stored locally, served as capability URLs, configurable retention + cleanup from Admin.
 - **Vision attachments**: uploaded images are now forwarded to Codex app-server as structured attachments (so vision-capable models can consume pixels), while still rendering inline in the chat UI.
+- **Thread titles + rename sync**: Codex Pocket reads Codex Desktop's local thread title store so renamed titles show correctly, and can rename threads by updating the same store.
 
 ## What You Get
 - Web UI (mobile-friendly): create tasks, watch live output, approve/deny writes, review diffs
@@ -30,6 +31,7 @@ Key differences:
   - UI (static)
   - WebSockets (`/ws`) for realtime control
   - REST endpoints for event replay (`/threads/:id/events`)
+  - Thread title enrichment (reads `~/.codex/.codex-global-state.json`)
 
 ## Demo
 

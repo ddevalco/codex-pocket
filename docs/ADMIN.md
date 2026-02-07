@@ -11,6 +11,17 @@ Open `/admin` in the browser.
 - Use "Regenerate pairing code" to mint a fresh QR (codes are one-time and expire).
 - Scan from iPhone to sign in without manually typing the token.
 
+## Thread titles (Codex Desktop sync)
+Codex Pocket keeps thread titles in sync with the Codex desktop app by reading:
+- `~/.codex/.codex-global-state.json` (`thread-titles.titles[threadId]`)
+
+This is necessary because many `codex app-server` versions do not include the user-renamed title in `thread/list` payloads.
+
+### Renaming threads from Codex Pocket
+Codex Pocket can rename a thread by updating the same Codex title store file.
+- In the thread list (desktop UI), click the ✎ icon next to a thread.
+- This requires you to be signed into `/admin` in that browser session (uses the Admin bearer token).
+
 ## Anchor control
 - **Anchor** is the local agent running on your Mac. It spawns `codex app-server` and relays messages to the web UI.
 - Anchor is auto-started by default when the service starts.

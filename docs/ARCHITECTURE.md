@@ -48,6 +48,14 @@ Responsibilities:
 - local-orbit stores NDJSON event entries in SQLite.
 - The Review page fetches event history from `GET /threads/:id/events`.
 
+### Thread titles (Codex Desktop sync)
+Codex Pocket injects user-renamed thread titles by reading Codex Desktop's local title store:
+- `~/.codex/.codex-global-state.json` (`thread-titles.titles[threadId]`)
+
+This is done inside local-orbit as a presentation-only enrichment step for `thread/list` and `thread/get` payloads.
+
+Codex Pocket can also rename threads by updating the same title store file (Admin-token protected).
+
 ### Image uploads + vision attachments
 1. UI requests an upload slot: `POST /uploads/new` (authorised).
 2. UI uploads bytes: `PUT /uploads/:token` (authorised).

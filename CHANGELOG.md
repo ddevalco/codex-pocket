@@ -8,6 +8,10 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi (se
 
 ## 2026-02-07
 
+### Thread Titles / Rename Sync
+- Thread list titles now match Codex Desktop renamed titles by reading `~/.codex/.codex-global-state.json` and injecting `title/name/displayName` into `thread/list` + `thread/get` payloads. (commits `74db0ba`, `93c2702`)
+- Added a thread rename action in Codex Pocket that updates Codex Desktop's title store (Admin token required). (commit `133d3da`)
+
 ### Vision / Attachments
 - **Vision attachments**: image uploads are now passed to Codex app-server as structured `input` items (in addition to rendering inline in the UI). This makes attached images available to vision-capable models. (commit `5d58e60`)
 - Uploads API now returns `localPath`, `filename`, and `mime` (authorised only) to support attachment wiring. (commit `5d58e60`)
@@ -32,4 +36,3 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi (se
 - Installer improved to handle port conflicts more safely and persist port changes across config + launchd. (commit `a02f3eb`)
 - Installer copies the access token to clipboard (best effort). (commit `defd262`)
 - Pairing: QR served as an authenticated blob so the token doesn’t appear in image URLs. (commit `f462238`)
-

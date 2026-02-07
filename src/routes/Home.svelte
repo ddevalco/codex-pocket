@@ -564,4 +564,16 @@
   .archive-btn:hover {
     color: var(--cli-error);
   }
+
+  /* Mobile: prioritize thread title visibility. */
+  @media (max-width: 520px) {
+    .thread-meta {
+      display: none;
+    }
+
+    /* Keep the list clean on mobile; rename is still available on desktop. */
+    .rename-btn {
+      display: none;
+    }
+  }
 </style>
