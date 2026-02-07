@@ -389,7 +389,17 @@ function relay(fromRole: Role, msgText: string): void {
 
   if (threadId) {
     logEvent(fromRole === "client" ? "client" : "server", fromRole, msgText);
-    for (const ws of targets.get(threadId) ?? []) send(ws, msgText);
+    const set = targets.get(threadId);
+
+    // Important: clients must be able to initiate a thread without an anchor having subscribed yet.
+    // If no anchors are subscribed for this thread, fall back to broadcasting to all anchors so the
+    // anchor can observe the threadId and subscribe itself.
+    if (fromRole === "client" && (!set || set.size === 0)) {
+      for (const ws of anchorSockets.keys()) send(ws, msgText);
+      return;
+    }
+
+    for (const ws of set ?? []) send(ws, msgText);
     return;
   }
 
