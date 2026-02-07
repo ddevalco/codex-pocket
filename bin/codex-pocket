@@ -539,7 +539,7 @@ cmd_ensure() {
     return 1
   fi
 
-  echo "$v" | python3 - <<'PY'
+  printf '%s' "$v" | python3 - <<'PY'
 import json,sys
 raw=sys.stdin.read()
 try:
