@@ -25,6 +25,9 @@ Commands:
   status                 Show admin status JSON
   logs [anchor]          Tail logs (default: anchor)
   pair                   Create a one-time pairing link (prints URL)
+  token                  Print the Access Token (from config)
+  urls                   Print local/admin/tailnet URLs (from config)
+  diagnose               Run a diagnostic report for troubleshooting
   open-admin             Open the local Admin page in your browser
   update                 Update the installed app (git pull, rebuild, restart)
 
@@ -76,6 +79,24 @@ resolve_bun() {
 
 read_config() {
   [[ -f "$CONFIG_JSON" ]] || { echo "Missing config: $CONFIG_JSON" >&2; exit 1; }
+}
+
+config_host() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+print(d.get('host','127.0.0.1'))
+PY
+}
+
+config_port() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+print(int(d.get('port',8790)))
+PY
 }
 
 base_url() {
@@ -253,6 +274,102 @@ cmd_doctor() {
   fi
 }
 
+cmd_token() {
+  read_config
+  token
+}
+
+cmd_urls() {
+  read_config
+  local base
+  base="$(base_url)"
+  local pub
+  pub="$(public_origin)"
+  echo "Local:    $base"
+  echo "Admin:    $base/admin"
+  if [[ -n "${pub:-}" ]]; then
+    echo "Tailnet:  $pub/"
+    echo "Tailnet Admin: $pub/admin"
+  fi
+}
+
+cmd_diagnose() {
+  read_config
+  local base
+  base="$(base_url)"
+  local host port pub
+  host="$(config_host)"
+  port="$(config_port)"
+  pub="$(public_origin)"
+
+  echo "${bold}Codex Pocket Diagnose${reset}"
+  echo "Home:   $APP_DIR"
+  echo "Config: $CONFIG_JSON"
+  echo "Base:   $base"
+  [[ -n "${pub:-}" ]] && echo "Public: $pub"
+
+  echo ""
+  echo "${bold}Versions${reset}"
+  if [[ -d "$APP_DIR/app/.git" ]]; then
+    echo -n "app:    "
+    git -C "$APP_DIR/app" rev-parse --short HEAD 2>/dev/null || echo "unknown"
+  else
+    echo "app:    not installed"
+  fi
+  if bunp="$(resolve_bun 2>/dev/null)"; then
+    echo -n "bun:    "
+    "$bunp" --version 2>/dev/null || echo "unknown"
+  else
+    echo "bun:    missing"
+  fi
+  if command -v codex >/dev/null 2>&1; then
+    echo "codex:  ok"
+  else
+    echo "codex:  missing"
+  fi
+
+  echo ""
+  echo "${bold}Service${reset}"
+  if curl -fsS "$base/health" >/dev/null 2>&1; then
+    echo "health: ok"
+  else
+    echo "health: FAILED (try: codex-pocket restart)"
+  fi
+
+  echo ""
+  echo "${bold}Ports${reset}"
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || echo "no listener on $port"
+    local aport
+    aport="$(anchor_port 2>/dev/null || echo 8788)"
+    lsof -nP -iTCP:"$aport" -sTCP:LISTEN 2>/dev/null || echo "no listener on $aport"
+  else
+    echo "lsof: missing (install to get port diagnostics)"
+  fi
+
+  echo ""
+  echo "${bold}Tailscale${reset}"
+  if ts="$(resolve_tailscale 2>/dev/null)"; then
+    echo "tailscale: $ts"
+    "$ts" status 2>/dev/null | head -n 40 || true
+    echo ""
+    "$ts" serve status 2>/dev/null || true
+  else
+    echo "tailscale: missing"
+  fi
+
+  echo ""
+  echo "${bold}Logs (tail)${reset}"
+  if [[ -f "$APP_DIR/server.log" ]]; then
+    echo "-- server.log --"
+    tail -n 120 "$APP_DIR/server.log" || true
+  fi
+  if [[ -f "$APP_DIR/anchor.log" ]]; then
+    echo "-- anchor.log --"
+    tail -n 120 "$APP_DIR/anchor.log" || true
+  fi
+}
+
 cmd_start() {
   read_config
   local plist="$HOME/Library/LaunchAgents/${LABEL}.plist"
@@ -291,11 +408,15 @@ cmd_start() {
     pub="$(public_origin)"
     local aport
     aport="$(anchor_port)"
+    local host
+    host="$(config_host)"
+    local port
+    port="$(config_port)"
     nohup env \
       ZANE_LOCAL_TOKEN="$(token)" \
       ZANE_LOCAL_CONFIG_JSON="$CONFIG_JSON" \
-      ZANE_LOCAL_HOST="127.0.0.1" \
-      ZANE_LOCAL_PORT="8790" \
+      ZANE_LOCAL_HOST="$host" \
+      ZANE_LOCAL_PORT="$port" \
       ZANE_LOCAL_DB="$(db_path)" \
       ZANE_LOCAL_RETENTION_DAYS="$(retention_days)" \
       ZANE_LOCAL_PUBLIC_ORIGIN="$pub" \
@@ -482,6 +603,9 @@ main() {
     status) shift; cmd_status "$@";;
     logs) shift; cmd_logs "$@";;
     pair) shift; cmd_pair "$@";;
+    token) shift; cmd_token "$@";;
+    urls) shift; cmd_urls "$@";;
+    diagnose) shift; cmd_diagnose "$@";;
     open-admin) shift; cmd_open_admin "$@";;
     update) shift; cmd_update "$@";;
     -h|--help|help|"") usage;;

@@ -1,5 +1,13 @@
 # Troubleshooting
 
+## Quick triage (run this first)
+
+```bash
+~/.codex-pocket/bin/codex-pocket diagnose
+```
+
+If you send bug reports, paste the output of `diagnose` (it includes the last lines of logs).
+
 ## iPhone can't open the site
 - Ensure you ran `tailscale up` on the Mac.
 - Ensure you configured serving:
@@ -14,6 +22,13 @@ tailscale serve status
 curl -i http://127.0.0.1:8790/health
 ```
 
+## `/admin` asks for the Access Token again
+You can always print it from your local config:
+
+```bash
+~/.codex-pocket/bin/codex-pocket token
+```
+
 ## WebSocket won't connect
 - Confirm the Orbit URL is `wss://<your-host>/ws`.
 - In local mode it should auto-populate; if not, open Settings and verify.
@@ -26,6 +41,28 @@ curl -i http://127.0.0.1:8790/health
 - Wait a few seconds after service start; anchor auto-starts.
 - Check `/admin` logs.
 - Confirm `codex` is installed and authenticated.
+
+## Admin says “Failed to fetch” / stays on “Loading…”
+This usually means the UI can’t reach the server API at all (not an auth problem).
+
+1. Check service health:
+
+```bash
+~/.codex-pocket/bin/codex-pocket doctor
+curl -fsS http://127.0.0.1:8790/health
+```
+
+2. If health fails, restart:
+
+```bash
+~/.codex-pocket/bin/codex-pocket restart
+```
+
+3. If it still fails, run:
+
+```bash
+~/.codex-pocket/bin/codex-pocket diagnose
+```
 
 ## Threads show up but transcript is blank
 Depending on your `codex app-server` version, thread history may not be replayed to third-party clients on open.
