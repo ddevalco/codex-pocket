@@ -22,6 +22,7 @@ Commands:
   start                  Start the launchd service
   stop                   Stop the launchd service
   restart                Restart the service
+  ensure                 Validate and attempt safe auto-repair
   status                 Show admin status JSON
   logs [anchor]          Tail logs (default: anchor)
   pair                   Create a one-time pairing link (prints URL)
@@ -517,6 +518,47 @@ print(d.get('pairUrl',''))
 PY
 }
 
+cmd_ensure() {
+  read_config
+  local base
+  base="$(base_url)"
+
+  # If server isn't reachable, restart it.
+  if ! curl -fsS "$base/health" >/dev/null 2>&1; then
+    echo "Service not reachable; restarting..." >&2
+    cmd_restart
+  fi
+
+  echo "Validating..."
+  local v
+  v="$(curl_auth "$base/admin/validate" 2>/dev/null || true)"
+  if [[ -z "${v:-}" ]]; then
+    echo "Validate failed (auth?). If /admin is asking for a token, run: codex-pocket token" >&2
+    return 1
+  fi
+
+  echo "$v" | python3 - <<'PY'
+import json,sys
+d=json.load(sys.stdin)
+print("OK" if d.get("ok") else "ISSUES")
+PY
+
+  echo "Repairing (safe actions)..."
+  curl_auth "$base/admin/repair" -X POST -H 'content-type: application/json' -d '{"actions":["ensureUploadDir","startAnchor","pruneUploads"]}' >/dev/null 2>&1 || true
+
+  echo "Re-validating..."
+  curl_auth "$base/admin/validate" | python3 - <<'PY'
+import json,sys
+d=json.load(sys.stdin)
+ok=bool(d.get('ok'))
+print("OK" if ok else "NOT OK")
+if not ok:
+  for c in d.get('checks') or []:
+    if not c.get('ok'):
+      print(f"- {c.get('id')}: {c.get('summary')}")
+PY
+}
+
 cmd_restart() {
   cmd_stop
   cmd_start
@@ -600,6 +642,7 @@ main() {
     start) shift; cmd_start "$@";;
     stop) shift; cmd_stop "$@";;
     restart) shift; cmd_restart "$@";;
+    ensure) shift; cmd_ensure "$@";;
     status) shift; cmd_status "$@";;
     logs) shift; cmd_logs "$@";;
     pair) shift; cmd_pair "$@";;

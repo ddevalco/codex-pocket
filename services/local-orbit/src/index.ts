@@ -1,5 +1,5 @@
 import { hostname, homedir } from "node:os";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { readdir, stat, unlink, mkdir as mkdirAsync } from "node:fs/promises";
 import { dirname, join, basename } from "node:path";
 import { Database } from "bun:sqlite";
@@ -89,6 +89,13 @@ interface AnchorMeta {
   connectedAt: string;
 }
 
+type DiagnoseCheck = {
+  id: string;
+  ok: boolean;
+  summary: string;
+  detail?: string;
+};
+
 function okJson(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
     ...init,
@@ -126,6 +133,130 @@ function requestOrigin(url: URL, req: Request): string {
   const xfHost = (req.headers.get("x-forwarded-host") ?? "").split(",")[0].trim();
   if (xfProto && xfHost) return `${xfProto}://${xfHost}`;
   return `${url.protocol}//${url.host}`;
+}
+
+function resolveTailscaleCmd(): string | null {
+  try {
+    const w = (Bun as any).which;
+    if (typeof w === "function") {
+      const p = w("tailscale") as string | null | undefined;
+      if (p) return p;
+    }
+  } catch {
+    // ignore
+  }
+  const candidates = [
+    "/Applications/Tailscale.app/Contents/MacOS/Tailscale",
+    "/opt/homebrew/bin/tailscale",
+    "/usr/local/bin/tailscale",
+  ];
+  for (const p of candidates) {
+    try {
+      if (existsSync(p)) return p;
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+function runCmd(cmd: string, args: string[], timeoutMs = 2500): { ok: boolean; out: string } {
+  try {
+    const proc = Bun.spawnSync({
+      cmd: [cmd, ...args],
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: timeoutMs,
+    } as any);
+    const out = `${proc.stdout?.toString() ?? ""}${proc.stderr?.toString() ?? ""}`.trim();
+    return { ok: proc.exitCode === 0, out };
+  } catch (e) {
+    return { ok: false, out: e instanceof Error ? e.message : "failed to run" };
+  }
+}
+
+async function validateSystem(_req: Request, _url: URL): Promise<{ ok: boolean; checks: DiagnoseCheck[] }>{
+  const checks: DiagnoseCheck[] = [];
+
+  // Service health is implied by being able to hit this endpoint.
+  checks.push({ id: "server", ok: true, summary: `local-orbit reachable at http://${HOST}:${PORT}` });
+
+  // UI dist
+  try {
+    const distIndexPath = `${UI_DIST_DIR}/index.html`;
+    const exists = await Bun.file(distIndexPath).exists().catch(() => false);
+    checks.push({
+      id: "ui",
+      ok: Boolean(exists),
+      summary: exists ? "UI dist found" : "UI dist missing",
+      detail: `dist: ${UI_DIST_DIR}`,
+    });
+  } catch (e) {
+    checks.push({ id: "ui", ok: false, summary: "UI dist check failed", detail: e instanceof Error ? e.message : "" });
+  }
+
+  // DB
+  try {
+    db.prepare("SELECT 1").get();
+    checks.push({ id: "db", ok: true, summary: "SQLite DB reachable", detail: DB_PATH });
+  } catch (e) {
+    checks.push({ id: "db", ok: false, summary: "SQLite DB error", detail: e instanceof Error ? e.message : "" });
+  }
+
+  // Anchor
+  const aRunning = isAnchorRunning();
+  const aConnected = anchorSockets.size > 0;
+  checks.push({
+    id: "anchor",
+    ok: aRunning && aConnected,
+    summary: aRunning
+      ? (aConnected ? "Anchor running + connected" : "Anchor running (not connected yet)")
+      : "Anchor not running",
+    detail: `running=${aRunning} connected=${aConnected} port=${ANCHOR_PORT}`,
+  });
+
+  // Uploads dir existence (do not create here; validate should be non-mutating)
+  try {
+    const exists = UPLOAD_DIR ? existsSync(UPLOAD_DIR) : false;
+    checks.push({
+      id: "uploads",
+      ok: Boolean(UPLOAD_DIR) && exists,
+      summary: exists ? "Uploads dir present" : "Uploads dir missing",
+      detail: UPLOAD_DIR || "(not configured)",
+    });
+  } catch (e) {
+    checks.push({ id: "uploads", ok: false, summary: "Uploads check failed", detail: e instanceof Error ? e.message : "" });
+  }
+
+  // Tailscale (best-effort)
+  const ts = resolveTailscaleCmd();
+  if (!ts) {
+    checks.push({ id: "tailscale", ok: false, summary: "Tailscale CLI not found", detail: "Install Tailscale or add tailscale to PATH." });
+  } else {
+    const serve = runCmd(ts, ["serve", "status"], 2500);
+    checks.push({
+      id: "tailscale",
+      ok: true,
+      summary: "Tailscale CLI found",
+      detail: `${ts}${serve.out ? `\n\nserve status:\n${serve.out.slice(0, 2000)}` : ""}`,
+    });
+
+    // If we have a public origin, check that serve status mentions our local port.
+    if (PUBLIC_ORIGIN) {
+      const want = `127.0.0.1:${PORT}`;
+      const mentions = serve.out.includes(want);
+      checks.push({
+        id: "tailscale-serve",
+        ok: mentions,
+        summary: mentions ? "tailscale serve appears configured for this port" : "tailscale serve may not be pointing at this service",
+        detail: `publicOrigin=${PUBLIC_ORIGIN} want=${want}`,
+      });
+    }
+  }
+
+  const ok = checks.every((c) => c.ok);
+  return { ok, checks };
 }
 
 function unauth(): Response {
@@ -829,6 +960,69 @@ const server = Bun.serve<{ role: Role }>({
         db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS, uploadDir: UPLOAD_DIR, uploadRetentionDays: UPLOAD_RETENTION_DAYS },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
+    }
+
+    if (url.pathname === "/admin/validate" && method === "GET") {
+      if (!authorised(req)) return unauth();
+      const origin = requestOrigin(url, req);
+      const v = await validateSystem(req, url);
+      return okJson({
+        ok: v.ok,
+        origin,
+        server: { host: HOST, port: PORT },
+        anchor: { running: isAnchorRunning(), connected: anchorSockets.size > 0, port: ANCHOR_PORT },
+        db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS },
+        uploads: { dir: UPLOAD_DIR, retentionDays: UPLOAD_RETENTION_DAYS },
+        checks: v.checks,
+      });
+    }
+
+    if (url.pathname === "/admin/repair" && req.method === "POST") {
+      if (!authorised(req)) return unauth();
+      const body = (await req.json().catch(() => null)) as null | {
+        actions?: string[];
+      };
+      const actions = Array.isArray(body?.actions) ? body!.actions : [];
+      const applied: string[] = [];
+      const errors: string[] = [];
+
+      // Keep this conservative: only repair things that are safe and local.
+      if (actions.includes("ensureUploadDir")) {
+        try {
+          await ensureUploadDir();
+          applied.push("ensureUploadDir");
+          logAdmin("repair: ensured uploads dir exists");
+        } catch (e) {
+          errors.push(`ensureUploadDir: ${e instanceof Error ? e.message : "failed"}`);
+        }
+      }
+
+      if (actions.includes("startAnchor")) {
+        try {
+          const res = startAnchor();
+          if (!res.ok) throw new Error(res.error || "failed");
+          applied.push("startAnchor");
+          logAdmin("repair: started anchor");
+        } catch (e) {
+          errors.push(`startAnchor: ${e instanceof Error ? e.message : "failed"}`);
+        }
+      }
+
+      if (actions.includes("pruneUploads")) {
+        try {
+          await pruneUploads();
+          pruneExpiredUploadTokens();
+          applied.push("pruneUploads");
+          logAdmin("repair: pruned uploads");
+        } catch (e) {
+          errors.push(`pruneUploads: ${e instanceof Error ? e.message : "failed"}`);
+        }
+      }
+
+      // Re-validate after repairs.
+      const v = await validateSystem(req, url);
+      const ok = errors.length === 0 && v.ok;
+      return okJson({ ok, applied, errors, checks: v.checks });
     }
 
     if (url.pathname === "/admin/uploads/retention" && req.method === "POST") {

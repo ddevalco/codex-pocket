@@ -27,6 +27,15 @@
   let uploadRetentionDays = $state<number>(0);
   let savingUploadRetention = $state(false);
 
+  type ValidateResp = {
+    ok: boolean;
+    checks?: Array<{ id: string; ok: boolean; summary: string; detail?: string }>;
+  };
+
+  let validateResp = $state<ValidateResp | null>(null);
+  let validating = $state(false);
+  let repairing = $state(false);
+
   async function loadStatus() {
     statusError = null;
     try {
@@ -165,6 +174,54 @@
     }
   }
 
+  async function runValidate() {
+    if (validating) return;
+    validating = true;
+    try {
+      const headers: Record<string, string> = {};
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/validate", { headers });
+      const data = (await res.json().catch(() => null)) as ValidateResp | null;
+      if (!res.ok || !data) {
+        throw new Error(`validate failed (${res.status})`);
+      }
+      validateResp = data;
+    } catch (e) {
+      statusError = e instanceof Error ? e.message : "Validate failed";
+    } finally {
+      validating = false;
+    }
+  }
+
+  async function runRepair() {
+    if (repairing) return;
+    repairing = true;
+    try {
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+
+      // Conservative repairs only.
+      const actions = ["ensureUploadDir", "startAnchor", "pruneUploads"];
+      const res = await fetch("/admin/repair", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ actions }),
+      });
+      const data = (await res.json().catch(() => null)) as ValidateResp | null;
+      if (!res.ok || !data) {
+        throw new Error(`repair failed (${res.status})`);
+      }
+      validateResp = data;
+    } catch (e) {
+      statusError = e instanceof Error ? e.message : "Repair failed";
+    } finally {
+      repairing = false;
+      await loadStatus();
+      await loadLogs();
+      await loadOpsLog();
+    }
+  }
+
   async function _startAnchor() {
     if (busy) return;
     busy = true;
@@ -263,6 +320,7 @@
     loadStatus();
     loadLogs();
     loadDebugEvents();
+    loadOpsLog();
     const id = setInterval(() => {
       loadStatus();
     }, 5000);
@@ -359,9 +417,34 @@
           </div>
 
         <div class="row buttons">
+          <button type="button" onclick={runValidate} disabled={!auth.token || validating}>
+            {validating ? "Validating..." : "Validate"}
+          </button>
+          <button type="button" onclick={runRepair} disabled={!auth.token || repairing}>
+            {repairing ? "Repairing..." : "Repair"}
+          </button>
           <button class="danger" type="button" onclick={stopAnchor} disabled={busy || !status.anchor.running}>Stop anchor</button>
           <button type="button" onclick={loadLogs} disabled={busy}>Refresh logs</button>
         </div>
+
+        {#if validateResp?.checks}
+          <div class="validate stack">
+            <div class="hint {validateResp.ok ? "hint-ok" : "hint-error"}">
+              {validateResp.ok ? "Validate: OK" : "Validate: issues detected"}
+            </div>
+            <div class="checks">
+              {#each validateResp.checks as c (c.id)}
+                <div class="check row">
+                  <span class="dot" class:bad={!c.ok}>●</span>
+                  <span class="sum">{c.summary}</span>
+                </div>
+                {#if c.detail}
+                  <pre class="check-detail">{c.detail}</pre>
+                {/if}
+              {/each}
+            </div>
+          </div>
+        {/if}
         {/if}
       </div>
     </div>
@@ -541,5 +624,46 @@
   }
   .qr {
     margin-top: var(--space-md);
+  }
+
+  .validate {
+    margin-top: var(--space-md);
+  }
+
+  .hint-ok {
+    border-color: #2c8a5a;
+    color: #9be3bf;
+  }
+
+  .checks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .check {
+    gap: var(--space-sm);
+    align-items: baseline;
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  .dot {
+    font-size: 10px;
+    color: #2c8a5a;
+  }
+  .dot.bad {
+    color: var(--cli-error);
+  }
+
+  .check-detail {
+    margin: 0;
+    padding: var(--space-sm);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    max-height: 200px;
+    overflow: auto;
+    font-size: 12px;
   }
 </style>
