@@ -24,6 +24,7 @@ Commands:
   restart                Restart the service
   ensure                 Validate and attempt safe auto-repair
   smoke-test             Run a fast PASS/FAIL check against the local service
+  summary                Print current config + URLs + log locations
   status                 Show admin status JSON
   logs [anchor]          Tail logs (default: anchor)
   pair                   Create a one-time pairing link (prints URL)
@@ -584,9 +585,13 @@ cmd_smoke_test() {
 
   # 1) health
   if ! curl -fsS "$base/health" >/dev/null 2>&1; then
-    echo "FAIL: /health unreachable" >&2
-    echo "Try: codex-pocket restart" >&2
-    return 1
+    echo "WARN: /health unreachable; attempting restart..." >&2
+    cmd_restart || true
+    if ! curl -fsS "$base/health" >/dev/null 2>&1; then
+      echo "FAIL: /health unreachable" >&2
+      echo "Next: codex-pocket diagnose" >&2
+      return 1
+    fi
   fi
   echo "PASS: /health"
 
@@ -619,6 +624,25 @@ PY
   echo "PASS: /admin/status"
 
   echo "OK"
+}
+
+cmd_summary() {
+  read_config
+  local base
+  base="$(base_url)"
+  echo ""
+  echo "Summary"
+  echo "Home dir:        $APP_DIR"
+  echo "Config:          $CONFIG_JSON"
+  echo "Local URL:       $base"
+  echo "Admin URL:       $base/admin"
+  echo "Tailnet URL:     $(tailnet_url 2>/dev/null || true)"
+  echo "Tailnet Admin:   $(tailnet_url 2>/dev/null || true)/admin"
+  echo "Access Token:    $(cmd_token | head -c 8)..."
+  echo "Logs:            $APP_DIR/server.log"
+  echo "Anchor logs:     $APP_DIR/anchor.log"
+  echo "Uploads:         $APP_DIR/uploads"
+  echo "DB:              $(config_db)"
 }
 
 cmd_restart() {
@@ -746,9 +770,14 @@ SH
   chmod +x "$helper" >/dev/null 2>&1 || true
   bash "$helper"
 
-  # After updating/restarting, run ensure so users immediately get a clear signal.
-  # If the helper updated this CLI on disk, that's fine: bash has already parsed this function body.
+  echo ""
+  echo "Running ensure..."
   cmd_ensure || true
+  echo ""
+  cmd_summary || true
+  echo ""
+  echo "Running smoke-test..."
+  cmd_smoke_test || true
 }
 
 main() {
@@ -760,6 +789,7 @@ main() {
     restart) shift; cmd_restart "$@";;
     ensure) shift; cmd_ensure "$@";;
     smoke-test) shift; cmd_smoke_test "$@";;
+    summary) shift; cmd_summary "$@";;
     status) shift; cmd_status "$@";;
     logs) shift; cmd_logs "$@";;
     pair) shift; cmd_pair "$@";;

@@ -357,24 +357,6 @@
     word-break: break-word;
     max-height: 300px;
     overflow-y: auto;
-
-  .markdown :global(p) {
-    margin: 0;
-  }
-
-  .markdown :global(pre) {
-    margin: 0;
-    padding: var(--space-sm);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-sm);
-    overflow: auto;
-  }
-
-  .markdown :global(code) {
-    font-family: var(--font-mono);
-  }
-
   }
 
   @keyframes slideIn {

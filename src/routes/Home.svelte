@@ -581,14 +581,6 @@
     color: var(--cli-text-muted);
   }
 
-  .thread-active {
-    flex-shrink: 0;
-    padding: 0 var(--space-sm);
-    color: var(--cli-success);
-    font-size: var(--text-xs);
-    line-height: 1;
-  }
-
   .thread-indicator {
     flex-shrink: 0;
     padding: 0 var(--space-sm);

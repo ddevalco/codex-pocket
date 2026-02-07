@@ -350,13 +350,6 @@
     color: var(--cli-error);
   }
 
-  .hint code {
-    color: var(--cli-text-dim);
-    background: var(--cli-bg-elevated);
-    padding: 1px 4px;
-    border-radius: var(--radius-sm);
-  }
-
   .hint a {
     color: var(--cli-prefix-agent);
   }
