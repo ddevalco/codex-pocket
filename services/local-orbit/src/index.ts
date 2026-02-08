@@ -26,6 +26,28 @@ const DB_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_RETENTION_DAYS ?? 14);
 const UI_DIST_DIR = process.env.ZANE_LOCAL_UI_DIST_DIR ?? `${process.cwd()}/dist`;
 const PUBLIC_ORIGIN = (process.env.ZANE_LOCAL_PUBLIC_ORIGIN ?? "").trim().replace(/\/$/, "");
 
+// Build/version info (best-effort).
+// UI_DIST_DIR typically points at <app>/dist, so its parent is the git repo root.
+const APP_REPO_DIR = (process.env.ZANE_LOCAL_APP_REPO_DIR ?? dirname(UI_DIST_DIR)).trim();
+const APP_COMMIT = (() => {
+  const env = (process.env.ZANE_LOCAL_APP_COMMIT ?? "").trim();
+  if (env) return env;
+  try {
+    const proc = Bun.spawnSync({
+      cmd: ["git", "-C", APP_REPO_DIR, "rev-parse", "--short", "HEAD"],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    if (proc.exitCode === 0) {
+      const out = new TextDecoder().decode(proc.stdout as any).trim();
+      if (out) return out;
+    }
+  } catch {
+    // ignore
+  }
+  return "";
+})();
+
 let UPLOAD_DIR = (process.env.ZANE_LOCAL_UPLOAD_DIR ?? `${homedir()}/.codex-pocket/uploads`).trim();
 let UPLOAD_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_UPLOAD_RETENTION_DAYS ?? 0); // 0 = keep forever
 const UPLOAD_MAX_BYTES = Number(process.env.ZANE_LOCAL_UPLOAD_MAX_BYTES ?? 25 * 1024 * 1024);
@@ -128,6 +150,15 @@ function contentTypeForPath(pathname: string): string | null {
   if (p.endsWith(".woff2")) return "font/woff2";
   if (p.endsWith(".woff")) return "font/woff";
   if (p.endsWith(".ttf")) return "font/ttf";
+  return null;
+}
+
+function cacheControlForPath(pathname: string): string | null {
+  const p = pathname.toLowerCase();
+  // Prevent cached index.html from pinning clients to old/broken bundles after updates.
+  if (p === "/" || p === "/index.html" || p.endsWith(".html")) return "no-store";
+  // Vite build assets are content-addressed, so we can cache them aggressively.
+  if (p.startsWith("/assets/")) return "private, max-age=31536000, immutable";
   return null;
 }
 
@@ -1026,6 +1057,7 @@ const server = Bun.serve<{ role: Role }>({
           path: DB_PATH,
           retentionDays: DB_RETENTION_DAYS,
         },
+        version: { appCommit: APP_COMMIT },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
     }
@@ -1044,6 +1076,7 @@ const server = Bun.serve<{ role: Role }>({
           log: ANCHOR_LOG_PATH,
         },
         db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS, uploadDir: UPLOAD_DIR, uploadRetentionDays: UPLOAD_RETENTION_DAYS },
+        version: { appCommit: APP_COMMIT },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
     }
@@ -1465,7 +1498,11 @@ const server = Bun.serve<{ role: Role }>({
         const file = Bun.file(filePath);
         if (await file.exists()) {
           const ct = contentTypeForPath(path);
-          const init = ct ? { headers: { "content-type": ct } } : undefined;
+          const cc = cacheControlForPath(path);
+          const headers: Record<string, string> = {};
+          if (ct) headers["content-type"] = ct;
+          if (cc) headers["cache-control"] = cc;
+          const init = Object.keys(headers).length ? { headers } : undefined;
           return isHead ? new Response(null, { status: 200, headers: (init as any)?.headers }) : new Response(file, init);
         }
       } catch {
@@ -1475,7 +1512,7 @@ const server = Bun.serve<{ role: Role }>({
       try {
         const index = Bun.file(`${UI_DIST_DIR}/index.html`);
         if (await index.exists()) {
-          const headers = { "content-type": "text/html; charset=utf-8" };
+          const headers = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" };
           return isHead ? new Response(null, { status: 200, headers }) : new Response(index, { headers });
         }
       } catch {

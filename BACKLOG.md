@@ -8,13 +8,13 @@ This is a prioritized list of remaining improvements.
 - CLI now validates `config.json` early (avoids Python stack traces when config is missing/empty/corrupt).
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.
 
+- `index.html` is now served with `Cache-Control: no-store` to reduce cached broken bundle issues.
+- UI now shows build metadata (commit/time) and server shows app commit in /health + /admin/status.
+
 ## P0 (Stability)
 
 - Add automated end-to-end smoke coverage in CI: build UI, run local-orbit, hit `/health`, `/admin/status`, `/admin/validate`.
 - Improve update reliability when multiple Pocket processes exist: detect and kill stale listeners more aggressively before restart.
-- Reduce “cached broken bundle” cases:
-  - Set `Cache-Control: no-store` (or short max-age) for `index.html`.
-  - Show a build/version string in Settings/Admin so it’s obvious which code is running.
 
 ## P1 (UX)
 

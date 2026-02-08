@@ -31,6 +31,25 @@
   import { anchors } from "../lib/anchors.svelte";
   const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1";
 
+  const UI_COMMIT = String(import.meta.env.VITE_CODEX_POCKET_COMMIT ?? "");
+  const UI_BUILT_AT = String(import.meta.env.VITE_CODEX_POCKET_BUILT_AT ?? "");
+
+  type Health = { version?: { appCommit?: string } };
+  let appCommit = $state<string>("");
+
+  $effect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/health");
+        const data = (await res.json().catch(() => null)) as Health | null;
+        const c = data?.version?.appCommit;
+        if (typeof c === "string") appCommit = c;
+      } catch {
+        // ignore
+      }
+    })();
+  });
+
   const themeIcons = { system: "◐", light: "○", dark: "●" } as const;
 
   const anchorList = $derived(anchors.list);
@@ -173,7 +192,24 @@
       </div>
     </div>
 
+    
     <div class="section stack">
+      <div class="section-header">
+        <span class="section-title">About</span>
+      </div>
+      <div class="section-body stack">
+        <p class="hint">
+          UI build: <span class="mono">{UI_COMMIT || "unknown"}</span>
+          {#if UI_BUILT_AT}
+            <span class="dim">({UI_BUILT_AT})</span>
+          {/if}
+        </p>
+        <p class="hint">
+          Server: <span class="mono">{appCommit || "unknown"}</span>
+        </p>
+      </div>
+    </div>
+<div class="section stack">
       <div class="section-header">
         <span class="section-title">Account</span>
       </div>
@@ -371,4 +407,6 @@
     background: var(--cli-error-bg);
     border-color: var(--cli-error, #ef4444);
   }
+  .mono { font-family: var(--font-mono); }
+  .dim { color: var(--cli-text-dim); }
 </style>
