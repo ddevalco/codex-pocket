@@ -615,7 +615,11 @@ function extractThreadId(message: Record<string, unknown>): string | null {
   const params = message.params && typeof message.params === "object" ? (message.params as any) : null;
   const result = message.result && typeof message.result === "object" ? (message.result as any) : null;
   const threadFromParams = params?.thread && typeof params.thread === "object" ? params.thread : null;
+  const threadFromTurnParams =
+    params?.turn?.thread && typeof params.turn.thread === "object" ? params.turn.thread : null;
   const threadFromResult = result?.thread && typeof result.thread === "object" ? result.thread : null;
+  const threadFromTurnResult =
+    result?.turn?.thread && typeof result.turn.thread === "object" ? result.turn.thread : null;
 
   const candidates = [
     params?.threadId,
@@ -623,7 +627,9 @@ function extractThreadId(message: Record<string, unknown>): string | null {
     result?.threadId,
     result?.thread_id,
     threadFromParams?.id,
+    threadFromTurnParams?.id,
     threadFromResult?.id,
+    threadFromTurnResult?.id,
   ];
 
   for (const c of candidates) {

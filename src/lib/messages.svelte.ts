@@ -931,7 +931,29 @@ class MessagesStore {
   }
 
   #extractThreadId(params: Record<string, unknown>): string | null {
-    return (params.threadId as string) || (params.thread_id as string) || null;
+    const direct = (params.threadId as string) || (params.thread_id as string);
+    if (direct) return direct;
+
+    // Codex payload shapes vary by version. Sometimes the thread id is nested under `thread.id`
+    // or `turn.thread.id`.
+    const p: any = params;
+    const fromThread =
+      p?.thread && typeof p.thread === "object" && typeof p.thread.id === "string" ? (p.thread.id as string) : null;
+    if (fromThread) return fromThread;
+
+    const fromTurnThread =
+      p?.turn?.thread && typeof p.turn.thread === "object" && typeof p.turn.thread.id === "string"
+        ? (p.turn.thread.id as string)
+        : null;
+    if (fromTurnThread) return fromTurnThread;
+
+    const fromItemThread =
+      p?.item?.thread && typeof p.item.thread === "object" && typeof p.item.thread.id === "string"
+        ? (p.item.thread.id as string)
+        : null;
+    if (fromItemThread) return fromItemThread;
+
+    return null;
   }
 
   #loadThread(threadId: string, turns: unknown[]) {

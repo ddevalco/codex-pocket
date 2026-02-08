@@ -198,7 +198,11 @@ function extractThreadId(message: JsonObject): string | null {
   const params = asRecord(message.params);
   const result = asRecord(message.result);
   const threadFromParams = asRecord(params?.thread);
+  const turnFromParams = asRecord(params?.turn);
+  const threadFromTurnParams = asRecord(turnFromParams?.thread);
   const threadFromResult = asRecord(result?.thread);
+  const turnFromResult = asRecord(result?.turn);
+  const threadFromTurnResult = asRecord(turnFromResult?.thread);
 
   const candidates = [
     params?.threadId,
@@ -206,7 +210,9 @@ function extractThreadId(message: JsonObject): string | null {
     result?.threadId,
     result?.thread_id,
     threadFromParams?.id,
+    threadFromTurnParams?.id,
     threadFromResult?.id,
+    threadFromTurnResult?.id,
   ];
 
   for (const candidate of candidates) {
@@ -443,9 +449,17 @@ async function connectOrbit(): Promise<void> {
   });
 
   ws.addEventListener("error", () => {
+    // Important: don't drop `orbitSocket` on error without closing the underlying socket.
+    // Some WebSocket implementations emit `error` without immediately transitioning to CLOSED.
+    // If we clear orbitSocket here, `connectOrbit()` can create a new connection while the old
+    // one remains OPEN, leading to multiple concurrent orbit connections and duplicated anchors.
     stopOrbitHeartbeat();
-    orbitSocket = null;
     orbitConnecting = false;
+    try {
+      if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) ws.close();
+    } catch {
+      // ignore
+    }
   });
 }
 
