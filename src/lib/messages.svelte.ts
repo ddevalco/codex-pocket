@@ -2,6 +2,7 @@ import type { Message, RpcMessage, ApprovalRequest, UserInputRequest, UserInputQ
 import { socket } from "./socket.svelte";
 import { threads } from "./threads.svelte";
 import { api } from "./api";
+import { auth } from "./auth.svelte";
 
 const STORE_KEY = "__zane_messages_store__";
 
@@ -19,6 +20,8 @@ class MessagesStore {
   #byThread = $state<Map<string, Message[]>>(new Map());
   #streamingText = $state<Map<string, string>>(new Map());
   #loadedThreads = new Set<string>();
+  // Best-effort replay guard so we don't re-run expensive event hydration loops.
+  #eventsReplayed = new Set<string>();
   #pendingApprovals = $state<Map<string, ApprovalRequest>>(new Map());
   #pendingLiveMessages = new Map<string, Message>(); // survives clearThread for replay preservation
   #reasoningByThread = new Map<string, ReasoningState>();
@@ -151,6 +154,7 @@ class MessagesStore {
     this.#byThread.delete(threadId);
     // Allow re-opening a thread to rehydrate history after we intentionally cleared it.
     this.#loadedThreads.delete(threadId);
+    this.#eventsReplayed.delete(threadId);
     for (const key of this.#streamingText.keys()) {
       if (key.startsWith(`${threadId}:`)) {
         this.#streamingText.delete(key);
@@ -162,11 +166,20 @@ class MessagesStore {
     // Best-effort transcript restore from Codex Pocket's local-orbit event store.
     // This is used when upstream thread/resume/thread/get does not replay history.
     if (!threadId) return;
-    if (this.getThreadMessages(threadId).length > 0) return;
+    if (this.#eventsReplayed.has(threadId)) return;
+    // If we don't yet have an auth token (common right after page load),
+    // delay and retry rather than permanently failing.
+    if (!auth.token) {
+      setTimeout(() => void this.rehydrateFromEvents(threadId), 750);
+      return;
+    }
 
     try {
-      const text = await api.getText(`/threads/${threadId}/events`);
+      // local-orbit accepts token via query string as well as Authorization header.
+      const tokenParam = encodeURIComponent(auth.token);
+      const text = await api.getText(`/threads/${threadId}/events?token=${tokenParam}`);
       if (!text.trim()) return;
+      this.#eventsReplayed.add(threadId);
       const lines = text.split(/\r?\n/).filter(Boolean);
       for (const line of lines) {
         try {
@@ -523,8 +536,11 @@ class MessagesStore {
 
       if (threadId && Array.isArray(turns)) {
         this.#touch(threadId);
-        const existing = this.getThreadMessages(threadId);
-        if (existing.length === 0) {
+        // Do not require `existing.length === 0` here.
+        // We can receive live `item/*` messages immediately after subscribing, which would
+        // make `existing` non-empty and inadvertently block history loading, resulting in
+        // a "blank thread" UX. History load dedupes by `id` anyway.
+        if (!this.#loadedThreads.has(threadId)) {
           this.#loadedThreads.add(threadId);
           this.#loadThread(threadId, turns);
         }
