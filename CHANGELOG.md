@@ -8,6 +8,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi (se
 
 ### Reliability
 - Anchors now provide a stable `anchorId` to local-orbit so device reconnects do not create duplicate "devices" in Settings.
+- CLI: `start/stop/restart` now aggressively cleans up orphaned Anchor processes (the main cause of anchor flapping + blank threads after repeated installs/updates).
 - Thread view now opens/resumes threads even while the socket is still connecting, reducing blank-thread cases during page load.
 - Thread list navigation now uses SPA navigation (prevents full reloads and preserves socket state).
 
