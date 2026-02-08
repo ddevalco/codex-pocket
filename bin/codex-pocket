@@ -26,14 +26,13 @@ Commands:
   smoke-test             Run a fast PASS/FAIL check against the local service
   summary                Print current config + URLs + log locations
   status                 Show admin status JSON
-  logs [anchor]          Tail logs (default: anchor)
+  logs [anchor|server]   Tail logs (default: anchor)
   pair                   Create a one-time pairing link (prints URL)
   token                  Print the Access Token (from config)
   urls                   Print local/admin/tailnet URLs (from config)
   diagnose               Run a diagnostic report for troubleshooting
   open-admin             Open the local Admin page in your browser
   update                 Update the installed app (git pull, rebuild, restart, ensure)
-  summary                Print current config + URLs + log locations
 
 Environment:
   CODEX_POCKET_HOME       Defaults to ~/.codex-pocket
@@ -962,14 +961,31 @@ SH
   chmod +x "$helper" >/dev/null 2>&1 || true
   bash "$helper"
 
+  # Always print a summary (even if checks fail) and return non-zero if ensure/smoke-test fail.
+  local ensure_rc=0
+  local smoke_rc=0
+
   echo ""
   echo "Running ensure..."
+  set +e
   cmd_ensure
-  echo ""
-  cmd_summary || true
+  ensure_rc=$?
+
   echo ""
   echo "Running smoke-test..."
   cmd_smoke_test
+  smoke_rc=$?
+  set -e
+
+  echo ""
+  cmd_summary || true
+
+  if [[ "$ensure_rc" -ne 0 || "$smoke_rc" -ne 0 ]]; then
+    echo "" >&2
+    echo "Update completed, but checks failed (ensure=$ensure_rc smoke-test=$smoke_rc)." >&2
+    echo "Next: codex-pocket diagnose" >&2
+    return 1
+  fi
 }
 
 main() {

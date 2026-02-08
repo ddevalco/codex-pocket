@@ -66,6 +66,9 @@ Binary location after install:
 
 - `codex-pocket update`
   - Updates the installed app in `~/.codex-pocket/app` (git pull), rebuilds the UI, then restarts.
+  - Runs `codex-pocket ensure` and `codex-pocket smoke-test` after restart.
+  - Always prints a final `codex-pocket summary` so you can quickly copy URLs/token/log paths.
+  - Returns non-zero if post-update checks fail (next: `codex-pocket diagnose`).
   - If your install uses a non-default port (because the installer detected a conflict), the CLI uses the configured port.
   - After updating, clients may need a hard refresh (`Cmd+Shift+R`) if the browser cached a bad bundle.
 
