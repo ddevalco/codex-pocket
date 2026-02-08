@@ -1,44 +1,73 @@
 # CLI
 
-The `codex-pocket` CLI manages the service and calls the admin API.
+The `codex-pocket` CLI manages the service and talks to the local Admin API.
+
+Binary location after install:
+- `~/.codex-pocket/bin/codex-pocket`
+
+## Most-Used Commands
+
+- `codex-pocket summary`
+  - Prints URLs, logs, token prefix, DB path, uploads dir.
+
+- `codex-pocket restart`
+  - Stop/start and wait for `GET /health`.
+
+- `codex-pocket ensure`
+  - Best-effort self-heal: restart if needed, validate, run safe repairs, re-validate.
+
+- `codex-pocket diagnose`
+  - One command bug report (versions, ports, tailscale serve status, log tails).
 
 ## Commands
 
 - `codex-pocket doctor`
-  - Checks dependencies and service reachability.
-  - Does not change your machine; safe to run any time.
+  - Checks dependencies and basic reachability.
+  - Safe: does not modify the machine.
 
 - `codex-pocket start`
-  - Starts the launchd agent (`com.codex.pocket`).
+  - Starts the service using `launchd` (agent: `com.codex.pocket`).
   - If `launchctl` is blocked (common on managed/MDM Macs), it falls back to a background process.
 
 - `codex-pocket stop`
-  - Stops the launchd agent.
+  - Stops the `launchd` agent.
   - Also kills any stray Codex Pocket listeners it owns (port safety net).
+
+- `codex-pocket restart`
+  - Equivalent of `stop` + `start`, then waits for `GET /health`.
 
 - `codex-pocket status`
   - Prints `/admin/status` JSON.
 
-- `codex-pocket logs [anchor]`
-  - Prints `/admin/logs?service=anchor`.
-
-- `codex-pocket pair`
-  - Prints a one-time pairing URL (same as clicking "New pairing code" in `/admin`).
+- `codex-pocket logs [anchor|server]`
+  - Prints logs via the Admin API.
 
 - `codex-pocket token`
   - Prints the current **Access Token** from `~/.codex-pocket/config.json`.
-  - Useful if `/admin` asks you to sign in again.
+  - Use this when `/admin` asks you to sign in again.
 
 - `codex-pocket urls`
-  - Prints the current local and tailnet URLs from config (Local/Admin/Tailnet/Tailnet Admin).
+  - Prints the current local and tailnet URLs from config.
 
-- `codex-pocket diagnose`
-  - Prints a single diagnostic report (versions, health, ports, tailscale status/serve status, log tails).
-  - This is the command to run before filing a bug report.
+- `codex-pocket pair`
+  - Mints a short-lived pairing code (same as clicking “New pairing code” in `/admin`).
+
+- `codex-pocket open-admin`
+  - Opens the Admin page in your default browser.
+
+- `codex-pocket smoke-test`
+  - Fast PASS/FAIL check against `GET /health` and the Admin validation endpoint.
+
+- `codex-pocket ensure`
+  - Runs:
+  - Validate (`/admin/validate`)
+  - Safe repair (`/admin/repair`) when needed
+  - Re-validate
 
 - `codex-pocket update`
-  - Updates the installed app in `~/.codex-pocket/app` (git pull), rebuilds the UI, then restarts the service.
-  - If your install uses a non-default port (because the installer detected a conflict), the CLI now starts the service on that configured port.
+  - Updates the installed app in `~/.codex-pocket/app` (git pull), rebuilds the UI, then restarts.
+  - If your install uses a non-default port (because the installer detected a conflict), the CLI uses the configured port.
+  - After updating, clients may need a hard refresh (`Cmd+Shift+R`) if the browser cached a bad bundle.
 
 ## Config
 

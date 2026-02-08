@@ -34,7 +34,16 @@ If anything doesn’t work, run:
 ~/.codex-pocket/bin/codex-pocket ensure
 ```
 
-### Common First-Run Issues
+### Docs
+
+- Install: `docs/INSTALL.md`
+- CLI: `docs/CLI.md`
+- Admin: `docs/ADMIN.md`
+- Troubleshooting/FAQ: `docs/TROUBLESHOOTING.md`
+- Architecture: `docs/ARCHITECTURE.md`
+- Differences from Zane: `docs/DIFFERENCES_FROM_ZANE.md`
+
+## Common First-Run Issues
 
 - **"Serve is not enabled on your tailnet"**
   - Tailscale may require you to explicitly enable Serve in your tailnet admin settings.
@@ -62,7 +71,7 @@ Key differences:
 - **No Cloudflare dependency**: Codex Pocket uses a single local server (`local-orbit`) with a shared-token auth model.
 - **Tailnet-first exposure**: binds to `127.0.0.1` and is designed to be exposed via `tailscale serve` to devices on your tailnet (no public internet required).
 - **Simplified auth + pairing**: one bearer **Access Token** + short-lived one-time pairing QR in `/admin`.
-- **Installer + lifecycle UX**: one-line installer, `launchd` integration (with background fallback), and a full `codex-pocket` CLI (`doctor/start/stop/restart/status/logs/pair/open-admin/update`).
+- **Installer + lifecycle UX**: one-line installer, `launchd` integration (with background fallback), and a full `codex-pocket` CLI (`doctor/summary/urls/token/start/stop/restart/status/logs/pair/open-admin/ensure/smoke-test/update`).
 - **Local persistence**: SQLite-backed event log + replay endpoints powering the Review UI.
 - **iPhone-first usability**: default Enter = newline (send via Cmd/Ctrl+Enter), plus mobile-oriented UI fixes.
 - **Concurrency**: composing in thread B while thread A runs now works (per-thread progress tracking).
