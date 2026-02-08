@@ -206,8 +206,9 @@ class MessagesStore {
       // local-orbit accepts token via query string as well as Authorization header.
       const tokenParam = encodeURIComponent(auth.token);
       // Prefer newest-first so we are more likely to encounter a recent `thread/get` snapshot early.
-      // NOTE: local-orbit will cap the limit server-side as well.
-      const text = await api.getText(`/threads/${threadId}/events?token=${tokenParam}&order=desc&limit=250`);
+      // Keep the limit small: a single `thread/get` snapshot can be several MB, and large threads
+      // can accumulate many of them over time.
+      const text = await api.getText(`/threads/${threadId}/events?token=${tokenParam}&order=desc&limit=30`);
       if (!text.trim()) return;
 
       let i = 0;

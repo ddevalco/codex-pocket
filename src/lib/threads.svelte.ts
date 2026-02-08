@@ -130,9 +130,21 @@ class ThreadsStore {
       params: { threadId, includeTurns: true, include_turns: true },
     });
 
-    // Always attempt a best-effort event replay from Pocket's local store.
-    // This ensures history shows up even if upstream does not replay turns.
-    void messages.rehydrateFromEvents(threadId);
+    // Fallback: only attempt local event replay if upstream did not load history.
+    //
+    // Important: the local event store can be extremely large for older threads
+    // (e.g. repeated `thread/get` snapshots). Replaying it unconditionally can freeze
+    // the UI on both mobile and desktop, which manifests as "blank threads" and
+    // broken navigation. Delay + gate this to keep the common path fast.
+    setTimeout(() => {
+      try {
+        if (this.currentId !== threadId) return;
+        if (messages.getThreadMessages(threadId).length > 0) return;
+        void messages.rehydrateFromEvents(threadId);
+      } catch {
+        // ignore
+      }
+    }, 1250);
   }
 
   start(
