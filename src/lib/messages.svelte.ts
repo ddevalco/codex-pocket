@@ -162,8 +162,7 @@ class MessagesStore {
     // Best-effort transcript restore from Codex Pocket's local-orbit event store.
     // This is used when upstream thread/resume/thread/get does not replay history.
     if (!threadId) return;
-    if (this.#loadedThreads.has(threadId)) return;
-    this.#loadedThreads.add(threadId);
+    if (this.getThreadMessages(threadId).length > 0) return;
 
     try {
       const text = await api.getText(`/threads/${threadId}/events`);
@@ -524,7 +523,8 @@ class MessagesStore {
 
       if (threadId && Array.isArray(turns)) {
         this.#touch(threadId);
-        if (!this.#loadedThreads.has(threadId)) {
+        const existing = this.getThreadMessages(threadId);
+        if (existing.length === 0) {
           this.#loadedThreads.add(threadId);
           this.#loadThread(threadId, turns);
         }
