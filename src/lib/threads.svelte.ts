@@ -108,27 +108,42 @@ class ThreadsStore {
   }
 
   open(threadId: string) {
-    const id = this.#nextId++;
     this.loading = true;
     this.currentId = threadId;
     messages.clearThread(threadId);
     socket.subscribeThread(threadId);
-    this.#pendingRequests.set(id, "resume");
-    socket.send({
-      method: "thread/resume",
-      id,
-      params: { threadId },
-    });
 
-    // Some Codex app-server versions do not replay historical turns on thread/resume.
-    // Try a best-effort fetch to backfill transcript for existing threads.
-    const getId = this.#nextId++;
-    this.#pendingRequests.set(getId, `get:${threadId}`);
-    socket.send({
-      method: "thread/get",
-      id: getId,
-      params: { threadId, includeTurns: true, include_turns: true },
-    });
+    const doResumeAndGet = () => {
+      const id = this.#nextId++;
+      this.#pendingRequests.set(id, "resume");
+      socket.send({
+        method: "thread/resume",
+        id,
+        params: { threadId },
+      });
+
+      // Some Codex app-server versions do not replay historical turns on thread/resume.
+      // Try a best-effort fetch to backfill transcript for existing threads.
+      const getId = this.#nextId++;
+      this.#pendingRequests.set(getId, `get:${threadId}`);
+      socket.send({
+        method: "thread/get",
+        id: getId,
+        params: { threadId, includeTurns: true, include_turns: true },
+      });
+    };
+
+    if (socket.isHealthy) {
+      doResumeAndGet();
+    } else {
+      // If we're not connected yet, opening immediately would clear the UI and then never load history.
+      // Retry once the socket connects.
+      const off = socket.onConnect(() => {
+        off();
+        if (this.currentId !== threadId) return;
+        doResumeAndGet();
+      });
+    }
 
     // Fallback: only attempt local event replay if upstream did not load history.
     //
