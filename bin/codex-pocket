@@ -81,6 +81,60 @@ resolve_bun() {
   return 1
 }
 
+has_rg() {
+  command -v rg >/dev/null 2>&1
+}
+
+kill_anchor_orphans() {
+  # local-orbit autostarts anchor as `bun run src/index.ts` with cwd=.../services/anchor.
+  # If local-orbit is restarted/killed without cleaning up, these anchors become orphaned
+  # (PPID=1) and start fighting each other for the same stable anchorId, causing:
+  # - duplicate "devices" in UI
+  # - anchor connect/disconnect flapping
+  # - lost RPC responses (blank threads)
+  #
+  # We only kill processes whose CWD is our installed anchor dir.
+  if ! command -v pgrep >/dev/null 2>&1; then
+    return 0
+  fi
+  local pids
+  pids="$(pgrep -f "bun run src/index.ts" 2>/dev/null || true)"
+  [[ -z "${pids:-}" ]] && return 0
+
+  local anchor_cwd="$APP_DIR/app/services/anchor"
+  local killed=0
+  local pid
+  for pid in $pids; do
+    # macOS: lsof prints a "cwd" row for the process.
+    if command -v lsof >/dev/null 2>&1; then
+      if has_rg; then
+        lsof -p "$pid" 2>/dev/null | rg -q " cwd\\s+DIR\\s+.*\\s${anchor_cwd}$" || continue
+      else
+        lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${anchor_cwd}$" || continue
+      fi
+    fi
+    kill "$pid" >/dev/null 2>&1 || true
+    killed=$((killed + 1))
+  done
+
+  # Escalate if anything survived.
+  if [[ "$killed" -gt 0 ]]; then
+    sleep 0.2
+    local still
+    still="$(pgrep -f "bun run src/index.ts" 2>/dev/null || true)"
+    if [[ -n "${still:-}" ]] && command -v lsof >/dev/null 2>&1; then
+      for pid in $still; do
+        if has_rg; then
+          lsof -p "$pid" 2>/dev/null | rg -q " cwd\\s+DIR\\s+.*\\s${anchor_cwd}$" || continue
+        else
+          lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${anchor_cwd}$" || continue
+        fi
+        kill -9 "$pid" >/dev/null 2>&1 || true
+      done
+    fi
+  fi
+}
+
 read_config() {
   [[ -f "$CONFIG_JSON" ]] || { echo "Missing config: $CONFIG_JSON" >&2; exit 1; }
 }
@@ -446,6 +500,7 @@ cmd_start() {
   fi
 
   # Ensure we don't pile up duplicate instances on restart/update.
+  kill_anchor_orphans >/dev/null 2>&1 || true
   kill_owned_listeners >/dev/null 2>&1 || true
   local conflicts
   conflicts="$(port_conflicts || true)"
@@ -547,6 +602,7 @@ cmd_stop() {
   # Safety net: in environments where PID tracking fails (permissions/sandbox), kill by script path.
   pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" 2>/dev/null || true
   pkill -f "$APP_DIR/app/services/anchor/src/index.ts" 2>/dev/null || true
+  kill_anchor_orphans >/dev/null 2>&1 || true
 
   # Final safety net: kill anything still listening on our configured ports.
   if command -v lsof >/dev/null 2>&1; then
