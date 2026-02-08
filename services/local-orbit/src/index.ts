@@ -38,6 +38,9 @@ const ANCHOR_LOG_PATH = process.env.ZANE_LOCAL_ANCHOR_LOG ?? `${homedir()}/.code
 const ANCHOR_HOST = process.env.ANCHOR_HOST ?? "127.0.0.1";
 const ANCHOR_PORT = Number(process.env.ANCHOR_PORT ?? 8788);
 const AUTOSTART_ANCHOR = process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
+// A stable anchor id prevents duplicate "devices" when the Anchor reconnects.
+// Prefer an explicit env override, otherwise fall back to the machine hostname.
+const ANCHOR_ID = (process.env.ZANE_LOCAL_ANCHOR_ID ?? hostname()).trim() || "anchor";
 const PAIR_TTL_SEC = Number(process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
 
 const DEFAULT_CONFIG_JSON_PATH = join(homedir(), ".codex-pocket", "config.json");
@@ -474,7 +477,7 @@ function startAnchor(): { ok: boolean; error?: string } {
         ...process.env,
         ANCHOR_HOST,
         ANCHOR_PORT: String(ANCHOR_PORT),
-        ANCHOR_ORBIT_URL: `ws://127.0.0.1:${PORT}/ws/anchor`,
+        ANCHOR_ORBIT_URL: `ws://127.0.0.1:${PORT}/ws/anchor?anchorId=${encodeURIComponent(ANCHOR_ID)}`,
         ZANE_ANCHOR_JWT_SECRET: AUTH_TOKEN,
         AUTH_URL: "",
       },

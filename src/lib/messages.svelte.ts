@@ -174,14 +174,24 @@ class MessagesStore {
       return;
     }
 
+    // If the thread has large history, splitting the entire NDJSON payload into an array of lines
+    // can spike memory usage on mobile. Iterate without pre-splitting, and only mark replay "done"
+    // if we actually loaded any messages.
+    const before = this.getThreadMessages(threadId).length;
     try {
       // local-orbit accepts token via query string as well as Authorization header.
       const tokenParam = encodeURIComponent(auth.token);
       const text = await api.getText(`/threads/${threadId}/events?token=${tokenParam}`);
       if (!text.trim()) return;
-      this.#eventsReplayed.add(threadId);
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      for (const line of lines) {
+
+      let i = 0;
+      const n = text.length;
+      while (i < n) {
+        let j = text.indexOf("\n", i);
+        if (j === -1) j = n;
+        const line = text.slice(i, j).trim();
+        i = j + 1;
+        if (!line) continue;
         try {
           // local-orbit stores wrapper objects:
           // { ts, direction, message: <rpc> }
@@ -199,6 +209,11 @@ class MessagesStore {
       }
     } catch {
       // ignore failures (no events yet, endpoint unavailable, etc.)
+    } finally {
+      const after = this.getThreadMessages(threadId).length;
+      if (after > before) {
+        this.#eventsReplayed.add(threadId);
+      }
     }
   }
 
