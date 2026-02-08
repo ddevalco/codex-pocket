@@ -38,7 +38,13 @@ class AnchorsStore {
         this.#clearTimeout();
       } else if (msg.type === "orbit.anchor-connected") {
         const anchor = msg.anchor as AnchorInfo;
-        if (!this.list.some((a) => a.id === anchor.id)) {
+        const idx = this.list.findIndex((a) => a.id === anchor.id);
+        if (idx >= 0) {
+          // Update in place (hostname/platform can arrive later via anchor.hello).
+          const next = [...this.list];
+          next[idx] = { ...next[idx], ...anchor };
+          this.list = next;
+        } else {
           this.list = [...this.list, anchor];
         }
         this.status = "connected";

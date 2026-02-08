@@ -613,20 +613,35 @@ function parseJsonMessage(text: string): Record<string, unknown> | null {
 }
 
 function extractThreadId(message: Record<string, unknown>): string | null {
+  // Some upstreams include thread ids at the top-level (non-RPC envelopes).
+  const topLevelCandidates = [(message as any).threadId, (message as any).thread_id];
+  for (const c of topLevelCandidates) {
+    if (typeof c === "string" && c.trim()) return c;
+    if (typeof c === "number") return String(c);
+  }
+
   const params = message.params && typeof message.params === "object" ? (message.params as any) : null;
   const result = message.result && typeof message.result === "object" ? (message.result as any) : null;
   const threadFromParams = params?.thread && typeof params.thread === "object" ? params.thread : null;
   const threadFromTurnParams =
     params?.turn?.thread && typeof params.turn.thread === "object" ? params.turn.thread : null;
+  const threadIdFromTurnParams = params?.turn?.threadId ?? params?.turn?.thread_id ?? null;
+  const threadIdFromItemParams = params?.item?.threadId ?? params?.item?.thread_id ?? null;
   const threadFromResult = result?.thread && typeof result.thread === "object" ? result.thread : null;
   const threadFromTurnResult =
     result?.turn?.thread && typeof result.turn.thread === "object" ? result.turn.thread : null;
+  const threadIdFromTurnResult = result?.turn?.threadId ?? result?.turn?.thread_id ?? null;
+  const threadIdFromItemResult = result?.item?.threadId ?? result?.item?.thread_id ?? null;
 
   const candidates = [
     params?.threadId,
     params?.thread_id,
+    threadIdFromTurnParams,
+    threadIdFromItemParams,
     result?.threadId,
     result?.thread_id,
+    threadIdFromTurnResult,
+    threadIdFromItemResult,
     threadFromParams?.id,
     threadFromTurnParams?.id,
     threadFromResult?.id,
@@ -643,7 +658,18 @@ function extractThreadId(message: Record<string, unknown>): string | null {
 function extractTurnId(message: Record<string, unknown>): string | null {
   const params = message.params && typeof message.params === "object" ? (message.params as any) : null;
   const result = message.result && typeof message.result === "object" ? (message.result as any) : null;
-  const candidates = [params?.turnId, params?.turn_id, result?.turnId, result?.turn_id];
+  const candidates = [
+    params?.turnId,
+    params?.turn_id,
+    params?.turn?.id,
+    params?.turn?.turnId,
+    params?.turn?.turn_id,
+    result?.turnId,
+    result?.turn_id,
+    result?.turn?.id,
+    result?.turn?.turnId,
+    result?.turn?.turn_id,
+  ];
   for (const c of candidates) {
     if (typeof c === "string" && c.trim()) return c;
     if (typeof c === "number") return String(c);

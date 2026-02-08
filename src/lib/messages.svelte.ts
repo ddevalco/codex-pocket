@@ -935,8 +935,16 @@ class MessagesStore {
     if (direct) return direct;
 
     // Codex payload shapes vary by version. Sometimes the thread id is nested under `thread.id`
-    // or `turn.thread.id`.
+    // or under `turn.threadId` / `turn.thread.id` / `item.threadId` / `item.thread.id`.
     const p: any = params;
+    const fromTurnId =
+      typeof p?.turn?.threadId === "string"
+        ? (p.turn.threadId as string)
+        : typeof p?.turn?.thread_id === "string"
+          ? (p.turn.thread_id as string)
+          : null;
+    if (fromTurnId) return fromTurnId;
+
     const fromThread =
       p?.thread && typeof p.thread === "object" && typeof p.thread.id === "string" ? (p.thread.id as string) : null;
     if (fromThread) return fromThread;
@@ -946,6 +954,14 @@ class MessagesStore {
         ? (p.turn.thread.id as string)
         : null;
     if (fromTurnThread) return fromTurnThread;
+
+    const fromItemId =
+      typeof p?.item?.threadId === "string"
+        ? (p.item.threadId as string)
+        : typeof p?.item?.thread_id === "string"
+          ? (p.item.thread_id as string)
+          : null;
+    if (fromItemId) return fromItemId;
 
     const fromItemThread =
       p?.item?.thread && typeof p.item.thread === "object" && typeof p.item.thread.id === "string"
