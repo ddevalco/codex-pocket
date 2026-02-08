@@ -12,6 +12,9 @@
 
   const { message }: Props = $props();
 
+  type CopyState = "idle" | "copied" | "error";
+  let copyState = $state<CopyState>("idle");
+
   const isReasoning = $derived(message.role === "assistant" && message.kind === "reasoning");
   const isTool = $derived(
     message.role === "tool" &&
@@ -22,6 +25,24 @@
   const isTerminal = $derived(message.role === "tool" && message.kind === "terminal");
   const isWait = $derived(message.role === "tool" && message.kind === "wait");
   const isCompaction = $derived(message.role === "tool" && message.kind === "compaction");
+
+  async function copyMessage() {
+    try {
+      const text = message.text ?? "";
+      // Clipboard is best-effort. If it fails, show a brief error state but don't crash the app.
+      if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+        throw new Error("clipboard unavailable");
+      }
+      await navigator.clipboard.writeText(text);
+      copyState = "copied";
+    } catch {
+      copyState = "error";
+    } finally {
+      setTimeout(() => {
+        copyState = "idle";
+      }, copyState === "error" ? 1600 : 1200);
+    }
+  }
 
   const prefixConfig = $derived.by(() => {
     if (message.role === "user") {
