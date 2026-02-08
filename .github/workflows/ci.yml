@@ -1,0 +1,125 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+
+      - name: Install deps
+        run: bun install
+
+      - name: Build UI
+        run: bun run build
+
+      - name: Start server (local-orbit)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export ZANE_LOCAL_TOKEN='ci-token'
+          export ZANE_LOCAL_HOST='127.0.0.1'
+          export ZANE_LOCAL_PORT='8790'
+          export ZANE_LOCAL_DB='/tmp/codex-pocket-ci.db'
+          export ZANE_LOCAL_UI_DIST_DIR='${{ github.workspace }}/dist'
+          export ZANE_LOCAL_AUTOSTART_ANCHOR='0'
+          export ZANE_LOCAL_UPLOAD_DIR='/tmp/codex-pocket-ci-uploads'
+          export ZANE_LOCAL_UPLOAD_RETENTION_DAYS='0'
+
+          mkdir -p "$ZANE_LOCAL_UPLOAD_DIR"
+
+          bun run services/local-orbit/src/index.ts > /tmp/codex-pocket-ci.log 2>&1 &
+          echo $! > /tmp/codex-pocket-ci.pid
+
+      - name: Wait for /health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for i in {1..60}; do
+            if curl -fsS "http://127.0.0.1:8790/health" >/tmp/health.json; then
+              break
+            fi
+            sleep 0.25
+          done
+
+          # basic sanity: JSON contains status ok
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/health.json'))
+          assert d.get('status')=='ok', d
+          assert d.get('port')==8790, d
+          print('health ok')
+          PY
+
+      - name: Smoke test admin status
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            "http://127.0.0.1:8790/admin/status" > /tmp/admin-status.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-status.json'))
+          assert d['server']['port']==8790, d
+          assert 'uiDistDir' in d, d
+          assert 'db' in d, d
+          print('admin/status ok')
+          PY
+
+      - name: Verify cache headers
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # SPA routes should serve index.html with no-store to avoid stale bundles after updates.
+          curl -fsSI "http://127.0.0.1:8790/app" | tr -d '\r' | grep -i '^cache-control: no-store'
+
+          # Hashed assets should be immutable.
+          html=$(curl -fsS "http://127.0.0.1:8790/")
+
+          js=$(python3 - <<'PY'
+          import re,sys
+          html=sys.stdin.read()
+          m=re.search(r'(/assets/[^"\']+\.js)', html)
+          print(m.group(1) if m else '')
+          PY
+          <<<"$html")
+
+          test -n "$js"
+          curl -fsSI "http://127.0.0.1:8790${js}" | tr -d '\r' | grep -i 'cache-control: private, max-age=31536000, immutable'
+
+      - name: Verify events endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Should return NDJSON (possibly empty) for any thread id.
+          curl -fsSI "http://127.0.0.1:8790/events/00000000-0000-0000-0000-000000000000" | tr -d '\r' | grep -i '^content-type: application/x-ndjson'
+
+      - name: Stop server
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/codex-pocket-ci.pid ]; then
+            kill "$(cat /tmp/codex-pocket-ci.pid)" || true
+          fi
+          echo "---- server log (tail) ----"
+          tail -n 200 /tmp/codex-pocket-ci.log || true

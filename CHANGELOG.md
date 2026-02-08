@@ -15,6 +15,9 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - `index.html` is now served with `Cache-Control: no-store` to reduce cached broken bundle issues after updates.
 - Settings and Admin now show UI build commit/time plus server app commit (from `/health` and `/admin/status`).
 
+### CI
+- Added GitHub Actions workflow to build the UI and run a local-orbit smoke test (health, admin status, cache headers, events endpoint).
+
 ## 2026-02-08
 
 ### Stability

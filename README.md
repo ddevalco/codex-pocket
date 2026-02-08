@@ -1,5 +1,8 @@
 # Codex Pocket
 
+![ci](https://github.com/ddevalco/codex-pocket/actions/workflows/ci.yml/badge.svg)
+
+
 Remote control for your local Codex on your Mac from your iPhone.
 
 This project started as a local-only fork of Zane (credit: https://github.com/z-siddiqi/zane):
@@ -42,6 +45,7 @@ If anything doesn’t work, run:
 - Troubleshooting/FAQ: `docs/TROUBLESHOOTING.md`
 - Architecture: `docs/ARCHITECTURE.md`
 - Differences from Zane: `docs/DIFFERENCES_FROM_ZANE.md`
+- Development: `docs/DEVELOPMENT.md`
 
 ## Common First-Run Issues
 

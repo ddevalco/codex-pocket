@@ -4,6 +4,7 @@ This is a prioritized list of remaining improvements.
 
 ## Recently Done
 
+- Added GitHub Actions CI workflow to build and smoke-test local-orbit on every push/PR.
 - `codex-pocket update` now always prints a final `summary` block and exits non-zero if post-update `ensure`/`smoke-test` fail.
 - CLI now validates `config.json` early (avoids Python stack traces when config is missing/empty/corrupt).
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.
@@ -13,7 +14,7 @@ This is a prioritized list of remaining improvements.
 
 ## P0 (Stability)
 
-- Add automated end-to-end smoke coverage in CI: build UI, run local-orbit, hit `/health`, `/admin/status`, `/admin/validate`.
+- Extend CI smoke coverage to include WebSocket relay and (optionally) `/admin/validate` with stubs/bypasses for non-Tailscale environments.
 - Improve update reliability when multiple Pocket processes exist: detect and kill stale listeners more aggressively before restart.
 
 ## P1 (UX)
