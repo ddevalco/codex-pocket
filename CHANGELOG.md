@@ -8,6 +8,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ### CLI / Update
 - `codex-pocket update` now always prints a final `summary` and exits non-zero if `ensure` or `smoke-test` fail (next: `codex-pocket diagnose`).
+- Config parsing is now validated early to avoid Python stack traces when config.json is empty/corrupt.
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.
 
 ## 2026-02-08

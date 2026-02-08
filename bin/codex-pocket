@@ -135,7 +135,31 @@ kill_anchor_orphans() {
 }
 
 read_config() {
-  [[ -f "$CONFIG_JSON" ]] || { echo "Missing config: $CONFIG_JSON" >&2; exit 1; }
+  if [[ ! -f "$CONFIG_JSON" ]]; then
+    echo "Missing config: $CONFIG_JSON" >&2
+    echo "Next: re-run the installer (or restore $CONFIG_JSON)." >&2
+    exit 1
+  fi
+  if [[ ! -s "$CONFIG_JSON" ]]; then
+    echo "Config is empty: $CONFIG_JSON" >&2
+    echo "Next: re-run the installer (or restore $CONFIG_JSON)." >&2
+    exit 1
+  fi
+
+  # Avoid Python stack traces when config gets truncated or corrupted.
+  if ! python3 - "$CONFIG_JSON" >/dev/null 2>&1 <<'PYCFG'
+import json,sys
+try:
+  with open(sys.argv[1]) as f:
+    json.load(f)
+except Exception as e:
+  sys.stderr.write(f"Invalid config JSON: {sys.argv[1]} ({e})\n")
+  sys.exit(1)
+PYCFG
+  then
+    echo "Next: re-run the installer (or restore $CONFIG_JSON)." >&2
+    exit 1
+  fi
 }
 
 config_host() {

@@ -99,6 +99,13 @@ Get your current token:
 
 If you lost the token and `~/.codex-pocket/config.json` is gone, you’ll need to reinstall.
 
+### CLI Says Config Is Missing/Empty
+
+If a command fails with `Missing config:` or `Config is empty:`, your `~/.codex-pocket/config.json` was deleted or truncated.
+
+1. If you have a backup of `config.json`, restore it.
+2. Otherwise, do a clean reinstall (see `docs/INSTALL.md`).
+
 ### "Serve is not enabled on your tailnet"
 
 Tailscale may require enabling Serve once per tailnet.
