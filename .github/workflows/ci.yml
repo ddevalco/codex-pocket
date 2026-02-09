@@ -65,6 +65,12 @@ jobs:
           print('health ok')
           PY
 
+      - name: Smoke test WebSocket relay
+        shell: bash
+        run: |
+          set -euo pipefail
+          CI_BASE_URL="http://127.0.0.1:8790" CI_TOKEN="ci-token" bun scripts/ci/ws-smoke.ts
+
       - name: Smoke test admin status
         shell: bash
         run: |
