@@ -9,6 +9,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 ## Recently Done
 
 - CI: added an explicit `/admin/validate` smoke check (auth required).
+- CI: added small regression guards to prevent known UI footguns (e.g. thread list subscription loop).
 - CLI: `start` now falls back to background mode if the launchd plist is missing.
 - CLI: improved owned-process detection by also checking process CWD (helps kill stale listeners from older installs where the command line is just `bun run src/index.ts`).
 - Update regression: `scripts/test-update-flow.sh` now runs in restricted/offline environments (seeds `node_modules`, wraps Bun cache dir, uses more portable cleanup).
@@ -31,6 +32,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - UI: thread list mobile density improved (2-line titles, date preserved).
 - UI: thread list now includes quick export/share actions (md + json) without opening the thread.
 - UI: message actions menu (copy, copy markdown, copy quoted, copy from here) + thread-level “copy last 20”.
+- UI: fixed a thread list instability regression caused by subscription bookkeeping inside an effect (could manifest as empty/unstable thread list).
 
 ## P0 (Stability)
 

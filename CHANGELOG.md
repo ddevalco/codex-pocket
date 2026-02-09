@@ -8,6 +8,8 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 - CLI: added `codex-pocket self-test` and expanded `smoke-test` to cover the NDJSON events replay endpoint (helps catch “blank threads” regressions).
 - UI: harden thread list parsing/normalization so upstream `thread/list` response shape changes (nested `data`, `thread_id`) don't collapse the list to empty.
+- UI: fixed a thread list instability regression where list subscription bookkeeping used reactive `$state<Set<...>>` and could create an effect feedback loop (manifesting as an empty/unstable thread list).
+- Repo/CI: remove `.agents/` artifacts from git and add a CI regression guard to prevent reintroducing the thread list subscription loop pattern.
 - UI: message-level **copy** button (with a fallback clipboard implementation for non-HTTPS origins).
 - UI: thread export now supports both Markdown (`.md`) and JSON (`.json`).
 - UI: thread share now prefers sharing a real file on iOS (Web Share API `files`), falling back to text/copy/download.
