@@ -27,13 +27,32 @@
   const isCompaction = $derived(message.role === "tool" && message.kind === "compaction");
 
   async function copyMessage() {
+    const fallbackCopy = (text: string) => {
+      // Works on http:// origins where navigator.clipboard is unavailable.
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "true");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      ta.style.left = "-1000px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand("copy");
+      } finally {
+        document.body.removeChild(ta);
+      }
+    };
+
     try {
       const text = message.text ?? "";
       // Clipboard is best-effort. If it fails, show a brief error state but don't crash the app.
-      if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-        throw new Error("clipboard unavailable");
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        fallbackCopy(text);
       }
-      await navigator.clipboard.writeText(text);
       copyState = "copied";
     } catch {
       copyState = "error";
@@ -110,7 +129,25 @@
   });
 </script>
 
-<div class="message-block {prefixConfig.bgClass}">
+<div
+  class="message-block {prefixConfig.bgClass}"
+  role="button"
+  aria-label="Copy message"
+  tabindex="0"
+  oncontextmenu={(e) => {
+    // Mobile long-press often triggers contextmenu; treat it as "copy".
+    // Prevent the browser from selecting text or opening a native menu.
+    e.preventDefault();
+    copyMessage();
+  }}
+  onkeydown={(e) => {
+    // Accessibility: allow keyboard users to copy.
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      copyMessage();
+    }
+  }}
+>
   <button
     type="button"
     class="copy-btn"
@@ -260,7 +297,7 @@
     position: absolute;
     top: 6px;
     right: 10px;
-    padding: 2px 8px;
+    padding: 4px 10px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--cli-border);
     background: rgba(0, 0, 0, 0.25);
@@ -296,6 +333,8 @@
   @media (max-width: 520px) {
     .copy-btn {
       opacity: 1;
+      padding: 6px 12px;
+      font-size: 12px;
     }
   }
 
