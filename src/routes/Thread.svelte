@@ -108,6 +108,46 @@
         setTimeout(() => URL.revokeObjectURL(url), 2000);
     }
 
+    function threadToJson(): string {
+        const id = threadId;
+        if (!id) return "";
+        const title = threadTitle || id.slice(0, 8);
+        const msgs = messages.getThreadMessages(id);
+
+        const exported = {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            thread: {
+                id,
+                title,
+            },
+            messages: msgs.map((m) => ({
+                id: m.id,
+                role: m.role,
+                kind: m.kind ?? null,
+                text: m.text ?? "",
+                approval: m.role === "approval" ? (m as any).approval ?? null : null,
+                metadata: (m as any).metadata ?? null,
+            })),
+        };
+        return JSON.stringify(exported, null, 2) + "\n";
+    }
+
+    function downloadThreadJson() {
+        const id = threadId;
+        if (!id) return;
+        const json = threadToJson();
+        if (!json) return;
+        const title = (threadTitle || id.slice(0, 8)).replace(/[^a-z0-9\- _]+/gi, "").trim() || id.slice(0, 8);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${title}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
 
     const turnStatus = $derived.by(() => {
         const id = threadId;
@@ -300,7 +340,8 @@
             <a href={`/thread/${threadId}/review`}>review</a>
             <button type="button" onclick={copyThread} title="Copy thread as Markdown">copy</button>
             <button type="button" onclick={shareThread} title="Share thread">share</button>
-            <button type="button" onclick={downloadThread} title="Download thread as .md">export</button>
+            <button type="button" onclick={downloadThread} title="Download thread as .md">export md</button>
+            <button type="button" onclick={downloadThreadJson} title="Download thread as .json">export json</button>
             <a href="/settings">Settings</a>
             <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
                 {themeIcons[theme.current]}

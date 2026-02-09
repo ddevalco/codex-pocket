@@ -8,6 +8,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 - CLI: added `codex-pocket self-test` and expanded `smoke-test` to cover the NDJSON events replay endpoint (helps catch “blank threads” regressions).
 - UI: message-level **copy** button (with a fallback clipboard implementation for non-HTTPS origins).
+- UI: thread export now supports both Markdown (`.md`) and JSON (`.json`).
 
 ### UX
 - Thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt fallback).
