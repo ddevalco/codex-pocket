@@ -48,6 +48,12 @@ If anything doesn’t work, run:
 - Differences from Zane: `docs/DIFFERENCES_FROM_ZANE.md`
 - Development: `docs/DEVELOPMENT.md`
 
+### Backlog (Canonical)
+
+We track the canonical backlog in GitHub Projects:
+
+- https://github.com/users/ddevalco/projects/2
+
 ## Common First-Run Issues
 
 - **"Serve is not enabled on your tailnet"**

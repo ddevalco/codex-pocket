@@ -1,6 +1,10 @@
 # Backlog
 
-This is a prioritized list of remaining improvements.
+This file mirrors the canonical backlog, which lives in **GitHub Projects**:
+
+- https://github.com/users/ddevalco/projects/2
+
+If the two ever disagree, treat GitHub Projects as the source of truth and update this file to match.
 
 ## Recently Done
 
