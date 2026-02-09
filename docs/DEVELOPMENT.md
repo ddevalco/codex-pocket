@@ -31,6 +31,11 @@ bun run build
 
 Output goes to `dist/`.
 
+## Repo Hygiene
+
+Agent artifacts are local-only. Do not commit agent prompts, notes, or rule sets.
+Ignored by default: `.agents/`, `AGENT*.md`, `agent*.md`, `.agent/`, `prompts/`, `notes/`.
+
 ## Run Local-Orbit (server)
 
 Local-Orbit requires an access token.

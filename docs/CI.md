@@ -9,6 +9,7 @@ The workflow is defined in:
 
 - Installs dependencies with Bun
 - Builds the UI (Vite)
+- Runs small regression guards (fast static checks) to prevent known UI footguns
 - Starts `local-orbit` in CI mode (no Anchor autostart)
 - Verifies:
   - `GET /health` returns OK
@@ -19,6 +20,14 @@ The workflow is defined in:
     - SPA routes (`/app`) serve `index.html` with `Cache-Control: no-store`
     - Hashed assets serve `Cache-Control: ... immutable`
   - Events endpoint returns NDJSON
+
+## Regression Guards
+
+The workflow also runs `scripts/ci/regression-guards.ts`.
+
+These are intentionally small, targeted checks that catch regressions that are easy to reintroduce but hard to
+detect with a generic smoke test. Example: a past thread-list regression where reactive state bookkeeping inside
+an effect created a feedback loop and made the thread list appear empty/unusable.
 
 ## Does CI Cost Money?
 
