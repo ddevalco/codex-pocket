@@ -16,13 +16,47 @@ FAKE_HOME="$TMP/fake-home"
 APP_HOME="$TMP/codex-pocket-home"
 ORIGIN="$TMP/origin.git"
 
-PORT=18790
-APORT=18788
+alloc_port() {
+  local i p
+
+  for i in $(seq 1 50); do
+    p=$((20000 + (RANDOM % 40000)))
+    if command -v lsof >/dev/null 2>&1; then
+      if ! lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1; then
+        echo "$p"
+        return 0
+      fi
+    else
+      echo "$p"
+      return 0
+    fi
+  done
+
+  # Fall back to an unlikely-but-fixed port if we somehow can't find a free one.
+  echo "18790"
+}
+
+PORT="$(alloc_port)"
+APORT="$(alloc_port)"
+if [[ "$APORT" == "$PORT" ]]; then
+  APORT=$((PORT + 1))
+fi
 TOKEN="test-token-$(date +%s)"
 
 cleanup() {
   if command -v lsof >/dev/null 2>&1; then
-    lsof -nP -t -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | xargs -r kill 2>/dev/null || true
+    local pids
+    pids="$(lsof -nP -t -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true)"
+    if [[ -n "${pids:-}" ]]; then
+      # shellcheck disable=SC2086
+      kill $pids 2>/dev/null || true
+    fi
+
+    pids="$(lsof -nP -t -iTCP:"$APORT" -sTCP:LISTEN 2>/dev/null || true)"
+    if [[ -n "${pids:-}" ]]; then
+      # shellcheck disable=SC2086
+      kill $pids 2>/dev/null || true
+    fi
   fi
   if [[ "${KEEP_TMP:-0}" == "1" ]]; then
     echo "KEEP_TMP=1; leaving temp dir at $TMP"
