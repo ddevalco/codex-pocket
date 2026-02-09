@@ -257,6 +257,16 @@
     const titleRaw = ((info as any)?.title || (info as any)?.name || (info as any)?.preview || "").trim() || threadId.slice(0, 8);
     const title = safeFilename(titleRaw) || threadId.slice(0, 8);
 
+    // Exports from the thread list may happen before the thread has been opened.
+    // If our in-memory cache is cold, best-effort rehydrate from the local-orbit event store first.
+    if (messages.getThreadMessages(threadId).length === 0) {
+      try {
+        await messages.rehydrateFromEvents(threadId);
+      } catch {
+        // ignore; we'll still export what we have (possibly empty)
+      }
+    }
+
     if (format === "md") {
       const md = threadToMarkdown(threadId);
       const f = new File([md], `${title}.md`, { type: "text/markdown" });
