@@ -221,8 +221,10 @@
                 }}
               >
                 <span class="thread-icon">›</span>
-                <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
-                <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
+                <span class="thread-main stack">
+                  <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
+                  <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
+                </span>
               </a>
               <span
                 class="thread-indicator"
@@ -576,12 +578,17 @@
   }
 
   .thread-preview {
-    flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--cli-text);
+  }
+
+  .thread-main {
+    flex: 1;
+    min-width: 0;
+    --stack-gap: 2px;
   }
 
   .thread-meta {
@@ -636,13 +643,21 @@
 
   /* Mobile: prioritize thread title visibility. */
   @media (max-width: 520px) {
-    .thread-meta {
-      display: none;
+    /* Allow titles to use 2 lines on narrow screens. */
+    .thread-preview {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      white-space: normal;
+      overflow: hidden;
+      line-height: 1.25;
     }
 
-    /* Keep the list clean on mobile; rename is still available on desktop. */
-    .rename-btn {
-      display: none;
+    /* Keep date visible but compact. */
+    .thread-meta {
+      display: block;
+      font-size: 11px;
+      line-height: 1.1;
     }
   }
 </style>
