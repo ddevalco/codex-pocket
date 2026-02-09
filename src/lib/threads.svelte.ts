@@ -16,7 +16,8 @@ const DEFAULT_SETTINGS: ThreadSettings = {
 
 function normalizeThreadInfo(input: any): ThreadInfo {
   const thread = input && typeof input === "object" ? input : {};
-  const id = String(thread.id ?? "");
+  // Thread id key varies across upstream versions (and sometimes snake_case).
+  const id = String(thread.id ?? thread.threadId ?? thread.thread_id ?? "");
   // Codex app-server thread objects vary across versions. Titles may appear under different keys.
   const title =
     typeof thread.title === "string"
@@ -283,16 +284,20 @@ class ThreadsStore {
       if (type === "list" && msg.result) {
         const result = msg.result as any;
         // Codex app-server thread/list response shape varies across versions.
-        // Most common: { data: Thread[] }, but we've also seen { threads: Thread[] }.
-        const rawList: any[] = Array.isArray(result?.data)
-          ? result.data
-          : Array.isArray(result?.threads)
-            ? result.threads
-            : Array.isArray(result?.items)
-              ? result.items
-              : Array.isArray(result)
-                ? result
-                : [];
+        // Most common: { data: Thread[] }, but we've also seen:
+        // - { threads: Thread[] }
+        // - { items: Thread[] }
+        // - { data: { data: Thread[] } } (double-wrapped)
+        // - { data: { threads|items: Thread[] } }
+        const rawList: any[] =
+          Array.isArray(result?.data) ? result.data
+          : Array.isArray(result?.threads) ? result.threads
+          : Array.isArray(result?.items) ? result.items
+          : Array.isArray(result?.data?.data) ? result.data.data
+          : Array.isArray(result?.data?.threads) ? result.data.threads
+          : Array.isArray(result?.data?.items) ? result.data.items
+          : Array.isArray(result) ? result
+          : [];
         this.list = rawList.map(normalizeThreadInfo).filter((t) => t.id);
         this.loading = false;
         // Best-effort: fetch thread metadata for visible threads so renamed titles show up.
