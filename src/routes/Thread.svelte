@@ -483,6 +483,10 @@
             <a href={`/thread/${threadId}/review`}>review</a>
             <button type="button" onclick={copyThread} title="Copy thread as Markdown">copy</button>
             <button type="button" onclick={shareThread} title="Share thread">share</button>
+            <a href="/settings">Settings</a>
+            <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
+                {themeIcons[theme.current]}
+            </button>
             <div class="more-menu" onpointerdown={(e) => e.stopPropagation()}>
                 <button
                     type="button"
@@ -540,18 +544,6 @@
                             title="Share thread as .json"
                         >
                             share json
-                        </button>
-                        <a role="menuitem" href="/settings" onclick={closeMoreMenu}>Settings</a>
-                        <button
-                            type="button"
-                            role="menuitem"
-                            onclick={() => {
-                                closeMoreMenu();
-                                theme.cycle();
-                            }}
-                            title="Theme: {theme.current}"
-                        >
-                            theme {themeIcons[theme.current]}
                         </button>
                     </div>
                 {/if}
