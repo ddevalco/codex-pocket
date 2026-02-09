@@ -13,6 +13,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - `codex-pocket update` now always prints a final `summary` and exits non-zero if `ensure` or `smoke-test` fail (next: `codex-pocket diagnose`).
 - Config parsing is now validated early to avoid Python stack traces when config.json is empty/corrupt.
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.
+- Fixed `ensure`/`smoke-test` validation parsing so `/admin/validate` results are read correctly (no more false "empty response" failures).
 
 ### Cache / Versioning
 - `index.html` is now served with `Cache-Control: no-store` to reduce cached broken bundle issues after updates.

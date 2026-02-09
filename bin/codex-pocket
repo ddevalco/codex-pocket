@@ -269,7 +269,8 @@ fetch_validate() {
   for i in 1 2 3 4 5; do
     resp="$(curl_auth_soft_with_code "$base/admin/validate" || true)"
     CODE=""; BODY=""
-    printf '%s' "$resp" | split_code_body
+    # NOTE: don't pipe into split_code_body; that runs it in a subshell and CODE/BODY won't stick.
+    split_code_body <<<"$resp"
     code="$CODE"
     body="$BODY"
     if [[ -n "${body//[[:space:]]/}" || "$code" == "401" ]]; then
@@ -295,33 +296,12 @@ split_code_body() {
 json_ok() {
   # Exit 0 if stdin is valid JSON with {"ok": true}, else exit non-zero.
   # Never prints a Python traceback (keeps CLI output user-friendly).
-  python3 - <<'PY'
-import json,sys
-raw=sys.stdin.read()
-try:
-  d=json.loads(raw)
-except Exception:
-  sys.exit(3)
-sys.exit(0 if d.get("ok") else 2)
-PY
+  python3 -c $'import json,sys\nraw=sys.stdin.read()\ntry:\n  d=json.loads(raw)\nexcept Exception:\n  raise SystemExit(3)\nraise SystemExit(0 if d.get(\"ok\") else 2)'
 }
 
 json_compact_failures() {
   # Prints failing checks (if present) from a validate JSON body, else nothing.
-  python3 - <<'PY'
-import json,sys
-raw=sys.stdin.read()
-try:
-  d=json.loads(raw)
-except Exception:
-  sys.exit(0)
-checks=d.get("checks") or []
-for c in checks:
-  if not c.get("ok"):
-    cid=c.get("id","?")
-    summ=c.get("summary","")
-    print(f"- {cid}: {summ}".rstrip())
-PY
+  python3 -c $'import json,sys\nraw=sys.stdin.read()\ntry:\n  d=json.loads(raw)\nexcept Exception:\n  raise SystemExit(0)\nfor c in (d.get(\"checks\") or []):\n  if not c.get(\"ok\"):\n    cid=c.get(\"id\",\"?\")\n    summ=c.get(\"summary\",\"\")\n    print(f\"- {cid}: {summ}\".rstrip())'
 }
 
 
@@ -715,7 +695,7 @@ cmd_ensure() {
   local resp
   resp="$(fetch_validate "$base" || true)"
   CODE=""; BODY=""
-  printf '%s' "$resp" | split_code_body
+  split_code_body <<<"$resp"
   code="$CODE"; body="$BODY"
 
   if [[ "$code" == "401" ]]; then
@@ -747,7 +727,7 @@ cmd_ensure() {
   echo "Re-validating..."
   resp="$(fetch_validate "$base" || true)"
   CODE=""; BODY=""
-  printf '%s' "$resp" | split_code_body
+  split_code_body <<<"$resp"
   code="$CODE"; body="$BODY"
   if [[ "$code" == "401" ]]; then
     echo "Re-validate failed: 401 Unauthorised" >&2
@@ -796,7 +776,7 @@ cmd_smoke_test() {
   local resp
   resp="$(fetch_validate "$base" || true)"
   CODE=""; BODY=""
-  printf '%s' "$resp" | split_code_body
+  split_code_body <<<"$resp"
   code="$CODE"; body="$BODY"
   if [[ "$code" == "401" ]]; then
     echo "FAIL: /admin/validate unauthorised (token mismatch?)" >&2
