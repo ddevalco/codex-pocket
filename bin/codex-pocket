@@ -24,6 +24,7 @@ Commands:
   restart                Restart the service
   ensure                 Validate and attempt safe auto-repair
   smoke-test             Run a fast PASS/FAIL check against the local service
+  self-test              Run a stricter test suite (includes WS + events endpoint)
   summary                Print current config + URLs + log locations
   status                 Show admin status JSON
   logs [anchor|server]   Tail logs (default: anchor)
@@ -884,6 +885,42 @@ cmd_smoke_test() {
     echo "WARN: /ws smoke check failed (possible WS regression). Try: codex-pocket restart" >&2
   fi
 
+  # 5) Events endpoint (GET; auth-protected). This is the data path used to populate thread history.
+  # Should return NDJSON and allow "empty" responses.
+  if ! curl_auth -sS -o /dev/null -D - \
+    "$base/threads/00000000-0000-0000-0000-000000000000/events" | tr -d '\r' | grep -iq '^content-type:.*application/x-ndjson'; then
+    echo "FAIL: /threads/<id>/events did not return application/x-ndjson" >&2
+    echo "Next: codex-pocket diagnose" >&2
+    return 1
+  fi
+  echo "PASS: /threads/<id>/events"
+
+  echo "OK"
+}
+
+cmd_self_test() {
+  # A slightly stricter test suite meant to catch the "blank threads" class of regressions.
+  # Unlike smoke-test, WS is treated as required here.
+  if ! cmd_smoke_test; then
+    return 1
+  fi
+
+  read_config
+  local base
+  base="$(base_url)"
+
+  echo ""
+  echo "Additional checks"
+
+  # Require the WS relay to work (this is needed for live thread interaction + streaming).
+  if ws_smoke_check "$base"; then
+    echo "PASS: /ws strict"
+  else
+    echo "FAIL: /ws strict (client+anchor relay)" >&2
+    echo "Next: codex-pocket restart" >&2
+    return 1
+  fi
+
   echo "OK"
 }
 
@@ -1166,6 +1203,7 @@ main() {
     restart) shift; cmd_restart "$@";;
     ensure) shift; cmd_ensure "$@";;
     smoke-test) shift; cmd_smoke_test "$@";;
+    self-test) shift; cmd_self_test "$@";;
     summary) shift; cmd_summary "$@";;
     status) shift; cmd_status "$@";;
     logs) shift; cmd_logs "$@";;
