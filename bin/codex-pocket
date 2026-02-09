@@ -890,6 +890,39 @@ cmd_smoke_test() {
   fi
   echo "PASS: /health"
 
+  # 1.5) /app should serve the SPA index.html and its main JS bundle should be fetchable.
+  # This catches "service is up, but the web app is blank" issues where the service dies
+  # shortly after start/update or the UI dist is missing/mismatched.
+  local html js
+  html="$(curl -fsS "$base/app" 2>/dev/null || true)"
+  if [[ -z "${html//[[:space:]]/}" ]]; then
+    echo "FAIL: /app returned empty" >&2
+    echo "Next: codex-pocket restart" >&2
+    return 1
+  fi
+  js="$(
+    # BSD/macOS compatible extraction of the first Vite hashed JS bundle path.
+    # Keep this tolerant: if the grep finds nothing, we want to return "" and emit a clear FAIL below.
+    {
+      printf '%s' "$html" \
+        | tr -d '\r' \
+        | grep -oE 'src="/assets/[^"]+[.]js"' \
+        | head -n 1 \
+        | sed -E 's/^src="([^"]+)"$/\1/'
+    } || true
+  )"
+  if [[ -z "${js:-}" ]]; then
+    echo "FAIL: /app HTML missing main JS asset path" >&2
+    printf '%s\n' "${html:0:200}" >&2
+    return 1
+  fi
+  if ! curl -fsS -o /dev/null "$base$js" 2>/dev/null; then
+    echo "FAIL: main JS asset not reachable: $js" >&2
+    echo "Next: codex-pocket restart" >&2
+    return 1
+  fi
+  echo "PASS: /app"
+
   # 2) validate (requires token)
   local code body
   local resp
