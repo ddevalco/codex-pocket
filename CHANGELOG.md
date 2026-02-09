@@ -18,6 +18,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UI: mobile thread list shows more of the title by allowing 2-line titles while keeping the date visible.
 
 ### UX
+- UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
 - Thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt fallback).
 
 ### CLI / Update

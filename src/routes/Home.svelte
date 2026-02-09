@@ -40,6 +40,16 @@
   let taskPlanFirst = $state(true);
   let permissionLevel = $state<keyof typeof permissionPresets>("standard");
   let isCreating = $state(false);
+  let legendOpen = $state(false);
+
+  $effect(() => {
+    if (!legendOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") legendOpen = false;
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   // Default to first available model
   $effect(() => {
@@ -323,6 +333,13 @@
               <span class="legend-text">blocked</span>
             </span>
           </span>
+          <button
+            class="legend-help-btn"
+            type="button"
+            onclick={() => (legendOpen = true)}
+            aria-label="Show thread status legend"
+            title="Thread status legend"
+          >?</button>
           <button class="refresh-btn" onclick={() => threads.fetch()} title="Refresh">↻</button>
         </div>
         <div class="section-actions row">
@@ -337,6 +354,45 @@
       {:else if visibleThreads.length === 0}
         <div class="empty row">No threads yet. Create one above.</div>
       {:else}
+        {#if legendOpen}
+          <div
+            class="legend-backdrop"
+            role="presentation"
+            onclick={(e) => {
+              if (e.currentTarget === e.target) legendOpen = false;
+            }}
+          >
+            <div class="legend-modal" role="dialog" aria-modal="true" aria-label="Thread status legend">
+              <div class="legend-modal-header row">
+                <div class="legend-modal-title">Thread status</div>
+                <button class="legend-close-btn" type="button" onclick={() => (legendOpen = false)} aria-label="Close">✕</button>
+              </div>
+              <div class="legend-modal-body stack">
+                <div class="legend-row row">
+                  <span class="thread-indicator thread-indicator-idle" aria-hidden="true">●</span>
+                  <div class="legend-row-text stack">
+                    <div class="legend-row-label">Idle</div>
+                    <div class="legend-row-desc">Nothing is currently running in this thread.</div>
+                  </div>
+                </div>
+                <div class="legend-row row">
+                  <span class="thread-indicator thread-indicator-working" aria-hidden="true">●</span>
+                  <div class="legend-row-text stack">
+                    <div class="legend-row-label">Working</div>
+                    <div class="legend-row-desc">The model is actively running.</div>
+                  </div>
+                </div>
+                <div class="legend-row row">
+                  <span class="thread-indicator thread-indicator-blocked" aria-hidden="true">●</span>
+                  <div class="legend-row-text stack">
+                    <div class="legend-row-label">Blocked</div>
+                    <div class="legend-row-desc">Waiting for your action (approval or input).</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {/if}
         <ul class="thread-list">
           {#each visibleThreads as thread (thread.id)}
             <li class="thread-item row">
@@ -652,6 +708,105 @@
     color: var(--cli-text-muted);
   }
 
+  .legend-help-btn {
+    display: none;
+    width: 26px;
+    height: 26px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--cli-border);
+    background: transparent;
+    color: var(--cli-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    cursor: pointer;
+  }
+
+  .legend-help-btn:hover {
+    color: var(--cli-text);
+    border-color: var(--cli-text-muted);
+    background: var(--cli-selection);
+  }
+
+  .legend-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: calc(var(--space-lg) * 2) var(--space-md);
+    z-index: 50;
+  }
+
+  .legend-modal {
+    width: min(520px, 100%);
+    background: var(--cli-bg);
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    padding: var(--space-md);
+  }
+
+  .legend-modal-header {
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--cli-border);
+  }
+
+  .legend-modal-title {
+    font-family: var(--font-mono);
+    color: var(--cli-text);
+    font-size: var(--text-sm);
+    letter-spacing: 0.02em;
+  }
+
+  .legend-close-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid var(--cli-border);
+    background: transparent;
+    color: var(--cli-text-muted);
+    cursor: pointer;
+  }
+
+  .legend-close-btn:hover {
+    color: var(--cli-text);
+    border-color: var(--cli-text-muted);
+    background: var(--cli-selection);
+  }
+
+  .legend-modal-body {
+    padding-top: var(--space-md);
+  }
+
+  .legend-row {
+    --row-gap: var(--space-sm);
+    align-items: flex-start;
+    padding: var(--space-sm);
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .legend-row-text {
+    --stack-gap: 4px;
+  }
+
+  .legend-row-label {
+    color: var(--cli-text);
+    font-size: var(--text-sm);
+  }
+
+  .legend-row-desc {
+    color: var(--cli-text-muted);
+    font-size: var(--text-xs);
+    line-height: 1.3;
+  }
+
   .section-actions {
     --row-gap: var(--space-sm);
     padding-right: var(--space-sm);
@@ -821,9 +976,13 @@
 
   /* Mobile: prioritize thread title visibility. */
   @media (max-width: 520px) {
-    /* Legend: keep the dots, hide the text labels to save space. */
-    .legend-text {
+    /* Legend: iOS does not reliably show title tooltips. Use a tap-to-open legend instead. */
+    .indicator-legend {
       display: none;
+    }
+
+    .legend-help-btn {
+      display: inline-flex;
     }
 
     /* Allow titles to use 2 lines on narrow screens. */
@@ -856,6 +1015,7 @@
 
     .thread-indicator {
       padding: 0 var(--space-xs);
+      font-size: 13px;
     }
   }
 </style>
