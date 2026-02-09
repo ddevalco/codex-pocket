@@ -39,14 +39,14 @@ If anything doesn’t work, run:
 
 ### Docs
 
-- Install: `docs/INSTALL.md`
-- CLI: `docs/CLI.md`
-- Admin: `docs/ADMIN.md`
-- Troubleshooting/FAQ: `docs/TROUBLESHOOTING.md`
-- Architecture: `docs/ARCHITECTURE.md`
-- CI: `docs/CI.md`
-- Differences from Zane: `docs/DIFFERENCES_FROM_ZANE.md`
-- Development: `docs/DEVELOPMENT.md`
+- Install: [`docs/INSTALL.md`](docs/INSTALL.md)
+- CLI: [`docs/CLI.md`](docs/CLI.md)
+- Admin: [`docs/ADMIN.md`](docs/ADMIN.md)
+- Troubleshooting/FAQ: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- CI: [`docs/CI.md`](docs/CI.md)
+- Differences from Zane: [`docs/DIFFERENCES_FROM_ZANE.md`](docs/DIFFERENCES_FROM_ZANE.md)
+- Development: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
 
 ### Backlog (Canonical)
 
@@ -209,16 +209,16 @@ Note about the Codex desktop app:
 - Anchor: `services/anchor/src/index.ts`
 
 ## Docs
-- Install: `docs/INSTALL.md`
-- Admin UI: `docs/ADMIN.md`
-- CLI: `docs/CLI.md`
-- Architecture: `docs/ARCHITECTURE.md`
-- Security: `docs/SECURITY.md`
-- Config: `docs/CONFIG.md`
-- Protocol: `docs/PROTOCOL.md`
-- Security hardening: `docs/HARDENING.md`
-- Troubleshooting: `docs/TROUBLESHOOTING.md`
-- Changelog: `CHANGELOG.md`
+- Install: [`docs/INSTALL.md`](docs/INSTALL.md)
+- Admin UI: [`docs/ADMIN.md`](docs/ADMIN.md)
+- CLI: [`docs/CLI.md`](docs/CLI.md)
+- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Security: [`docs/SECURITY.md`](docs/SECURITY.md)
+- Config: [`docs/CONFIG.md`](docs/CONFIG.md)
+- Protocol: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)
+- Security hardening: [`docs/HARDENING.md`](docs/HARDENING.md)
+- Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 
 ## Attribution
 See `docs/ATTRIBUTION.md`.
