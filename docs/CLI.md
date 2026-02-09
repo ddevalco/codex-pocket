@@ -57,6 +57,11 @@ Binary location after install:
 
 - `codex-pocket smoke-test`
   - Fast PASS/FAIL check against `GET /health` and the Admin validation endpoint.
+  - Also verifies the events replay endpoint returns NDJSON (this is the data path that populates thread history).
+
+- `codex-pocket self-test`
+  - Stricter test suite intended to catch “blank threads” regressions.
+  - Requires WebSocket relay (client+anchor) to be working.
 
 - `codex-pocket ensure`
   - Runs:
