@@ -281,8 +281,19 @@ class ThreadsStore {
       this.#pendingRequests.delete(msg.id as number);
 
       if (type === "list" && msg.result) {
-        const result = msg.result as { data: any[] };
-        this.list = (result.data || []).map(normalizeThreadInfo).filter((t) => t.id);
+        const result = msg.result as any;
+        // Codex app-server thread/list response shape varies across versions.
+        // Most common: { data: Thread[] }, but we've also seen { threads: Thread[] }.
+        const rawList: any[] = Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result?.threads)
+            ? result.threads
+            : Array.isArray(result?.items)
+              ? result.items
+              : Array.isArray(result)
+                ? result
+                : [];
+        this.list = rawList.map(normalizeThreadInfo).filter((t) => t.id);
         this.loading = false;
         // Best-effort: fetch thread metadata for visible threads so renamed titles show up.
         // Keep this lightweight by omitting turns.

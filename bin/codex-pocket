@@ -515,7 +515,14 @@ cmd_doctor() {
 
 cmd_token() {
   read_config
-  token
+  local tok
+  tok="$(token | tr -d '\n')"
+  echo "$tok"
+  # Convenience: copy to clipboard on macOS (stderr so stdout stays script-friendly).
+  if command -v pbcopy >/dev/null 2>&1; then
+    printf %s "$tok" | pbcopy || true
+    echo "Copied token to clipboard." >&2
+  fi
 }
 
 cmd_urls() {

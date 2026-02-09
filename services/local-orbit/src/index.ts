@@ -898,8 +898,17 @@ async function injectThreadTitles(msg: Record<string, unknown>): Promise<void> {
   }
 
   // Requests may include `method`, but responses generally don't. Handle both.
-  if ((method === "thread/list" || !method) && result?.data && Array.isArray(result.data)) {
-    for (const t of result.data) applyToThread(t);
+  if (method === "thread/list" || !method) {
+    const rawList: any[] = Array.isArray(result?.data)
+      ? result.data
+      : Array.isArray(result?.threads)
+        ? result.threads
+        : Array.isArray(result?.items)
+          ? result.items
+          : Array.isArray(result)
+            ? result
+            : [];
+    for (const t of rawList) applyToThread(t);
     return;
   }
 
