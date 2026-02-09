@@ -190,10 +190,17 @@
 
   // Subscribe to a small window of recent threads so activity + status indicators are live in the list view.
   // Without this, iOS users won't see reliable updates and ordering can lag until a thread is opened.
-  let listSubscribed = $state<Set<string>>(new Set());
+  // Important: do NOT make this reactive state. This effect both *reads* and *writes*
+  // the set, and using $state can create a feedback loop that pegs the UI (manifesting
+  // as an "empty" thread list).
+  let listSubscribed = new Set<string>();
 
   $effect(() => {
-    if (socket.status !== "connected") return;
+    if (socket.status !== "connected") {
+      // Reset so we re-subscribe cleanly on reconnect.
+      listSubscribed = new Set();
+      return;
+    }
 
     const desired = new Set<string>();
     for (const t of visibleThreads.slice(0, 25)) desired.add(t.id);
