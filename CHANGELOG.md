@@ -21,6 +21,8 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt fallback).
 
 ### CLI / Update
+- CLI: `start` now falls back to background mode if the launchd plist is missing (keeps update/restart usable even if the agent file is deleted).
+- CLI: improved owned-process detection by also checking process CWD (helps kill stale listeners from older installs where the command line is just `bun run src/index.ts`).
 - `codex-pocket update` stop/restart now more aggressively cleans up *owned* stale listeners and orphaned anchors before rebuilding/restarting.
 - `ensure`/`smoke-test` now retry `/admin/validate` a few times to avoid false failures immediately after restart.
 - Start/stop/restart now kill stale listeners using the configured ports (not hard-coded 8790).
