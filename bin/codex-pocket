@@ -327,10 +327,12 @@ kill_owned_listeners() {
     return 0
   fi
 
+  local port
+  port="$(config_port 2>/dev/null || echo 8790)"
   local aport
   aport="$(anchor_port 2>/dev/null || echo 8788)"
 
-  for p in 8790 "$aport"; do
+  for p in "$port" "$aport"; do
     local lpids
     lpids="$(lsof -nP -t -iTCP:"$p" -sTCP:LISTEN 2>/dev/null || true)"
     [[ -z "${lpids:-}" ]] && continue
@@ -352,11 +354,13 @@ port_conflicts() {
     return 0
   fi
 
+  local port
+  port="$(config_port 2>/dev/null || echo 8790)"
   local aport
   aport="$(anchor_port 2>/dev/null || echo 8788)"
 
   local out=""
-  for p in 8790 "$aport"; do
+  for p in "$port" "$aport"; do
     local lpids
     lpids="$(lsof -nP -t -iTCP:"$p" -sTCP:LISTEN 2>/dev/null || true)"
     [[ -z "${lpids:-}" ]] && continue
@@ -631,7 +635,9 @@ cmd_stop() {
   if command -v lsof >/dev/null 2>&1; then
     local aport
     aport="$(anchor_port 2>/dev/null || echo 8788)"
-    for p in 8790 "$aport"; do
+    local port
+    port="$(config_port 2>/dev/null || echo 8790)"
+    for p in "$port" "$aport"; do
       while true; do
         local lpids
         lpids="$(lsof -nP -t -iTCP:"$p" -sTCP:LISTEN 2>/dev/null || true)"
