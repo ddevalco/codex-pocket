@@ -7,6 +7,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 ## Unreleased
 
 - CLI: added `codex-pocket self-test` and expanded `smoke-test` to cover the NDJSON events replay endpoint (helps catch “blank threads” regressions).
+- UI: harden thread list parsing/normalization so upstream `thread/list` response shape changes (nested `data`, `thread_id`) don't collapse the list to empty.
 - UI: message-level **copy** button (with a fallback clipboard implementation for non-HTTPS origins).
 - UI: thread export now supports both Markdown (`.md`) and JSON (`.json`).
 - UI: thread share now prefers sharing a real file on iOS (Web Share API `files`), falling back to text/copy/download.
