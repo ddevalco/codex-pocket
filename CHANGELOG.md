@@ -10,6 +10,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UI: message-level **copy** button (with a fallback clipboard implementation for non-HTTPS origins).
 - UI: thread export now supports both Markdown (`.md`) and JSON (`.json`).
 - UI: thread share now prefers sharing a real file on iOS (Web Share API `files`), falling back to text/copy/download.
+- UI: thread list now has quick **export/share** actions (Markdown + JSON) without opening the thread.
 - UI: tool output blocks now have a **copy** button (works on `http://` via fallback copy).
 - UI: message copy now defaults to copying plain text (markdown stripped); Shift+Click copies raw markdown source.
 - UI: mobile thread list shows more of the title by allowing 2-line titles while keeping the date visible.

@@ -15,6 +15,11 @@ This is a prioritized list of remaining improvements.
 - `index.html` is now served with `Cache-Control: no-store` to reduce cached broken bundle issues.
 - UI now shows build metadata (commit/time) and server shows app commit in /health + /admin/status.
 - Thread ordering: thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt).
+- UI: message copy improvements (plain-text default, Shift+Click for raw markdown, clipboard fallback on `http://`).
+- UI: tool output blocks now have a copy button (with the same clipboard fallback).
+- UI: export/share threads as Markdown or JSON (downloads + iOS share sheet with real files when supported).
+- UI: thread list mobile density improved (2-line titles, date preserved).
+- UI: thread list now includes quick export/share actions (md + json) without opening the thread.
 
 ## P0 (Stability)
 
@@ -26,12 +31,13 @@ This is a prioritized list of remaining improvements.
 - Thread activity indicator (idle/working/blocked) polish:
   - Ensure it is visible on mobile.
   - Add a legend or tooltip.
-- Copy UX:
-  - Copy message button on mobile should be easier to hit.
-  - Add “Copy as Markdown” vs “Copy plain text” (optional).
-- Export/share:
-  - Export thread to Markdown.
-  - Share sheet integration on iOS.
+- Message UX niceties:
+  - Make copy affordance easier to discover (kebab menu or long-press hint).
+  - Copy a single message as a quoted block (with timestamp + role).
+  - “Copy conversation from here” (copy the last N messages).
+- Thread export/share polish:
+  - Allow exporting from the thread list even if local cache is cold (fetch replay endpoint on-demand).
+  - Add “Export as HTML/PDF” (optional).
 
 ## P2 (Attachments)
 

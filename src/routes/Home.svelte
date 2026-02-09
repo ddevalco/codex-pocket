@@ -165,6 +165,111 @@
     (thread as any).title = title;
     (thread as any).name = title;
   }
+
+  function threadToMarkdown(threadId: string): string {
+    const info = threads.list.find((t) => t.id === threadId);
+    const title = ((info as any)?.title || (info as any)?.name || "").trim() || threadId.slice(0, 8);
+    const out: string[] = [];
+    out.push(`# ${title}`);
+    out.push("");
+    out.push(`Thread: ${threadId}`);
+    out.push("");
+
+    const msgs = messages.getThreadMessages(threadId);
+    for (const m of msgs) {
+      const role =
+        m.role === "tool"
+          ? m.kind
+            ? `Tool (${m.kind})`
+            : "Tool"
+          : m.role === "assistant"
+            ? "Assistant"
+            : m.role === "user"
+              ? "User"
+              : "Approval";
+      out.push(`## ${role}`);
+      out.push("");
+      const text = (m.text ?? "").trim();
+      if (m.role === "tool") {
+        out.push("```text");
+        out.push(text);
+        out.push("```");
+      } else {
+        out.push(text);
+      }
+      out.push("");
+    }
+    return out.join("\n").trim() + "\n";
+  }
+
+  function threadToJson(threadId: string): string {
+    const info = threads.list.find((t) => t.id === threadId);
+    const title = ((info as any)?.title || (info as any)?.name || "").trim() || threadId.slice(0, 8);
+    const msgs = messages.getThreadMessages(threadId);
+    const exported = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      thread: { id: threadId, title },
+      messages: msgs.map((m) => ({
+        id: m.id,
+        role: m.role,
+        kind: m.kind ?? null,
+        text: m.text ?? "",
+        approval: m.role === "approval" ? (m as any).approval ?? null : null,
+        metadata: (m as any).metadata ?? null,
+      })),
+    };
+    return JSON.stringify(exported, null, 2) + "\n";
+  }
+
+  function downloadBlob(filename: string, blob: Blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function safeFilename(name: string) {
+    return name.replace(/[^a-z0-9\- _]+/gi, "").trim();
+  }
+
+  async function shareFileOrFallback(title: string, file: File, fallbackText: string) {
+    try {
+      const nav = navigator as any;
+      if (nav?.share) {
+        if (nav.canShare?.({ files: [file] })) {
+          await nav.share({ title, files: [file] });
+          return true;
+        }
+        await nav.share({ title, text: fallbackText });
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  }
+
+  async function exportThread(threadId: string, format: "md" | "json") {
+    const info = threads.list.find((t) => t.id === threadId);
+    const titleRaw = ((info as any)?.title || (info as any)?.name || (info as any)?.preview || "").trim() || threadId.slice(0, 8);
+    const title = safeFilename(titleRaw) || threadId.slice(0, 8);
+
+    if (format === "md") {
+      const md = threadToMarkdown(threadId);
+      const f = new File([md], `${title}.md`, { type: "text/markdown" });
+      const shared = await shareFileOrFallback(`Codex Pocket: ${title}`, f, md);
+      if (!shared) downloadBlob(`${title}.md`, new Blob([md], { type: "text/markdown" }));
+      return;
+    }
+
+    const json = threadToJson(threadId);
+    const f = new File([json], `${title}.json`, { type: "application/json" });
+    const shared = await shareFileOrFallback(`Codex Pocket: ${title}`, f, json);
+    if (!shared) downloadBlob(`${title}.json`, new Blob([json], { type: "application/json" }));
+  }
 </script>
 
 <svelte:head>
@@ -233,6 +338,16 @@
                 class:thread-indicator-blocked={threadIndicator(thread.id) === "blocked"}
                 title={indicatorTitle(threadIndicator(thread.id))}
               >●</span>
+              <button
+                class="export-btn"
+                onclick={() => exportThread(thread.id, "md")}
+                title="Share/export thread as Markdown"
+              >⇪</button>
+              <button
+                class="export-btn"
+                onclick={() => exportThread(thread.id, "json")}
+                title="Share/export thread as JSON"
+              >⎘</button>
               <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>
               <button
                 class="archive-btn"
@@ -613,6 +728,20 @@
     color: #eb5757;
   }
 
+  .export-btn {
+    padding: var(--space-sm) var(--space-sm);
+    background: transparent;
+    border: none;
+    color: var(--cli-text-muted);
+    font-size: var(--text-base);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+  }
+
+  .export-btn:hover {
+    color: var(--cli-text);
+  }
+
   .archive-btn {
     padding: var(--space-sm) var(--space-md);
     background: transparent;
@@ -658,6 +787,11 @@
       display: block;
       font-size: 11px;
       line-height: 1.1;
+    }
+
+    /* Keep controls compact but available. */
+    .export-btn {
+      padding: var(--space-sm) var(--space-xs);
     }
   }
 </style>
