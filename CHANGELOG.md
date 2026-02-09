@@ -19,6 +19,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
+- UX: thread list ordering now preserves upstream activity timestamps (updatedAt/lastActivity) and uses a deterministic tie-breaker (less reorder-on-refresh).
 - Thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt fallback).
 
 ### CLI / Update

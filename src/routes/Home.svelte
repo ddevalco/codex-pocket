@@ -106,36 +106,73 @@
     });
   }
 
+  function normTs(v: number | undefined | null): number | null {
+    if (typeof v !== "number" || !Number.isFinite(v)) return null;
+    // Support both seconds and ms.
+    return v > 1e12 ? Math.floor(v / 1000) : v;
+  }
+
+  function upstreamActivity(t: { updatedAt?: number; lastActivity?: number; lastActiveAt?: number }): number | null {
+    return normTs(t.updatedAt) ?? normTs(t.lastActivity) ?? normTs(t.lastActiveAt) ?? null;
+  }
+
+  function indicatorRank(ind: "blocked" | "working" | "idle"): number {
+    // Rank active threads above idle.
+    if (ind === "blocked") return 0;
+    if (ind === "working") return 1;
+    return 2;
+  }
+
   const visibleThreads = $derived.by(() => {
     const list = threads.list || [];
-    // Sort by most recently active:
-    // 1) observed local activity (while Pocket is connected)
-    // 2) upstream updatedAt/lastActivity (if provided by Codex)
-    // 3) createdAt fallback
-    return [...list].sort((a, b) => {
-      const aUp = (a as any).updatedAt ?? (a as any).lastActivity ?? (a as any).lastActiveAt ?? null;
-      const bUp = (b as any).updatedAt ?? (b as any).lastActivity ?? (b as any).lastActiveAt ?? null;
-      const aUpNorm = typeof aUp === "number" ? (aUp > 1e12 ? Math.floor(aUp / 1000) : aUp) : null;
-      const bUpNorm = typeof bUp === "number" ? (bUp > 1e12 ? Math.floor(bUp / 1000) : bUp) : null;
 
-      const aAct = messages.getLastActivity(a.id) ?? aUpNorm ?? a.createdAt ?? 0;
-      const bAct = messages.getLastActivity(b.id) ?? bUpNorm ?? b.createdAt ?? 0;
-      return bAct - aAct;
+    // Sort by most recently active:
+    // 1) active threads (blocked/working) first
+    // 2) Pocket-observed activity (live WS events)
+    // 3) upstream updatedAt/lastActivity (if provided by Codex)
+    // 4) createdAt fallback
+    // 5) deterministic tie-breaker by id (prevents refresh from shuffling equal timestamps)
+    return [...list].sort((a, b) => {
+      const aInd = threadIndicator(a);
+      const bInd = threadIndicator(b);
+      const r = indicatorRank(aInd) - indicatorRank(bInd);
+      if (r !== 0) return r;
+
+      const aAct = messages.getLastActivity(a.id) ?? upstreamActivity(a) ?? a.createdAt ?? 0;
+      const bAct = messages.getLastActivity(b.id) ?? upstreamActivity(b) ?? b.createdAt ?? 0;
+      if (aAct !== bAct) return bAct - aAct;
+
+      const aUp = upstreamActivity(a) ?? 0;
+      const bUp = upstreamActivity(b) ?? 0;
+      if (aUp != bUp) return bUp - aUp;
+
+      const aCr = a.createdAt ?? 0;
+      const bCr = b.createdAt ?? 0;
+      if (aCr !== bCr) return bCr - aCr;
+
+      return String(a.id).localeCompare(String(b.id));
     });
   });
 
   function threadTime(ts?: number, id?: string) {
     const activity = id ? messages.getLastActivity(id) : null;
     if (activity) return activity;
-    // Prefer upstream updatedAt if present
+
     const t = id ? threads.list.find((x) => x.id === id) : null;
-    const up = (t as any)?.updatedAt ?? (t as any)?.lastActivity ?? (t as any)?.lastActiveAt ?? null;
-    if (typeof up === "number") return up > 1e12 ? Math.floor(up / 1000) : up;
+    if (t) {
+      const up = upstreamActivity(t);
+      if (up != null) return up;
+    }
+
     return ts;
   }
 
-  function threadIndicator(threadId: string): "blocked" | "working" | "idle" {
-    return messages.getThreadIndicator(threadId);
+  function threadIndicator(thread: { id: string; status?: string }): "blocked" | "working" | "idle" {
+    const local = messages.getThreadIndicator(thread.id);
+    if (local !== "idle") return local;
+    const st = (thread.status || "").toLowerCase();
+    if (st === "inprogress") return "working";
+    return local;
   }
 
   function indicatorTitle(ind: "blocked" | "working" | "idle"): string {
@@ -408,11 +445,11 @@
                 <span class="thread-icon">›</span>
                 <span
                   class="thread-indicator"
-                  class:thread-indicator-idle={threadIndicator(thread.id) === "idle"}
-                  class:thread-indicator-working={threadIndicator(thread.id) === "working"}
-                  class:thread-indicator-blocked={threadIndicator(thread.id) === "blocked"}
-                  title={indicatorTitle(threadIndicator(thread.id))}
-                  aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread.id))}
+                  class:thread-indicator-idle={threadIndicator(thread) === "idle"}
+                  class:thread-indicator-working={threadIndicator(thread) === "working"}
+                  class:thread-indicator-blocked={threadIndicator(thread) === "blocked"}
+                  title={indicatorTitle(threadIndicator(thread))}
+                  aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread))}
                 >●</span>
                 <span class="thread-main stack">
                   <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
