@@ -44,6 +44,7 @@ If anything doesn’t work, run:
 - Admin: `docs/ADMIN.md`
 - Troubleshooting/FAQ: `docs/TROUBLESHOOTING.md`
 - Architecture: `docs/ARCHITECTURE.md`
+- CI: `docs/CI.md`
 - Differences from Zane: `docs/DIFFERENCES_FROM_ZANE.md`
 - Development: `docs/DEVELOPMENT.md`
 
@@ -97,6 +98,14 @@ Key differences:
 ## Demo
 
 [![Codex Pocket demo](https://img.youtube.com/vi/kmH0hEY6Y7o/hqdefault.jpg)](https://www.youtube.com/watch?v=kmH0hEY6Y7o)
+
+## CI (GitHub Actions)
+
+This repo includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that builds the UI and runs smoke tests (including a WebSocket relay test) to catch regressions like “blank threads”.
+
+Cost:
+- Public GitHub repos can use GitHub Actions without paying for it.
+- Private repos have monthly free minutes/storage limits depending on your GitHub plan.
 
 ## Security Model
 - You must be on the same Tailscale tailnet as the Mac.

@@ -6,6 +6,9 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ## Unreleased
 
+### UX
+- Thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt fallback).
+
 ### CLI / Update
 - `codex-pocket update` stop/restart now more aggressively cleans up *owned* stale listeners and orphaned anchors before rebuilding/restarting.
 - `ensure`/`smoke-test` now retry `/admin/validate` a few times to avoid false failures immediately after restart.

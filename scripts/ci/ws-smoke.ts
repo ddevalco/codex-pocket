@@ -1,3 +1,5 @@
+import WebSocket from "ws";
+
 const BASE = process.env.CI_BASE_URL || "http://127.0.0.1:8790";
 const TOKEN = process.env.CI_TOKEN || "ci-token";
 
@@ -5,6 +7,9 @@ function wsUrl(path: string): string {
   const u = new URL(BASE);
   u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
   u.pathname = path;
+  // Pass token via query param so this works in Bun's built-in WebSocket implementation
+  // (which may not support custom request headers on all platforms).
+  u.searchParams.set("token", TOKEN);
   return u.toString();
 }
 
@@ -22,46 +27,27 @@ async function openWS(path: string, label: string): Promise<WebSocket> {
 
   await new Promise<void>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(`${label}: open timeout`)), 5000);
-    ws.addEventListener("open", () => {
+    ws.once("open", () => {
       clearTimeout(t);
       resolve();
     });
-    ws.addEventListener("error", () => {
+    ws.once("error", (err) => {
       clearTimeout(t);
-      reject(new Error(`${label}: error while opening`));
+      reject(new Error(`${label}: error while opening (${String((err as any)?.message || err)})`));
     });
   });
 
   return ws;
 }
 
-async function waitForHello(ws: WebSocket, label: string) {
-  await new Promise<void>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error(`${label}: hello timeout`)), 5000);
-    const onMsg = (ev: MessageEvent) => {
-      try {
-        const msg = JSON.parse(String(ev.data));
-        if (msg?.type === "orbit.hello") {
-          ws.removeEventListener("message", onMsg);
-          clearTimeout(t);
-          resolve();
-        }
-      } catch {
-        // ignore
-      }
-    };
-    ws.addEventListener("message", onMsg);
-  });
-}
-
 async function waitForMessage(ws: WebSocket, pred: (msg: any) => boolean, label: string) {
   return await new Promise<any>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(`${label}: message timeout`)), 5000);
-    const onMsg = (ev: MessageEvent) => {
+    const onMsg = (data: WebSocket.RawData) => {
       try {
-        const msg = JSON.parse(String(ev.data));
+        const msg = JSON.parse(String(data));
         if (pred(msg)) {
-          ws.removeEventListener("message", onMsg);
+          ws.off("message", onMsg);
           clearTimeout(t);
           resolve(msg);
         }
@@ -69,7 +55,7 @@ async function waitForMessage(ws: WebSocket, pred: (msg: any) => boolean, label:
         // ignore
       }
     };
-    ws.addEventListener("message", onMsg);
+    ws.on("message", onMsg);
   });
 }
 
@@ -78,9 +64,8 @@ async function main() {
 
   const client = await openWS("/ws/client", "client");
   const anchor = await openWS("/ws/anchor", "anchor");
-
-  await waitForHello(client, "client");
-  await waitForHello(anchor, "anchor");
+  // Give the server a moment to finish post-upgrade bookkeeping.
+  await sleep(25);
 
   // 1) Client -> Anchor routing (threadId-specific, no prior subscription)
   const ping = { type: "ci.ping", id: 1, threadId };

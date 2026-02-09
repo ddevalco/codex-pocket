@@ -14,6 +14,7 @@ This is a prioritized list of remaining improvements.
 
 - `index.html` is now served with `Cache-Control: no-store` to reduce cached broken bundle issues.
 - UI now shows build metadata (commit/time) and server shows app commit in /health + /admin/status.
+- Thread ordering: thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt).
 
 ## P0 (Stability)
 
@@ -22,8 +23,6 @@ This is a prioritized list of remaining improvements.
 
 ## P1 (UX)
 
-- Thread ordering: sort by last activity consistently.
-  - Clarify behavior: “observed activity” vs upstream timestamps.
 - Thread activity indicator (idle/working/blocked) polish:
   - Ensure it is visible on mobile.
   - Add a legend or tooltip.
