@@ -36,7 +36,13 @@ git clone --bare "$ROOT_REPO" "$ORIGIN" >/dev/null 2>&1
 git clone "$ORIGIN" "$APP_HOME/app" >/dev/null 2>&1
 
 # Install CLI into the test home.
-cp "$ROOT_REPO/bin/codex-pocket" "$APP_HOME/bin/codex-pocket"
+# Install a stable wrapper so `codex-pocket` always uses the current repo version.
+cat >"$APP_HOME/bin/codex-pocket" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+APP_DIR="${CODEX_POCKET_HOME:-$HOME/.codex-pocket}"
+exec "$APP_DIR/app/bin/codex-pocket" "$@"
+SH
 chmod +x "$APP_HOME/bin/codex-pocket"
 
 cat > "$APP_HOME/config.json" <<JSON

@@ -24,6 +24,7 @@ Notes:
 - Local access: `http://127.0.0.1:8790`
 - Tailnet access: `https://<your-mac-magicdns-host>/`
 - Admin: `/admin`
+- CLI: `~/.codex-pocket/bin/codex-pocket` (a thin wrapper that delegates to `~/.codex-pocket/app/bin/codex-pocket`)
 
 ## Tailscale Setup (Mac + iPhone)
 

@@ -653,7 +653,14 @@ EON
 
 step "Install CLI"
 mkdir -p "$APP_DIR/bin"
-cp "$APP_DIR/app/bin/codex-pocket" "$APP_DIR/bin/codex-pocket"
+# Install a stable wrapper so `codex-pocket` always uses the current repo version
+# (avoids stale CLI copies after `codex-pocket update`).
+cat >"$APP_DIR/bin/codex-pocket" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+APP_DIR="${CODEX_POCKET_HOME:-$HOME/.codex-pocket}"
+exec "$APP_DIR/app/bin/codex-pocket" "$@"
+SH
 chmod +x "$APP_DIR/bin/codex-pocket"
 
 echo ""
