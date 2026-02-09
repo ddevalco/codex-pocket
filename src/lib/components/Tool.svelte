@@ -13,8 +13,48 @@
 
   let isOpen = $state(untrack(() => defaultOpen));
 
+  type CopyState = "idle" | "copied" | "error";
+  let copyState = $state<CopyState>("idle");
+
   function toggle() {
     isOpen = !isOpen;
+  }
+
+  async function copyToolOutput() {
+    const text = (toolInfo.content ?? "").trim();
+    if (!text) return;
+
+    const fallbackCopy = (t: string) => {
+      const ta = document.createElement("textarea");
+      ta.value = t;
+      ta.setAttribute("readonly", "true");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      ta.style.left = "-1000px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand("copy");
+      } finally {
+        document.body.removeChild(ta);
+      }
+    };
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        fallbackCopy(text);
+      }
+      copyState = "copied";
+    } catch {
+      copyState = "error";
+    } finally {
+      setTimeout(() => {
+        copyState = "idle";
+      }, copyState === "error" ? 1600 : 1200);
+    }
   }
 
   // Tool configuration based on kind
@@ -169,7 +209,8 @@
 </script>
 
 <div class="tool" class:open={isOpen}>
-  <button class="tool-header row" onclick={toggle} type="button">
+  <div class="tool-header row">
+    <button class="tool-toggle row" onclick={toggle} type="button">
     <span class="tool-icon row" style:color={toolConfig.color}>
       {#if toolConfig.icon === "terminal"}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -255,7 +296,25 @@
         <path d="m6 9 6 6 6-6"/>
       </svg>
     {/if}
-  </button>
+    </button>
+
+    {#if hasContent}
+      <button
+        type="button"
+        class="copy-btn"
+        class:copied={copyState === "copied"}
+        class:error={copyState === "error"}
+        onclick={(e) => {
+          e.stopPropagation();
+          copyToolOutput();
+        }}
+        title={copyState === "copied" ? "Copied" : "Copy output"}
+        aria-label="Copy tool output"
+      >
+        {copyState === "copied" ? "copied" : "copy"}
+      </button>
+    {/if}
+  </div>
 
   {#if isOpen && hasContent}
     <div class="tool-content">
@@ -284,11 +343,26 @@
     background: var(--cli-bg-elevated);
     border: none;
     color: var(--cli-text);
-    cursor: pointer;
     text-align: left;
     font-family: inherit;
     font-size: inherit;
     transition: background 0.15s ease;
+    position: relative;
+    align-items: center;
+  }
+
+  .tool-toggle {
+    --row-gap: var(--space-sm);
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    font-size: inherit;
   }
 
   .tool-header:hover {
@@ -345,6 +419,52 @@
     border-top: 1px solid var(--cli-border);
     background: var(--cli-bg);
     animation: slideIn 0.2s ease;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--cli-border);
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--cli-text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+    z-index: 1;
+  }
+
+  .tool:hover .copy-btn,
+  .tool:focus-within .copy-btn {
+    opacity: 1;
+  }
+
+  .copy-btn:hover {
+    color: var(--cli-text);
+  }
+
+  .copy-btn.copied {
+    opacity: 1;
+    border-color: #2c8a5a;
+    color: #9be3bf;
+  }
+
+  .copy-btn.error {
+    opacity: 1;
+    border-color: var(--cli-error);
+    color: var(--cli-error);
+  }
+
+  @media (max-width: 520px) {
+    .copy-btn {
+      opacity: 1;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
   }
 
   .tool-output {
