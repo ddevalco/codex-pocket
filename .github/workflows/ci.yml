@@ -96,6 +96,24 @@ jobs:
           print('admin/status ok')
           PY
 
+      - name: Smoke test admin validate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            "http://127.0.0.1:8790/admin/validate" > /tmp/admin-validate.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-validate.json'))
+          assert isinstance(d, dict), d
+          assert 'ok' in d, d
+          assert isinstance(d['ok'], bool), d
+          print('admin/validate ok')
+          PY
+
       - name: Verify cache headers
         shell: bash
         run: |

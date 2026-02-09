@@ -12,6 +12,7 @@ The workflow is defined in:
 - Starts `local-orbit` in CI mode (no Anchor autostart)
 - Verifies:
   - `GET /health` returns OK
+  - `GET /admin/validate` returns sane JSON (auth required)
   - WebSocket relay path works (client ↔ anchor protocol surface, simulated)
   - `GET /admin/status` returns sane JSON (auth required)
   - Cache headers:
@@ -25,4 +26,3 @@ The workflow is defined in:
 - Private repos: GitHub provides a monthly free tier of minutes/storage (limits vary by plan).
 
 If the repo stays public, you generally don’t need to think about cost.
-
