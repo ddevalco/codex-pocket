@@ -129,14 +129,14 @@ jobs:
           curl -fsSI "http://127.0.0.1:8790/app" | tr -d '\r' | grep -i '^cache-control:.*no-store'
 
           # Hashed assets should be immutable.
-          html=$(curl -fsS "http://127.0.0.1:8790/")
+          html=$(curl -fsS "http://127.0.0.1:8790/app")
 
           # Grab the main JS bundle path from the index.html we just fetched.
           # Vite emits double-quoted src attributes.
           js=$(python3 -c "import re,sys; html=sys.stdin.read(); m=re.search(r'src=\"(/assets/[^\"]+\\.js)\"', html); print(m.group(1) if m else '')" <<<"$html")
 
           if [ -z "$js" ]; then
-            echo "ERROR: could not find JS asset path in / HTML"
+            echo "ERROR: could not find JS asset path in /app HTML"
             echo "---- html (first 80 lines) ----"
             echo "$html" | sed -n '1,80p'
             exit 1
@@ -144,6 +144,24 @@ jobs:
 
           # Cache-Control for hashed assets should include immutable.
           curl -fsSI "http://127.0.0.1:8790${js}" | tr -d '\r' | grep -i '^cache-control:.*immutable'
+
+      - name: Verify /app main bundle loads
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          html=$(curl -fsS "http://127.0.0.1:8790/app")
+          js=$(python3 -c "import re,sys; html=sys.stdin.read(); m=re.search(r'src=\\\"(/assets/[^\\\"]+\\.js)\\\"', html); print(m.group(1) if m else '')" <<<"$html")
+
+          if [ -z "$js" ]; then
+            echo "ERROR: could not find JS asset path in /app HTML"
+            echo "---- html (first 80 lines) ----"
+            echo "$html" | sed -n '1,80p'
+            exit 1
+          fi
+
+          # The main bundle should be fetchable and served as JS.
+          curl -fsSI "http://127.0.0.1:8790${js}" | tr -d '\r' | grep -i '^content-type:.*javascript'
 
       - name: Verify events endpoint
         shell: bash
