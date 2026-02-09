@@ -309,6 +309,20 @@
       <div class="section-header split">
         <div class="section-title-row row">
           <span class="section-title">Threads</span>
+          <span class="indicator-legend row" aria-label="Thread status legend">
+            <span class="legend-item row" title="Idle">
+              <span class="thread-indicator thread-indicator-idle" aria-hidden="true">●</span>
+              <span class="legend-text">idle</span>
+            </span>
+            <span class="legend-item row" title="Working">
+              <span class="thread-indicator thread-indicator-working" aria-hidden="true">●</span>
+              <span class="legend-text">working</span>
+            </span>
+            <span class="legend-item row" title="Waiting for your action">
+              <span class="thread-indicator thread-indicator-blocked" aria-hidden="true">●</span>
+              <span class="legend-text">blocked</span>
+            </span>
+          </span>
           <button class="refresh-btn" onclick={() => threads.fetch()} title="Refresh">↻</button>
         </div>
         <div class="section-actions row">
@@ -336,18 +350,19 @@
                 }}
               >
                 <span class="thread-icon">›</span>
+                <span
+                  class="thread-indicator"
+                  class:thread-indicator-idle={threadIndicator(thread.id) === "idle"}
+                  class:thread-indicator-working={threadIndicator(thread.id) === "working"}
+                  class:thread-indicator-blocked={threadIndicator(thread.id) === "blocked"}
+                  title={indicatorTitle(threadIndicator(thread.id))}
+                  aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread.id))}
+                >●</span>
                 <span class="thread-main stack">
                   <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
                   <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
                 </span>
               </a>
-              <span
-                class="thread-indicator"
-                class:thread-indicator-idle={threadIndicator(thread.id) === "idle"}
-                class:thread-indicator-working={threadIndicator(thread.id) === "working"}
-                class:thread-indicator-blocked={threadIndicator(thread.id) === "blocked"}
-                title={indicatorTitle(threadIndicator(thread.id))}
-              >●</span>
               <button
                 class="export-btn"
                 onclick={(e) => {
@@ -619,6 +634,24 @@
     align-items: center;
   }
 
+  .indicator-legend {
+    --row-gap: var(--space-sm);
+    align-items: center;
+    color: var(--cli-text-muted);
+    font-size: var(--text-xs);
+  }
+
+  .legend-item {
+    --row-gap: 6px;
+    align-items: center;
+    text-transform: lowercase;
+    user-select: none;
+  }
+
+  .legend-text {
+    color: var(--cli-text-muted);
+  }
+
   .section-actions {
     --row-gap: var(--space-sm);
     padding-right: var(--space-sm);
@@ -788,6 +821,11 @@
 
   /* Mobile: prioritize thread title visibility. */
   @media (max-width: 520px) {
+    /* Legend: keep the dots, hide the text labels to save space. */
+    .legend-text {
+      display: none;
+    }
+
     /* Allow titles to use 2 lines on narrow screens. */
     .thread-preview {
       display: -webkit-box;
@@ -805,9 +843,19 @@
       line-height: 1.1;
     }
 
-    /* Keep controls compact but available. */
+    /* Hide export buttons on mobile; long-press + message menu + thread header already cover export/copy flows. */
     .export-btn {
+      display: none;
+    }
+
+    /* Keep controls compact but available. */
+    .rename-btn,
+    .archive-btn {
       padding: var(--space-sm) var(--space-xs);
+    }
+
+    .thread-indicator {
+      padding: 0 var(--space-xs);
     }
   }
 </style>
