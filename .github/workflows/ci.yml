@@ -128,8 +128,10 @@ jobs:
 
           # Should return NDJSON (possibly empty) for any thread id.
           # This endpoint is auth-protected.
-          curl -fsSI \
+          curl -fsS \
             -H "Authorization: Bearer ci-token" \
+            -o /dev/null \
+            -D - \
             "http://127.0.0.1:8790/threads/00000000-0000-0000-0000-000000000000/events" | tr -d '\r' | grep -i '^content-type:.*application/x-ndjson'
 
       - name: Stop server
