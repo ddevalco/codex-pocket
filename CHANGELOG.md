@@ -7,6 +7,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 ## Unreleased
 
 ### CLI / Update
+- `codex-pocket update` stop/restart now more aggressively cleans up *owned* stale listeners and orphaned anchors before rebuilding/restarting.
 - Start/stop/restart now kill stale listeners using the configured ports (not hard-coded 8790).
 - `codex-pocket update` now always prints a final `summary` and exits non-zero if `ensure` or `smoke-test` fail (next: `codex-pocket diagnose`).
 - Config parsing is now validated early to avoid Python stack traces when config.json is empty/corrupt.
