@@ -4,6 +4,7 @@ This is a prioritized list of remaining improvements.
 
 ## Recently Done
 
+- CLI: stop/start now kill stale listeners using configured ports (not hard-coded 8790).
 - Added GitHub Actions CI workflow to build and smoke-test local-orbit on every push/PR.
 - CI now smoke-tests the WebSocket relay path (client ↔ anchor).
 - `codex-pocket update` now always prints a final `summary` block and exits non-zero if post-update `ensure`/`smoke-test` fail.
