@@ -84,6 +84,17 @@
             // Prefer native share sheet when available (iOS).
             const nav = navigator as any;
             if (nav?.share) {
+                // Prefer sharing a real file when supported (better UX on iOS).
+                // If not supported, fall back to text share.
+                try {
+                    const f = new File([md], `${title}.md`, { type: "text/markdown" });
+                    if (nav.canShare?.({ files: [f] })) {
+                        await nav.share({ title: `Codex Pocket: ${title}`, files: [f] });
+                        return;
+                    }
+                } catch {
+                    // ignore and fall back to text share
+                }
                 await nav.share({ title: `Codex Pocket: ${title}`, text: md });
                 return;
             }
@@ -91,6 +102,33 @@
             // fall back to copy
         }
         await copyThread();
+    }
+
+    async function shareThreadJson() {
+        const id = threadId;
+        if (!id) return;
+        const json = threadToJson();
+        if (!json) return;
+        const title = threadTitle || id.slice(0, 8);
+        try {
+            const nav = navigator as any;
+            if (nav?.share) {
+                try {
+                    const f = new File([json], `${title}.json`, { type: "application/json" });
+                    if (nav.canShare?.({ files: [f] })) {
+                        await nav.share({ title: `Codex Pocket: ${title}`, files: [f] });
+                        return;
+                    }
+                } catch {
+                    // fall back to text share
+                }
+                await nav.share({ title: `Codex Pocket: ${title}`, text: json });
+                return;
+            }
+        } catch {
+            // fall back to download
+        }
+        downloadThreadJson();
     }
 
     function downloadThread() {
@@ -342,6 +380,7 @@
             <button type="button" onclick={shareThread} title="Share thread">share</button>
             <button type="button" onclick={downloadThread} title="Download thread as .md">export md</button>
             <button type="button" onclick={downloadThreadJson} title="Download thread as .json">export json</button>
+            <button type="button" onclick={shareThreadJson} title="Share thread as .json">share json</button>
             <a href="/settings">Settings</a>
             <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
                 {themeIcons[theme.current]}
