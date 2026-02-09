@@ -481,6 +481,43 @@ wait_healthy() {
   done
   return 1
 }
+
+wait_ports_free() {
+  # Best-effort wait until our configured ports are no longer LISTENing.
+  # This reduces flakiness from rapid stop/start cycles and OS port reuse delays.
+  command -v lsof >/dev/null 2>&1 || return 0
+
+  local port aport i
+  port="$(config_port 2>/dev/null || echo 8790)"
+  aport="$(anchor_port 2>/dev/null || echo 8788)"
+
+  for i in $(seq 1 80); do
+    local lpids
+    lpids="$(lsof -nP -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+    lpids+=" $(lsof -nP -t -iTCP:"$aport" -sTCP:LISTEN 2>/dev/null || true)"
+    lpids="$(echo "$lpids" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ')"
+    [[ -z "${lpids//[[:space:]]/}" ]] && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
+cleanup_stale_pid_file() {
+  # If server.pid exists but the process is gone (or not ours), remove it.
+  # This helps keep start/stop/update flows deterministic.
+  [[ -f "$PID_FILE" ]] || return 0
+  local pid
+  pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  [[ -z "${pid:-}" ]] && { rm -f "$PID_FILE" >/dev/null 2>&1 || true; return 0; }
+  if ! ps -p "$pid" >/dev/null 2>&1; then
+    rm -f "$PID_FILE" >/dev/null 2>&1 || true
+    return 0
+  fi
+  if ! is_our_pid "$pid"; then
+    rm -f "$PID_FILE" >/dev/null 2>&1 || true
+  fi
+}
+
 cmd_doctor() {
   echo "${bold}Dependencies${reset}"
   need_cmd git
@@ -618,6 +655,7 @@ cmd_diagnose() {
 
 cmd_start() {
   read_config
+  cleanup_stale_pid_file >/dev/null 2>&1 || true
   local plist="$HOME/Library/LaunchAgents/${LABEL}.plist"
   local bun_bin
   bun_bin="$(resolve_bun || true)"
@@ -629,6 +667,7 @@ cmd_start() {
   # Ensure we don't pile up duplicate instances on restart/update.
   kill_anchor_orphans >/dev/null 2>&1 || true
   kill_owned_listeners >/dev/null 2>&1 || true
+  wait_ports_free >/dev/null 2>&1 || true
   local conflicts
   conflicts="$(port_conflicts || true)"
   if [[ -n "${conflicts:-}" ]]; then
@@ -751,6 +790,8 @@ cmd_stop() {
   pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" 2>/dev/null || true
   pkill -f "$APP_DIR/app/services/anchor/src/index.ts" 2>/dev/null || true
   kill_anchor_orphans >/dev/null 2>&1 || true
+  kill_owned_listeners >/dev/null 2>&1 || true
+  wait_ports_free >/dev/null 2>&1 || true
 
   # Final safety net: kill anything still listening on our configured ports.
   if command -v lsof >/dev/null 2>&1; then
@@ -1170,6 +1211,22 @@ kill_owned_listeners() {
   sleep 0.1
 }
 
+wait_ports_free() {
+  command -v lsof >/dev/null 2>&1 || return 0
+  local port aport i
+  port="$(cfg_port 2>/dev/null || echo 8790)"
+  aport="$(cfg_anchor_port 2>/dev/null || echo 8788)"
+  for i in $(seq 1 80); do
+    local lpids
+    lpids="$(lsof -nP -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+    lpids+=" $(lsof -nP -t -iTCP:"$aport" -sTCP:LISTEN 2>/dev/null || true)"
+    lpids="$(echo "$lpids" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ')"
+    [[ -z "${lpids//[[:space:]]/}" ]] && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
 stop_service() {
   launchctl unload "$HOME/Library/LaunchAgents/${LABEL}.plist" >/dev/null 2>&1 || true
   pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" >/dev/null 2>&1 || true
@@ -1177,6 +1234,7 @@ stop_service() {
 
   kill_anchor_orphans >/dev/null 2>&1 || true
   kill_owned_listeners >/dev/null 2>&1 || true
+  wait_ports_free >/dev/null 2>&1 || true
 }
 
 restart_via_cli() {
