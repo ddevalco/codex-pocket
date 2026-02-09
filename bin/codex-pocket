@@ -909,10 +909,76 @@ print(aport)
 PY
 }
 
+cfg_port() {
+  python3 - "$CONFIG_JSON" <<'PY'
+import json,sys
+with open(sys.argv[1]) as f:
+  d=json.load(f)
+print(int(d.get("port",8790)))
+PY
+}
+
+is_our_pid() {
+  local pid="$1"
+  local cmd
+  cmd="$(ps -p "$pid" -o command= 2>/dev/null || true)"
+  [[ -z "${cmd:-}" ]] && return 1
+  if echo "$cmd" | grep -Fq "$APP_DIR/app/services/local-orbit/src/index.ts"; then
+    return 0
+  fi
+  if echo "$cmd" | grep -Fq "$APP_DIR/app/services/anchor/src/index.ts"; then
+    return 0
+  fi
+  return 1
+}
+
+kill_anchor_orphans() {
+  # Anchor can be autostarted as `bun run src/index.ts` in the anchor cwd, which can survive
+  # if the parent process is killed. Kill only those whose CWD is our installed anchor dir.
+  command -v pgrep >/dev/null 2>&1 || return 0
+  command -v lsof >/dev/null 2>&1 || return 0
+  local pids
+  pids="$(pgrep -f "bun run src/index.ts" 2>/dev/null || true)"
+  [[ -z "${pids:-}" ]] && return 0
+  local anchor_cwd="$APP_DIR/app/services/anchor"
+  local pid
+  for pid in $pids; do
+    lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${anchor_cwd}$" || continue
+    kill "$pid" >/dev/null 2>&1 || true
+  done
+}
+
+kill_owned_listeners() {
+  # Kill Codex Pocket processes holding our configured ports.
+  # Do NOT kill unrelated processes.
+  command -v lsof >/dev/null 2>&1 || return 0
+
+  local port
+  port="$(cfg_port 2>/dev/null || echo 8790)"
+  local aport
+  aport="$(cfg_anchor_port 2>/dev/null || echo 8788)"
+
+  for p in "$port" "$aport"; do
+    local lpids
+    lpids="$(lsof -nP -t -iTCP:"$p" -sTCP:LISTEN 2>/dev/null || true)"
+    [[ -z "${lpids:-}" ]] && continue
+    local pid
+    for pid in $lpids; do
+      is_our_pid "$pid" || continue
+      kill "$pid" >/dev/null 2>&1 || true
+    done
+  done
+
+  sleep 0.1
+}
+
 stop_service() {
   launchctl unload "$HOME/Library/LaunchAgents/${LABEL}.plist" >/dev/null 2>&1 || true
   pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" >/dev/null 2>&1 || true
   pkill -f "$APP_DIR/app/services/anchor/src/index.ts" >/dev/null 2>&1 || true
+
+  kill_anchor_orphans >/dev/null 2>&1 || true
+  kill_owned_listeners >/dev/null 2>&1 || true
 }
 
 restart_via_cli() {
