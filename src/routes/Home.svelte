@@ -188,6 +188,31 @@
     }
   });
 
+  // Subscribe to a small window of recent threads so activity + status indicators are live in the list view.
+  // Without this, iOS users won't see reliable updates and ordering can lag until a thread is opened.
+  let listSubscribed = $state<Set<string>>(new Set());
+
+  $effect(() => {
+    if (socket.status !== "connected") return;
+
+    const desired = new Set<string>();
+    for (const t of visibleThreads.slice(0, 25)) desired.add(t.id);
+    const keep = threads.currentId;
+    if (keep) desired.add(keep);
+
+    // Subscribe new
+    for (const id of desired) {
+      if (!listSubscribed.has(id)) socket.subscribeThread(id);
+    }
+
+    // Unsubscribe removed
+    for (const id of listSubscribed) {
+      if (!desired.has(id)) socket.unsubscribeThread(id);
+    }
+
+    listSubscribed = desired;
+  });
+
   async function renameThread(thread: { id: string; title?: string; name?: string; preview?: string }) {
     const current = (thread.title || thread.name || "").trim();
     const next = window.prompt("Rename thread", current);
