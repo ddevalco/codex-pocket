@@ -127,7 +127,7 @@ jobs:
           set -euo pipefail
 
           # Should return NDJSON (possibly empty) for any thread id.
-          curl -fsSI "http://127.0.0.1:8790/events/00000000-0000-0000-0000-000000000000" | tr -d '\r' | grep -i '^content-type: application/x-ndjson'
+          curl -fsSI "http://127.0.0.1:8790/events/00000000-0000-0000-0000-000000000000" | tr -d '\r' | grep -i '^content-type:.*application/x-ndjson'
 
       - name: Stop server
         if: always()
