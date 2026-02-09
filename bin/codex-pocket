@@ -261,6 +261,28 @@ curl_auth_soft_with_code() {
   printf '%s\n%s' "$code" "$body"
 }
 
+fetch_validate() {
+  # Fetch /admin/validate with a couple retries to avoid race conditions right after restart.
+  # Prints "<http_code>\n<body>" on stdout (same format as curl_auth_soft_with_code).
+  local base="$1"
+  local i resp code body
+  for i in 1 2 3 4 5; do
+    resp="$(curl_auth_soft_with_code "$base/admin/validate" || true)"
+    CODE=""; BODY=""
+    printf '%s' "$resp" | split_code_body
+    code="$CODE"
+    body="$BODY"
+    if [[ -n "${body//[[:space:]]/}" || "$code" == "401" ]]; then
+      printf '%s\n%s' "$code" "$body"
+      return 0
+    fi
+    sleep 0.15
+  done
+  # last attempt (return whatever we got)
+  printf '%s\n%s' "$code" "$body"
+  return 0
+}
+
 split_code_body() {
   # Reads "<http_code>\n<body>" from stdin and sets CODE/BODY globals.
   local first rest
@@ -691,12 +713,10 @@ cmd_ensure() {
   echo "Validating..."
   local code body
   local resp
-  resp="$(curl_auth_soft_with_code "$base/admin/validate" || true)"
-  CODE=""
-  BODY=""
+  resp="$(fetch_validate "$base" || true)"
+  CODE=""; BODY=""
   printf '%s' "$resp" | split_code_body
-  code="$CODE"
-  body="$BODY"
+  code="$CODE"; body="$BODY"
 
   if [[ "$code" == "401" ]]; then
     echo "Validate failed: 401 Unauthorised" >&2
@@ -725,12 +745,10 @@ cmd_ensure() {
   curl_auth "$base/admin/repair" -X POST -H 'content-type: application/json' -d '{"actions":["ensureUploadDir","startAnchor","pruneUploads","fixTailscaleServe"]}' >/dev/null 2>&1 || true
 
   echo "Re-validating..."
-  resp="$(curl_auth_soft_with_code "$base/admin/validate" || true)"
-  CODE=""
-  BODY=""
+  resp="$(fetch_validate "$base" || true)"
+  CODE=""; BODY=""
   printf '%s' "$resp" | split_code_body
-  code="$CODE"
-  body="$BODY"
+  code="$CODE"; body="$BODY"
   if [[ "$code" == "401" ]]; then
     echo "Re-validate failed: 401 Unauthorised" >&2
     return 1
@@ -776,12 +794,10 @@ cmd_smoke_test() {
   # 2) validate (requires token)
   local code body
   local resp
-  resp="$(curl_auth_soft_with_code "$base/admin/validate" || true)"
-  CODE=""
-  BODY=""
+  resp="$(fetch_validate "$base" || true)"
+  CODE=""; BODY=""
   printf '%s' "$resp" | split_code_body
-  code="$CODE"
-  body="$BODY"
+  code="$CODE"; body="$BODY"
   if [[ "$code" == "401" ]]; then
     echo "FAIL: /admin/validate unauthorised (token mismatch?)" >&2
     echo "Run: codex-pocket token" >&2
