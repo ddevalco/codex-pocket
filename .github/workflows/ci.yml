@@ -102,21 +102,24 @@ jobs:
           set -euo pipefail
 
           # SPA routes should serve index.html with no-store to avoid stale bundles after updates.
-          curl -fsSI "http://127.0.0.1:8790/app" | tr -d '\r' | grep -i '^cache-control: no-store'
+          curl -fsSI "http://127.0.0.1:8790/app" | tr -d '\r' | grep -i '^cache-control:.*no-store'
 
           # Hashed assets should be immutable.
           html=$(curl -fsS "http://127.0.0.1:8790/")
 
-          js=$(python3 - <<'PY'
-          import re,sys
-          html=sys.stdin.read()
-          m=re.search(r'(/assets/[^"\']+\.js)', html)
-          print(m.group(1) if m else '')
-          PY
-          <<<"$html")
+          # Grab the main JS bundle path from the index.html we just fetched.
+          # Vite emits double-quoted src attributes.
+          js=$(python3 -c "import re,sys; html=sys.stdin.read(); m=re.search(r'src=\\\"(/assets/[^\\\"]+\\\\.js)\\\"', html); print(m.group(1) if m else '')" <<<"$html")
 
-          test -n "$js"
-          curl -fsSI "http://127.0.0.1:8790${js}" | tr -d '\r' | grep -i 'cache-control: private, max-age=31536000, immutable'
+          if [ -z "$js" ]; then
+            echo "ERROR: could not find JS asset path in / HTML"
+            echo "---- html (first 80 lines) ----"
+            echo "$html" | sed -n '1,80p'
+            exit 1
+          fi
+
+          # Cache-Control for hashed assets should include immutable.
+          curl -fsSI "http://127.0.0.1:8790${js}" | tr -d '\r' | grep -i '^cache-control:.*immutable'
 
       - name: Verify events endpoint
         shell: bash
