@@ -11,7 +11,11 @@ export interface ThreadInfo {
   title?: string;
   name?: string;
   createdAt?: number;
+  updatedAt?: number;
+  lastActivity?: number;
+  lastActiveAt?: number;
   modelProvider?: string;
+  status?: string;
 }
 
 export type ApprovalPolicy = "on-request" | "never";

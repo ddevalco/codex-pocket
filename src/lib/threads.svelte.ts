@@ -46,6 +46,32 @@ function normalizeThreadInfo(input: any): ThreadInfo {
       : typeof thread.created_at === "number"
         ? thread.created_at
         : undefined;
+  const updatedAt =
+    typeof thread.updatedAt === "number"
+      ? thread.updatedAt
+      : typeof thread.updated_at === "number"
+        ? thread.updated_at
+        : undefined;
+  const lastActivity =
+    typeof thread.lastActivity === "number"
+      ? thread.lastActivity
+      : typeof thread.last_activity === "number"
+        ? thread.last_activity
+        : undefined;
+  const lastActiveAt =
+    typeof thread.lastActiveAt === "number"
+      ? thread.lastActiveAt
+      : typeof thread.last_active_at === "number"
+        ? thread.last_active_at
+        : undefined;
+  const status =
+    typeof thread.status === "string"
+      ? thread.status
+      : typeof thread.turnStatus === "string"
+        ? thread.turnStatus
+        : typeof thread.turn_status === "string"
+          ? thread.turn_status
+          : undefined;
   const modelProvider = typeof thread.modelProvider === "string" ? thread.modelProvider : typeof thread.model_provider === "string" ? thread.model_provider : undefined;
 
   return {
@@ -53,7 +79,11 @@ function normalizeThreadInfo(input: any): ThreadInfo {
     ...(preview ? { preview } : {}),
     ...(title ? { title, name: title } : {}),
     ...(createdAt != null ? { createdAt } : {}),
+    ...(updatedAt != null ? { updatedAt } : {}),
+    ...(lastActivity != null ? { lastActivity } : {}),
+    ...(lastActiveAt != null ? { lastActiveAt } : {}),
     ...(modelProvider ? { modelProvider } : {}),
+    ...(status ? { status } : {}),
   };
 }
 
