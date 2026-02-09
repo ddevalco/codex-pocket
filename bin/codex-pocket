@@ -381,15 +381,35 @@ is_our_pid() {
   local pid="$1"
   local cmd
   cmd="$(ps -p "$pid" -o command= 2>/dev/null || true)"
-  [[ -z "${cmd:-}" ]] && return 1
 
-  # Only consider processes started from our install dir.
-  if echo "$cmd" | grep -Fq "$APP_DIR/app/services/local-orbit/src/index.ts"; then
-    return 0
+  pid_cwd_endswith() {
+    # lsof output varies a bit across platforms; on macOS it includes a "cwd" line.
+    local want="$1"
+    command -v lsof >/dev/null 2>&1 || return 1
+    if has_rg; then
+      lsof -p "$pid" 2>/dev/null | rg -q " cwd\\s+DIR\\s+.*\\s${want}$"
+    else
+      lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${want}$"
+    fi
+  }
+
+  # Prefer explicit command-line matches.
+  if [[ -n "${cmd:-}" ]]; then
+    if echo "$cmd" | grep -Fq "$APP_DIR/app/services/local-orbit/src/index.ts"; then
+      return 0
+    fi
+    if echo "$cmd" | grep -Fq "$APP_DIR/app/services/anchor/src/index.ts"; then
+      return 0
+    fi
   fi
-  if echo "$cmd" | grep -Fq "$APP_DIR/app/services/anchor/src/index.ts"; then
-    return 0
-  fi
+
+  # Back-compat for older installs / manual runs where the command line may be just:
+  #   bun run src/index.ts
+  # In that case, use cwd to determine ownership.
+  pid_cwd_endswith "$APP_DIR/app" && return 0
+  pid_cwd_endswith "$APP_DIR/app/services/local-orbit" && return 0
+  pid_cwd_endswith "$APP_DIR/app/services/anchor" && return 0
+
   return 1
 }
 
@@ -611,11 +631,6 @@ cmd_start() {
     exit 1
   fi
 
-  if [[ ! -f "$plist" ]]; then
-    echo "Missing launchd plist: $plist" >&2
-    echo "Re-run installer." >&2
-    exit 1
-  fi
 
   start_bg() {
     rm -f "$PID_FILE" >/dev/null 2>&1 || true
@@ -660,6 +675,13 @@ cmd_start() {
     fi
     return 0
   }
+
+  if [[ ! -f "$plist" ]]; then
+    echo "Missing launchd plist: $plist" >&2
+    echo "Starting in background instead (no auto-start on login)." >&2
+    start_bg
+    return 0
+  fi
 
   # Prefer launchd, but fall back to a PID-based background process if launchctl is blocked.
   launchctl unload "$plist" >/dev/null 2>&1 || true
@@ -1032,12 +1054,19 @@ is_our_pid() {
   local pid="$1"
   local cmd
   cmd="$(ps -p "$pid" -o command= 2>/dev/null || true)"
-  [[ -z "${cmd:-}" ]] && return 1
-  if echo "$cmd" | grep -Fq "$APP_DIR/app/services/local-orbit/src/index.ts"; then
+  if [[ -n "${cmd:-}" ]] && echo "$cmd" | grep -Fq "$APP_DIR/app/services/local-orbit/src/index.ts"; then
     return 0
   fi
-  if echo "$cmd" | grep -Fq "$APP_DIR/app/services/anchor/src/index.ts"; then
+  if [[ -n "${cmd:-}" ]] && echo "$cmd" | grep -Fq "$APP_DIR/app/services/anchor/src/index.ts"; then
     return 0
+  fi
+
+  # Back-compat: older installs / manual runs might just be `bun run src/index.ts`.
+  # Use CWD to avoid leaving stale listeners that block restarts/updates.
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${APP_DIR}/app$" && return 0
+    lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${APP_DIR}/app/services/local-orbit$" && return 0
+    lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${APP_DIR}/app/services/anchor$" && return 0
   fi
   return 1
 }
