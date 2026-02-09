@@ -17,6 +17,8 @@
 
     const themeIcons = { system: "◐", light: "○", dark: "●" } as const;
 
+    let moreMenuOpen = $state(false);
+
     let model = $state("");
     let reasoningEffort = $state<ReasoningEffort>("medium");
     let sandbox = $state<SandboxMode>("workspace-write");
@@ -454,6 +456,20 @@
         }
     });
 
+    function closeMoreMenu() {
+        moreMenuOpen = false;
+    }
+
+    $effect(() => {
+        if (!moreMenuOpen) return;
+        const onWindowPointerDown = () => {
+            // Close on any outside click/tap. Menu container stops propagation.
+            closeMoreMenu();
+        };
+        window.addEventListener("pointerdown", onWindowPointerDown);
+        return () => window.removeEventListener("pointerdown", onWindowPointerDown);
+    });
+
 </script>
 
 <div class="thread-page stack">
@@ -466,15 +482,80 @@
         {#snippet actions()}
             <a href={`/thread/${threadId}/review`}>review</a>
             <button type="button" onclick={copyThread} title="Copy thread as Markdown">copy</button>
-            <button type="button" onclick={() => copyLastN(20)} title="Copy last 20 messages">copy last 20</button>
             <button type="button" onclick={shareThread} title="Share thread">share</button>
-            <button type="button" onclick={downloadThread} title="Download thread as .md">export md</button>
-            <button type="button" onclick={downloadThreadJson} title="Download thread as .json">export json</button>
-            <button type="button" onclick={shareThreadJson} title="Share thread as .json">share json</button>
-            <a href="/settings">Settings</a>
-            <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
-                {themeIcons[theme.current]}
-            </button>
+            <div class="more-menu" onpointerdown={(e) => e.stopPropagation()}>
+                <button
+                    type="button"
+                    class="more-btn"
+                    aria-haspopup="menu"
+                    aria-expanded={moreMenuOpen}
+                    aria-label="More actions"
+                    title="More actions"
+                    onclick={() => (moreMenuOpen = !moreMenuOpen)}
+                >
+                    ⋯
+                </button>
+                {#if moreMenuOpen}
+                    <div class="more-popover" role="menu" aria-label="Thread actions">
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onclick={() => {
+                                closeMoreMenu();
+                                copyLastN(20);
+                            }}
+                            title="Copy last 20 messages"
+                        >
+                            copy last 20
+                        </button>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onclick={() => {
+                                closeMoreMenu();
+                                downloadThread();
+                            }}
+                            title="Download thread as .md"
+                        >
+                            export md
+                        </button>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onclick={() => {
+                                closeMoreMenu();
+                                downloadThreadJson();
+                            }}
+                            title="Download thread as .json"
+                        >
+                            export json
+                        </button>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onclick={() => {
+                                closeMoreMenu();
+                                shareThreadJson();
+                            }}
+                            title="Share thread as .json"
+                        >
+                            share json
+                        </button>
+                        <a role="menuitem" href="/settings" onclick={closeMoreMenu}>Settings</a>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onclick={() => {
+                                closeMoreMenu();
+                                theme.cycle();
+                            }}
+                            title="Theme: {theme.current}"
+                        >
+                            theme {themeIcons[theme.current]}
+                        </button>
+                    </div>
+                {/if}
+            </div>
         {/snippet}
     </AppHeader>
 
@@ -653,6 +734,70 @@
     .retry-btn:hover {
         background: var(--cli-error);
         color: white;
+    }
+
+    .more-menu {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* Match AppHeader button styling, but keep it compact. */
+    .more-btn {
+        padding: 0 var(--space-sm);
+        min-height: 1.75rem;
+        line-height: 1.75rem;
+    }
+
+    .more-popover {
+        position: absolute;
+        top: calc(100% + var(--space-xs));
+        right: 0;
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        min-width: 11rem;
+        padding: var(--space-xs);
+        background: var(--cli-bg-elevated);
+        border: 1px solid var(--cli-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-md);
+    }
+
+    .more-popover :global(a),
+    .more-popover button {
+        text-align: left;
+        width: 100%;
+    }
+
+    .more-popover :global(a) {
+        display: block;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        color: var(--cli-text);
+        text-decoration: none;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+    }
+
+    .more-popover :global(a:hover) {
+        background: var(--cli-bg-hover);
+    }
+
+    .more-popover button {
+        background: transparent;
+        border: none;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        color: var(--cli-text);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        cursor: pointer;
+    }
+
+    .more-popover button:hover {
+        background: var(--cli-bg-hover);
     }
 
 </style>
