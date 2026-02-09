@@ -25,6 +25,12 @@ jobs:
       - name: Build UI
         run: bun run build
 
+      - name: Regression guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun scripts/ci/regression-guards.ts
+
       - name: Start server (local-orbit)
         shell: bash
         run: |
