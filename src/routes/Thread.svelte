@@ -36,6 +36,95 @@
         return (info?.title || info?.name || "").trim();
     });
 
+    async function writeClipboard(text: string) {
+        const fallbackCopy = (t: string) => {
+            const ta = document.createElement("textarea");
+            ta.value = t;
+            ta.setAttribute("readonly", "true");
+            ta.style.position = "fixed";
+            ta.style.top = "-1000px";
+            ta.style.left = "-1000px";
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try {
+                document.execCommand("copy");
+            } finally {
+                document.body.removeChild(ta);
+            }
+        };
+        try {
+            if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                fallbackCopy(text);
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    function roleLabel(m: any) {
+        if (m.role === "tool") return m.kind ? `Tool (${m.kind})` : "Tool";
+        if (m.role === "assistant") return "Assistant";
+        if (m.role === "user") return "User";
+        return "Approval";
+    }
+
+    function messageToQuotedText(m: any): string {
+        const header = `**${roleLabel(m)}**`;
+        const raw = (m.text ?? "").trimEnd();
+        const lines = raw ? raw.split("\n") : [""];
+        const out: string[] = [];
+        out.push(`> ${header}`);
+        for (const line of lines) out.push(`> ${line}`);
+        return out.join("\n").trim() + "\n";
+    }
+
+    async function copyQuoted(m: any) {
+        await writeClipboard(messageToQuotedText(m));
+    }
+
+    function threadToMarkdownSlice(msgs: any[]): string {
+        const id = threadId;
+        if (!id) return "";
+        const title = threadTitle || id.slice(0, 8);
+        const out: string[] = [];
+        out.push(`# ${title}`);
+        out.push("");
+        out.push(`Thread: ${id}`);
+        out.push("");
+        for (const m of msgs) {
+            out.push(`## ${roleLabel(m)}`);
+            out.push("");
+            const text = (m.text ?? "").trim();
+            if (m.role === "tool") {
+                out.push("```text");
+                out.push(text);
+                out.push("```");
+            } else {
+                out.push(text);
+            }
+            out.push("");
+        }
+        return out.join("\n").trim() + "\n";
+    }
+
+    async function copyFromHere(messageId: string, maxMessages = 20) {
+        const list = messages.current;
+        const idx = list.findIndex((m) => m.id === messageId);
+        if (idx < 0) return;
+        const slice = list.slice(idx, idx + maxMessages);
+        await writeClipboard(threadToMarkdownSlice(slice));
+    }
+
+    async function copyLastN(maxMessages = 20) {
+        const list = messages.current;
+        if (!list.length) return;
+        const slice = list.slice(Math.max(0, list.length - maxMessages));
+        await writeClipboard(threadToMarkdownSlice(slice));
+    }
+
     function threadToMarkdown(): string {
         const id = threadId;
         if (!id) return "";
@@ -68,7 +157,7 @@
         try {
             const md = threadToMarkdown();
             if (!md) return;
-            await navigator.clipboard.writeText(md);
+            await writeClipboard(md);
         } catch {
             // ignore
         }
@@ -377,6 +466,7 @@
         {#snippet actions()}
             <a href={`/thread/${threadId}/review`}>review</a>
             <button type="button" onclick={copyThread} title="Copy thread as Markdown">copy</button>
+            <button type="button" onclick={() => copyLastN(20)} title="Copy last 20 messages">copy last 20</button>
             <button type="button" onclick={shareThread} title="Share thread">share</button>
             <button type="button" onclick={downloadThread} title="Download thread as .md">export md</button>
             <button type="button" onclick={downloadThreadJson} title="Download thread as .json">export json</button>
@@ -427,7 +517,7 @@
                         onApprove={() => handlePlanApprove(message.id)}
                     />
                 {:else}
-                    <MessageBlock {message} />
+                    <MessageBlock {message} onCopyQuoted={copyQuoted} onCopyFromHere={(id) => copyFromHere(id, 20)} />
                 {/if}
             {/each}
 

@@ -252,7 +252,7 @@
     return false;
   }
 
-  async function exportThread(threadId: string, format: "md" | "json") {
+  async function exportThread(threadId: string, format: "md" | "json", force = false) {
     const info = threads.list.find((t) => t.id === threadId);
     const titleRaw = ((info as any)?.title || (info as any)?.name || (info as any)?.preview || "").trim() || threadId.slice(0, 8);
     const title = safeFilename(titleRaw) || threadId.slice(0, 8);
@@ -261,7 +261,7 @@
     // If our in-memory cache is cold, best-effort rehydrate from the local-orbit event store first.
     if (messages.getThreadMessages(threadId).length === 0) {
       try {
-        await messages.rehydrateFromEvents(threadId);
+        await messages.rehydrateFromEvents(threadId, { force });
       } catch {
         // ignore; we'll still export what we have (possibly empty)
       }
@@ -350,12 +350,18 @@
               >●</span>
               <button
                 class="export-btn"
-                onclick={() => exportThread(thread.id, "md")}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
+                }}
                 title="Share/export thread as Markdown"
               >⇪</button>
               <button
                 class="export-btn"
-                onclick={() => exportThread(thread.id, "json")}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
+                }}
                 title="Share/export thread as JSON"
               >⎘</button>
               <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>

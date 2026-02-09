@@ -184,7 +184,7 @@ class MessagesStore {
     }
   }
 
-  async rehydrateFromEvents(threadId: string) {
+  async rehydrateFromEvents(threadId: string, opts?: { force?: boolean }) {
     // Best-effort transcript restore from Codex Pocket's local-orbit event store.
     // This is used when upstream thread/resume/thread/read does not replay history.
     if (!threadId) return;
@@ -192,7 +192,7 @@ class MessagesStore {
     // If we don't yet have an auth token (common right after page load),
     // delay and retry rather than permanently failing.
     if (!auth.token) {
-      setTimeout(() => void this.rehydrateFromEvents(threadId), 750);
+      setTimeout(() => void this.rehydrateFromEvents(threadId, opts), 750);
       return;
     }
 
@@ -208,7 +208,13 @@ class MessagesStore {
       // Prefer newest-first so we are more likely to encounter a recent `thread/read` snapshot early.
       // Keep the limit small: a single `thread/read` snapshot can be several MB, and large threads
       // can accumulate many of them over time.
-      const text = await api.getText(`/threads/${threadId}/events?token=${tokenParam}&order=desc&limit=30`);
+      // Default to a small number of events for performance.
+      // "Force" mode is still bounded, but large enough to find a recent thread/read snapshot
+      // for older threads that have little/no cached history.
+      const limit = opts?.force ? 250 : 30;
+      const text = await api.getText(
+        `/threads/${threadId}/events?token=${tokenParam}&order=desc&limit=${limit}`
+      );
       if (!text.trim()) return;
 
       let i = 0;

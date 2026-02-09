@@ -8,12 +8,29 @@
 
   interface Props {
     message: Message;
+    onCopyQuoted?: (message: Message) => void;
+    onCopyFromHere?: (messageId: string) => void;
   }
 
-  const { message }: Props = $props();
+  const { message, onCopyQuoted, onCopyFromHere }: Props = $props();
 
   type CopyState = "idle" | "copied" | "error";
   let copyState = $state<CopyState>("idle");
+  let menuOpen = $state(false);
+
+  $effect(() => {
+    if (!menuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
+      // Close if click occurs outside the menu container.
+      if (!t.closest?.(`[data-message-menu="${message.id}"]`)) {
+        menuOpen = false;
+      }
+    };
+    document.addEventListener("click", onDocClick, true);
+    return () => document.removeEventListener("click", onDocClick, true);
+  });
 
   const isReasoning = $derived(message.role === "assistant" && message.kind === "reasoning");
   const isTool = $derived(
@@ -87,6 +104,11 @@
         copyState = "idle";
       }, copyState === "error" ? 1600 : 1200);
     }
+  }
+
+  function copyRawMarkdown() {
+    (copyMessage as any).__wantRaw = true;
+    copyMessage();
   }
 
   const prefixConfig = $derived.by(() => {
@@ -174,6 +196,44 @@
     }
   }}
 >
+  <div class="message-actions" data-message-menu={message.id}>
+    <button
+      type="button"
+      class="menu-btn"
+      onclick={(e) => {
+        e.stopPropagation();
+        menuOpen = !menuOpen;
+      }}
+      title="Message actions"
+      aria-label="Message actions"
+    >
+      ⋯
+    </button>
+    {#if menuOpen}
+      <div class="menu" role="menu" aria-label="Message actions">
+        <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyMessage(); }}>Copy</button>
+        <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyRawMarkdown(); }}>Copy markdown</button>
+        <button
+          type="button"
+          role="menuitem"
+          onclick={() => {
+            menuOpen = false;
+            onCopyQuoted?.(message);
+          }}
+          disabled={!onCopyQuoted}
+        >Copy quoted</button>
+        <button
+          type="button"
+          role="menuitem"
+          onclick={() => {
+            menuOpen = false;
+            onCopyFromHere?.(message.id);
+          }}
+          disabled={!onCopyFromHere}
+        >Copy from here</button>
+      </div>
+    {/if}
+  </div>
   <button
     type="button"
     class="copy-btn"
@@ -236,6 +296,73 @@
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: 1.6;
+  }
+
+  .message-actions {
+    position: absolute;
+    top: var(--space-xs);
+    right: var(--space-md);
+    display: flex;
+    gap: var(--space-xs);
+    align-items: center;
+    z-index: 2;
+  }
+
+  .menu-btn {
+    background: transparent;
+    border: none;
+    color: var(--cli-text-muted);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: var(--text-base);
+    line-height: 1;
+  }
+
+  .menu-btn:hover {
+    color: var(--cli-text);
+    background: var(--cli-bg-elevated);
+  }
+
+  .menu {
+    position: absolute;
+    top: 22px;
+    right: 0;
+    min-width: 160px;
+    background: var(--cli-bg-elevated);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+
+  .menu button {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--cli-text);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .menu button:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .menu button:disabled {
+    color: var(--cli-text-muted);
+    cursor: not-allowed;
+  }
+
+  /* Keep the actions visible on mobile where hover doesn't exist. */
+  @media (max-width: 640px) {
+    .message-actions {
+      right: var(--space-sm);
+    }
   }
 
   .message-block.user-bg {

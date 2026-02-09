@@ -13,6 +13,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UI: thread list now has quick **export/share** actions (Markdown + JSON) without opening the thread.
 - UI: tool output blocks now have a **copy** button (works on `http://` via fallback copy).
 - UI: message copy now defaults to copying plain text (markdown stripped); Shift+Click copies raw markdown source.
+- UI: message actions menu (copy, copy markdown, copy quoted, copy from here) + thread header “copy last 20”.
 - UI: mobile thread list shows more of the title by allowing 2-line titles while keeping the date visible.
 
 ### UX
