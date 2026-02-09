@@ -5,6 +5,7 @@ This is a prioritized list of remaining improvements.
 ## Recently Done
 
 - Added GitHub Actions CI workflow to build and smoke-test local-orbit on every push/PR.
+- CI now smoke-tests the WebSocket relay path (client ↔ anchor).
 - `codex-pocket update` now always prints a final `summary` block and exits non-zero if post-update `ensure`/`smoke-test` fail.
 - CLI now validates `config.json` early (avoids Python stack traces when config is missing/empty/corrupt).
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.

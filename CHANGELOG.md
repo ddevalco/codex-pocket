@@ -17,6 +17,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ### CI
 - Added GitHub Actions workflow to build the UI and run a local-orbit smoke test (health, admin status, cache headers, events endpoint).
+- CI now also smoke-tests the WebSocket relay path (client ↔ anchor) to catch blank-thread regressions.
 
 ## 2026-02-08
 
