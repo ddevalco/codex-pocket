@@ -46,7 +46,33 @@
     };
 
     try {
-      const text = message.text ?? "";
+      const raw = message.text ?? "";
+      // Default to copying "rendered text" so markdown UI doesn’t pollute what you paste elsewhere.
+      // Hold Shift while clicking copy to copy the raw markdown source instead.
+      const wantRaw = (copyMessage as any).__wantRaw === true;
+      (copyMessage as any).__wantRaw = false;
+
+      let text = raw;
+      if (!wantRaw) {
+        try {
+          // Convert markdown -> sanitized HTML -> plain text.
+          // This preserves readable content while removing markdown syntax.
+          const html = marked.parse(raw, {
+            async: false,
+            breaks: true,
+            headerIds: false,
+            mangle: false,
+          }) as string;
+          const safe = DOMPurify.sanitize(html, { ALLOWED_TAGS: ["p", "br", "strong", "em", "code", "pre", "blockquote", "ul", "ol", "li", "hr", "h1", "h2", "h3", "h4", "h5", "h6", "img", "a"], ALLOWED_ATTR: ["href", "title", "src", "alt"] });
+
+          const div = document.createElement("div");
+          div.innerHTML = safe;
+          text = (div.textContent ?? "").trim() || raw;
+        } catch {
+          text = raw;
+        }
+      }
+
       // Clipboard is best-effort. If it fails, show a brief error state but don't crash the app.
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
@@ -153,8 +179,16 @@
     class="copy-btn"
     class:copied={copyState === "copied"}
     class:error={copyState === "error"}
-    onclick={copyMessage}
-    title={copyState === "copied" ? "Copied" : "Copy message"}
+    onclick={(e) => {
+      // Shift+click copies raw markdown source.
+      (copyMessage as any).__wantRaw = (e as MouseEvent).shiftKey;
+      copyMessage();
+    }}
+    title={
+      copyState === "copied"
+        ? "Copied"
+        : "Copy message (Shift+Click to copy raw markdown)"
+    }
     aria-label="Copy message"
   >
     {copyState === "copied" ? "copied" : "copy"}
