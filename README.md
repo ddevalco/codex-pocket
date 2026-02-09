@@ -111,10 +111,6 @@ Key differences:
 
 This repo includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that builds the UI and runs smoke tests (including a WebSocket relay test) to catch regressions like “blank threads”.
 
-Cost:
-- Public GitHub repos can use GitHub Actions without paying for it.
-- Private repos have monthly free minutes/storage limits depending on your GitHub plan.
-
 ## Security Model
 - You must be on the same Tailscale tailnet as the Mac.
 - A single bearer token protects the WebSocket and admin API.
