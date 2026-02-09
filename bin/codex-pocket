@@ -304,6 +304,76 @@ json_compact_failures() {
   python3 -c $'import json,sys\nraw=sys.stdin.read()\ntry:\n  d=json.loads(raw)\nexcept Exception:\n  raise SystemExit(0)\nfor c in (d.get(\"checks\") or []):\n  if not c.get(\"ok\"):\n    cid=c.get(\"id\",\"?\")\n    summ=c.get(\"summary\",\"\")\n    print(f\"- {cid}: {summ}\".rstrip())'
 }
 
+ws_smoke_check() {
+  # Best-effort WebSocket smoke test.
+  #
+  # Rationale: we had a regression where the UI loaded but threads were blank because the WS path
+  # was broken. This check is intentionally lightweight and only runs when dependencies exist.
+  local base="$1"
+  local bunp
+  bunp="$(resolve_bun 2>/dev/null || true)"
+  [[ -z "${bunp:-}" ]] && return 0
+
+  # `ws` is a devDependency in the app repo. After install/update, it should exist here.
+  local ws_mod="$APP_DIR/app/node_modules/ws"
+  [[ -d "$ws_mod" ]] || return 0
+
+  local tok
+  tok="$(token)"
+
+  local tmp
+  tmp="$(mktemp -t codex-pocket-ws.XXXXXX)"
+  cat >"$tmp" <<'JS'
+import WebSocket from "ws";
+
+const base = process.env.CP_BASE || "http://127.0.0.1:8790";
+const token = process.env.CP_TOKEN || "";
+
+function wsUrl(path) {
+  const u = new URL(base);
+  u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
+  u.pathname = path;
+  u.searchParams.set("token", token);
+  return u.toString();
+}
+
+async function open(url) {
+  return await new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    const t = setTimeout(() => reject(new Error("open timeout")), 5000);
+    ws.once("open", () => {
+      clearTimeout(t);
+      resolve(ws);
+    });
+    ws.once("error", (err) => {
+      clearTimeout(t);
+      reject(err);
+    });
+  });
+}
+
+async function main() {
+  const client = await open(wsUrl("/ws/client"));
+  const anchor = await open(wsUrl("/ws/anchor"));
+  client.close();
+  anchor.close();
+  console.log("ok");
+}
+
+main().catch((e) => {
+  console.error(String(e?.message || e));
+  process.exit(1);
+});
+JS
+
+  if CP_BASE="$base" CP_TOKEN="$tok" "$bunp" "$tmp" >/dev/null 2>&1; then
+    rm -f "$tmp" >/dev/null 2>&1 || true
+    return 0
+  fi
+  rm -f "$tmp" >/dev/null 2>&1 || true
+  return 1
+}
+
 
 
 is_our_pid() {
@@ -806,6 +876,13 @@ cmd_smoke_test() {
     return 1
   fi
   echo "PASS: /admin/status"
+
+  # 4) WebSocket endpoints (best-effort; only runs when bun + ws are present)
+  if ws_smoke_check "$base"; then
+    echo "PASS: /ws (client+anchor)"
+  else
+    echo "WARN: /ws smoke check failed (possible WS regression). Try: codex-pocket restart" >&2
+  fi
 
   echo "OK"
 }

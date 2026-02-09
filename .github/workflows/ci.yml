@@ -30,7 +30,14 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Provide a config.json so local-orbit doesn't accidentally read a token
+          # from a runner's default home dir config (which would break auth in CI).
+          cat > /tmp/codex-pocket-ci-config.json <<'JSON'
+          { "token": "ci-token" }
+          JSON
+
           export ZANE_LOCAL_TOKEN='ci-token'
+          export ZANE_LOCAL_CONFIG_JSON='/tmp/codex-pocket-ci-config.json'
           export ZANE_LOCAL_HOST='127.0.0.1'
           export ZANE_LOCAL_PORT='8790'
           export ZANE_LOCAL_DB='/tmp/codex-pocket-ci.db'
