@@ -21,7 +21,7 @@ codex-pocket token
 
 If you recently reinstalled or deleted `~/.codex-pocket/config.json`, the token changed and you may need to re-pair your phone.
 
-### Pairing Code Expired (GitHub Actions / iPhone Pairing)
+### Pairing Code Expired (iPhone Pairing)
 
 Generate a new one-time pairing link:
 
@@ -30,6 +30,8 @@ codex-pocket pair
 ```
 
 Then open the printed URL (or scan it with your iPhone).
+
+Note: GitHub Actions does not use pairing codes. If CI is failing, open the Actions tab in GitHub to view logs and re-run the workflow.
 
 ### Blank Screen Or Broken Navigation After Update
 
@@ -105,4 +107,3 @@ Then verify serve is configured:
 ```bash
 codex-pocket diagnose
 ```
-

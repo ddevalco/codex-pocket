@@ -18,8 +18,11 @@ This is a prioritized list of remaining improvements.
 - UI: message copy improvements (plain-text default, Shift+Click for raw markdown, clipboard fallback on `http://`).
 - UI: tool output blocks now have a copy button (with the same clipboard fallback).
 - UI: export/share threads as Markdown or JSON (downloads + iOS share sheet with real files when supported).
+- UI: export/share from thread list now works even if cache is cold (rehydrates from events on-demand).
+- UI: Shift+Click export/share from the thread list forces a bounded “deeper replay” fetch for older threads.
 - UI: thread list mobile density improved (2-line titles, date preserved).
 - UI: thread list now includes quick export/share actions (md + json) without opening the thread.
+- UI: message actions menu (copy, copy markdown, copy quoted, copy from here) + thread-level “copy last 20”.
 
 ## P0 (Stability)
 
@@ -31,12 +34,7 @@ This is a prioritized list of remaining improvements.
 - Thread activity indicator (idle/working/blocked) polish:
   - Ensure it is visible on mobile.
   - Add a legend or tooltip.
-- Message UX niceties:
-  - Make copy affordance easier to discover (kebab menu or long-press hint).
-  - Copy a single message as a quoted block (with timestamp + role).
-  - “Copy conversation from here” (copy the last N messages).
 - Thread export/share polish:
-  - Allow exporting from the thread list even if local cache is cold (fetch replay endpoint on-demand).
   - Add “Export as HTML/PDF” (optional).
 
 ## P2 (Attachments)
