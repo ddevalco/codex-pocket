@@ -93,6 +93,9 @@ codex-pocket restart
 codex-pocket self-test
 ```
 
+If the service repeatedly becomes unreachable shortly after starting, confirm you are on the latest version (some older
+background-start paths were not fully detached from the parent process).
+
 ### Tailscale Not Found
 
 Codex Pocket expects Tailscale for tailnet-only access.
