@@ -89,6 +89,8 @@ Key differences:
 - **Image uploads**: stored locally, served as capability URLs, configurable retention + cleanup from Admin.
 - **Vision attachments**: uploaded images are now forwarded to Codex app-server as structured attachments (so vision-capable models can consume pixels), while still rendering inline in the chat UI.
 - **Thread titles + rename sync**: Codex Pocket reads Codex Desktop's local thread title store so renamed titles show correctly, and can rename threads by updating the same store.
+- **Update reliability + anti-regression tooling**: `update`/`ensure`/`self-test` and CI smoke tests are designed to catch regressions like blank threads quickly; `index.html` is served with `Cache-Control: no-store` to reduce “cached broken bundle” issues after updates.
+- **Export/share + copy UX**: export/share threads as Markdown/JSON and improved copy affordances (works on `http://` origins via a clipboard fallback), with iOS-friendly share-sheet behavior.
 
 ## What You Get
 - Web UI (mobile-friendly): create tasks, watch live output, approve/deny writes, review diffs

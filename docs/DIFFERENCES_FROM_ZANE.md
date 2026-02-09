@@ -29,6 +29,11 @@ Codex Pocket’s goal is narrower and more opinionated:
 - Local persistence
   - Selected events are stored in local SQLite with retention.
 
+- Update reliability + anti-regression tooling
+  - `codex-pocket ensure` / `smoke-test` / `self-test` help validate a node quickly and catch regressions like “blank threads”.
+  - GitHub Actions CI runs build + smoke tests on pushes/PRs to catch breakages early.
+  - `index.html` is served with `Cache-Control: no-store` to reduce cached broken bundle issues after updates.
+
 - Attachments
   - Local uploads stored on disk and served as capability URLs (`/u/<token>`).
   - Images can be forwarded to Codex app-server as structured attachments so vision-capable models can consume pixels.
@@ -36,6 +41,10 @@ Codex Pocket’s goal is narrower and more opinionated:
 - Thread titles
   - Codex Pocket reads Codex Desktop’s local title store so renamed thread titles show in Pocket.
   - Pocket can rename by updating that same store (Admin-token protected).
+
+- Export/share + copy UX
+  - Export/share threads as Markdown/JSON (including iOS-friendly share-sheet behavior).
+  - Improved message/tool output copy behavior, including a clipboard fallback for `http://` origins.
 
 ## What Stayed Similar
 
