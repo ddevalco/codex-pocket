@@ -8,6 +8,10 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 
 ## Recently Done
 
+- CI: added an explicit `/admin/validate` smoke check (auth required).
+- CLI: `start` now falls back to background mode if the launchd plist is missing.
+- CLI: improved owned-process detection by also checking process CWD (helps kill stale listeners from older installs where the command line is just `bun run src/index.ts`).
+- Update regression: `scripts/test-update-flow.sh` now runs in restricted/offline environments (seeds `node_modules`, wraps Bun cache dir, uses more portable cleanup).
 - CLI: stop/start now kill stale listeners using configured ports (not hard-coded 8790).
 - Added GitHub Actions CI workflow to build and smoke-test local-orbit on every push/PR.
 - CI now smoke-tests the WebSocket relay path (client ↔ anchor).
@@ -30,8 +34,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 
 ## P0 (Stability)
 
-- Extend CI smoke coverage to include WebSocket relay and (optionally) `/admin/validate` with stubs/bypasses for non-Tailscale environments.
-- Improve update reliability when multiple Pocket processes exist: detect and kill stale listeners more aggressively before restart.
+- Extend CI smoke coverage to include WebSocket relay and (optionally) additional admin repair paths with stubs/bypasses for non-Tailscale environments.
 
 ## P1 (UX)
 
