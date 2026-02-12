@@ -39,6 +39,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - `codex-pocket update` now always prints a final `summary` and exits non-zero if `ensure` or `smoke-test` fail (next: `codex-pocket diagnose`).
 - Config parsing is now validated early to avoid Python stack traces when config.json is empty/corrupt.
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.
+- Update-flow regression script now simulates a stale Pocket-owned listener on the configured port and asserts cleanup behavior (plus a default-port guard when available) to catch hardcoded-port regressions.
 - Fixed `ensure`/`smoke-test` validation parsing so `/admin/validate` results are read correctly (no more false "empty response" failures).
 - Installer now writes `~/.codex-pocket/bin/codex-pocket` as a small wrapper that delegates to `~/.codex-pocket/app/bin/codex-pocket` to avoid stale CLI copies after updates.
 
