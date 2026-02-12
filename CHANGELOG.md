@@ -39,6 +39,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Admin uploads: auto-cleanup cadence is now configurable (1-168 hours) and visible in `/admin`, persisted with retention settings.
 - Security/Admin: phase-1 per-device token sessions added on the backend (`/admin/token/sessions*`) with create/list/revoke APIs and legacy-token auth compatibility.
 - Admin: added token session management UI in `/admin` (create/list/revoke session tokens) with one-time token display/copy and active/revoked status.
+- Security: token sessions now support `read_only` mode; read-only sessions are blocked from write HTTP actions and WebSocket upgrades.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
