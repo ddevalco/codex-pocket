@@ -39,6 +39,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Admin/settings redesign phase 2: `/admin` moved to shared card primitives and a settings-style grid hierarchy.
 - Admin/settings redesign phase 3: added admin interaction polish (confirmations, action-result chips, progressive disclosure for advanced sections).
 - Admin/settings redesign phase 4: accessibility pass for keyboard/focus visibility, semantic labels, and screen-reader action feedback on `/admin` and `/settings`.
+- Repo hygiene: added `CONTRIBUTING.md` and documented ff-only sync policy + pre-release clean-tree check (`scripts/ci/check-clean-tree.sh`).
 
 ## P0 (Stability)
 
