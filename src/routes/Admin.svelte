@@ -11,6 +11,7 @@
   const UI_BUILT_AT = String(import.meta.env.VITE_CODEX_POCKET_BUILT_AT ?? "");
 
   type Status = {
+    tokenSessions?: { total: number; active: number };
     server: { host: string; port: number };
     uiDistDir: string;
     anchor: { running: boolean; cwd: string; host: string; port: number; log: string };
@@ -32,6 +33,13 @@
     lastPruneAt: string | null;
     lastPruneMessage: string | null;
     lastPruneSource: "manual" | "scheduled" | "unknown" | null;
+  };
+  type TokenSession = {
+    id: string;
+    label: string;
+    createdAt: number;
+    lastUsedAt: number;
+    revokedAt: number | null;
   };
 
   let status = $state<Status | null>(null);
@@ -62,6 +70,13 @@
   let showCliAdvanced = $state(false);
   let showLogsAdvanced = $state(false);
   let showDebugAdvanced = $state(false);
+  let tokenSessions = $state<TokenSession[]>([]);
+  let loadingTokenSessions = $state(false);
+  let tokenSessionLabel = $state("");
+  let creatingTokenSession = $state(false);
+  let createdSessionToken = $state<string | null>(null);
+  let tokenSessionError = $state<string | null>(null);
+  let revokingSessionId = $state<string | null>(null);
 
   type ValidateResp = {
     ok: boolean;
@@ -166,6 +181,88 @@
       uploadStats = (await res.json()) as UploadStats;
     } catch {
       uploadStats = null;
+    }
+  }
+
+  async function loadTokenSessions() {
+    loadingTokenSessions = true;
+    tokenSessionError = null;
+    try {
+      const headers: Record<string, string> = {};
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/token/sessions", { headers });
+      if (!res.ok) throw new Error(`sessions ${res.status}`);
+      const data = (await res.json()) as { sessions?: TokenSession[] };
+      tokenSessions = Array.isArray(data.sessions) ? data.sessions : [];
+    } catch (e) {
+      tokenSessionError = e instanceof Error ? e.message : "Failed to load token sessions";
+      tokenSessions = [];
+    } finally {
+      loadingTokenSessions = false;
+    }
+  }
+
+  async function createTokenSession() {
+    if (creatingTokenSession) return;
+    creatingTokenSession = true;
+    tokenSessionError = null;
+    createdSessionToken = null;
+    try {
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/token/sessions/new", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ label: tokenSessionLabel }),
+      });
+      const data = (await res.json().catch(() => null)) as null | { ok?: boolean; token?: string; error?: string };
+      if (!res.ok || !data?.ok || !data.token) {
+        throw new Error(data?.error || `create failed (${res.status})`);
+      }
+      createdSessionToken = data.token;
+      try {
+        await navigator.clipboard.writeText(data.token);
+      } catch {
+        // ignore
+      }
+      tokenSessionLabel = "";
+      stampAction("success", "Token session created");
+      await loadTokenSessions();
+      await loadStatus();
+    } catch (e) {
+      tokenSessionError = e instanceof Error ? e.message : "Failed to create token session";
+      stampAction("error", "Token session create failed");
+    } finally {
+      creatingTokenSession = false;
+    }
+  }
+
+  async function revokeTokenSession(id: string) {
+    if (!id || revokingSessionId) return;
+    const okToRevoke = confirm("Revoke this token session now?");
+    if (!okToRevoke) return;
+    revokingSessionId = id;
+    tokenSessionError = null;
+    try {
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/token/sessions/revoke", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ id }),
+      });
+      const data = (await res.json().catch(() => null)) as null | { ok?: boolean; revoked?: boolean; error?: string };
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `revoke failed (${res.status})`);
+      }
+      stampAction(data.revoked ? "success" : "error", data.revoked ? "Token session revoked" : "Token session already revoked");
+      await loadTokenSessions();
+      await loadStatus();
+    } catch (e) {
+      tokenSessionError = e instanceof Error ? e.message : "Failed to revoke token session";
+      stampAction("error", "Token session revoke failed");
+    } finally {
+      revokingSessionId = null;
     }
   }
 
@@ -520,6 +617,7 @@
   $effect(() => {
     if (!auth.token) return;
     loadCliCommands();
+    loadTokenSessions();
   });
 
   $effect(() => {
@@ -875,6 +973,73 @@
           <p class="hint" role="status" aria-live="polite">New token copied to clipboard. You will need to sign in again on all devices.</p>
           <p><code>{rotatedToken}</code></p>
         {/if}
+
+        <div class="token-sessions stack">
+          <div class="row">
+            <StatusChip tone="neutral">Token sessions: {status?.tokenSessions?.active ?? tokenSessions.filter((s) => !s.revokedAt).length} active</StatusChip>
+            <StatusChip tone="neutral">Total: {status?.tokenSessions?.total ?? tokenSessions.length}</StatusChip>
+          </div>
+          <div class="field stack">
+            <label for="token-session-label">new token label</label>
+            <input
+              id="token-session-label"
+              type="text"
+              maxlength="120"
+              bind:value={tokenSessionLabel}
+              placeholder="Dane iPhone"
+            />
+            <div class="row buttons">
+              <button type="button" onclick={createTokenSession} disabled={!auth.token || creatingTokenSession}>
+                {creatingTokenSession ? "Creating..." : "Create token session"}
+              </button>
+              <button type="button" onclick={loadTokenSessions} disabled={!auth.token || loadingTokenSessions}>
+                {loadingTokenSessions ? "Refreshing..." : "Refresh sessions"}
+              </button>
+            </div>
+          </div>
+          {#if tokenSessionError}
+            <p class="hint hint-error">{tokenSessionError}</p>
+          {/if}
+          {#if createdSessionToken}
+            <p class="hint" role="status" aria-live="polite">
+              New session token copied to clipboard (best effort). Save it now; this value is shown once.
+            </p>
+            <p><code>{createdSessionToken}</code></p>
+          {/if}
+          {#if tokenSessions.length === 0}
+            <p class="hint">No session tokens yet. Legacy access token is still enabled.</p>
+          {:else}
+            <div class="token-session-list stack">
+              {#each tokenSessions as session (session.id)}
+                <div class="token-session-item">
+                  <div class="row token-session-head">
+                    <strong>{session.label || session.id}</strong>
+                    <StatusChip tone={session.revokedAt ? "error" : "success"}>
+                      {session.revokedAt ? "revoked" : "active"}
+                    </StatusChip>
+                  </div>
+                  <div class="hint mono">id: {session.id}</div>
+                  <div class="hint">created: {new Date(session.createdAt).toLocaleString()}</div>
+                  <div class="hint">last used: {new Date(session.lastUsedAt).toLocaleString()}</div>
+                  {#if session.revokedAt}
+                    <div class="hint">revoked: {new Date(session.revokedAt).toLocaleString()}</div>
+                  {:else}
+                    <div class="row buttons">
+                      <button
+                        class="danger"
+                        type="button"
+                        onclick={() => revokeTokenSession(session.id)}
+                        disabled={revokingSessionId === session.id}
+                      >
+                        {revokingSessionId === session.id ? "Revoking..." : "Revoke"}
+                      </button>
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
         <pre class="logs" aria-label="Debug events">{debugEvents || "(no events yet)"}</pre>
       </SectionCard>
       </div>
@@ -1190,6 +1355,28 @@
     line-height: 1.55;
   }
 
+  .token-sessions {
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+  }
+
+  .token-session-list {
+    --stack-gap: var(--space-sm);
+  }
+
+  .token-session-item {
+    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    border-radius: 8px;
+    padding: var(--space-sm);
+    background: color-mix(in srgb, var(--cli-bg) 76%, var(--cli-bg-elevated));
+  }
+
+  .token-session-head {
+    justify-content: space-between;
+    align-items: center;
+  }
+
   @media (max-width: 660px) {
     .content {
       padding: var(--space-md) var(--space-sm) var(--space-lg);
@@ -1218,4 +1405,5 @@
     border: 0;
   }
   .dim { color: var(--cli-text-dim); }
+  .mono { font-family: var(--font-mono); }
 </style>
