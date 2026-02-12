@@ -281,6 +281,62 @@
     return out.join("\n").trim() + "\n";
   }
 
+  function escapeHtml(text: string): string {
+    return text
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function threadToHtml(threadId: string): string {
+    const info = threads.list.find((t) => t.id === threadId);
+    const title = ((info as any)?.title || (info as any)?.name || "").trim() || threadId.slice(0, 8);
+    const msgs = messages.getThreadMessages(threadId);
+    const body = msgs
+      .map((m) => {
+        const role =
+          m.role === "tool"
+            ? m.kind
+              ? `Tool (${m.kind})`
+              : "Tool"
+            : m.role === "assistant"
+              ? "Assistant"
+              : m.role === "user"
+                ? "User"
+                : "Approval";
+        const text = escapeHtml((m.text ?? "").trim()).replaceAll("\n", "<br />");
+        const content = m.role === "tool" ? `<pre>${text}</pre>` : `<p>${text}</p>`;
+        return `<section><h2>${escapeHtml(role)}</h2>${content}</section>`;
+      })
+      .join("\n");
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 860px; margin: 32px auto; padding: 0 16px; line-height: 1.55; }
+    h1 { margin: 0 0 4px; font-size: 1.5rem; }
+    .meta { margin: 0 0 24px; color: #6b7280; font-size: .9rem; }
+    section { border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    h2 { margin: 0 0 8px; font-size: 1rem; text-transform: uppercase; letter-spacing: .04em; color: #4b5563; }
+    p, pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+    pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: rgba(0,0,0,.05); padding: 10px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <p class="meta">Thread: ${escapeHtml(threadId)}</p>
+  ${body || "<p>No messages.</p>"}
+</body>
+</html>
+`;
+  }
+
   function threadToJson(threadId: string): string {
     const info = threads.list.find((t) => t.id === threadId);
     const title = ((info as any)?.title || (info as any)?.name || "").trim() || threadId.slice(0, 8);
@@ -331,7 +387,7 @@
     return false;
   }
 
-  async function exportThread(threadId: string, format: "md" | "json", force = false) {
+  async function exportThread(threadId: string, format: "md" | "json" | "html", force = false) {
     const info = threads.list.find((t) => t.id === threadId);
     const titleRaw = ((info as any)?.title || (info as any)?.name || (info as any)?.preview || "").trim() || threadId.slice(0, 8);
     const title = safeFilename(titleRaw) || threadId.slice(0, 8);
@@ -351,6 +407,14 @@
       const f = new File([md], `${title}.md`, { type: "text/markdown" });
       const shared = await shareFileOrFallback(`Codex Pocket: ${title}`, f, md);
       if (!shared) downloadBlob(`${title}.md`, new Blob([md], { type: "text/markdown" }));
+      return;
+    }
+
+    if (format === "html") {
+      const html = threadToHtml(threadId);
+      const f = new File([html], `${title}.html`, { type: "text/html" });
+      const shared = await shareFileOrFallback(`Codex Pocket: ${title}`, f, html);
+      if (!shared) downloadBlob(`${title}.html`, new Blob([html], { type: "text/html" }));
       return;
     }
 
@@ -504,6 +568,14 @@
                 }}
                 title="Share/export thread as JSON"
               >⎘</button>
+              <button
+                class="export-btn"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
+                }}
+                title="Share/export thread as HTML"
+              >⌘</button>
               <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>
               <button
                 class="archive-btn"
