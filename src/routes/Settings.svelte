@@ -323,23 +323,26 @@
   .settings {
     --stack-gap: 0;
     min-height: 100vh;
-    background: var(--cli-bg);
+    background:
+      radial-gradient(920px 460px at 0% -20%, color-mix(in srgb, var(--cli-prefix-agent) 12%, transparent), transparent 72%),
+      radial-gradient(780px 360px at 100% -30%, color-mix(in srgb, var(--cli-prefix-web) 10%, transparent), transparent 74%),
+      var(--cli-bg);
     color: var(--cli-text);
     font-family: var(--font-sans);
     font-size: var(--text-sm);
   }
 
   .content {
-    padding: var(--space-md);
-    max-width: var(--app-max-width);
+    padding: var(--space-lg) var(--space-md) var(--space-xl);
+    max-width: 1220px;
     margin: 0 auto;
     width: 100%;
     display: grid;
-    gap: var(--space-md);
+    gap: var(--space-lg);
     grid-template-columns: 1fr;
   }
 
-  @media (min-width: 980px) {
+  @media (min-width: 1040px) {
     .content {
       grid-template-columns: 1.35fr 1fr;
       align-items: start;
@@ -354,6 +357,27 @@
     grid-column: 1 / -1;
   }
 
+  .settings :global(.section) {
+    border-radius: 12px;
+    border-color: color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in srgb, var(--cli-bg-elevated) 86%, var(--cli-bg));
+    box-shadow: 0 15px 34px -30px rgba(0, 0, 0, 0.88);
+  }
+
+  .settings :global(.section-header) {
+    padding: var(--space-md) var(--space-md) var(--space-sm);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cli-bg-elevated) 76%, var(--cli-bg)),
+      color-mix(in srgb, var(--cli-bg) 90%, transparent)
+    );
+  }
+
+  .settings :global(.section-title) {
+    font-size: 0.69rem;
+    letter-spacing: 0.1em;
+  }
+
   .field {
     --stack-gap: var(--space-xs);
   }
@@ -366,9 +390,9 @@
 
   .field input {
     padding: var(--space-sm);
-    background: var(--cli-bg);
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 8px;
     color: var(--cli-text);
     font-family: var(--font-mono);
   }
@@ -376,10 +400,10 @@
   .field select {
     width: 100%;
     padding: var(--space-sm);
-    background: var(--cli-bg);
+    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
     color: var(--cli-text);
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 8px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
   }
@@ -407,25 +431,25 @@
   }
 
   .connect-btn {
-    padding: var(--space-xs) var(--space-sm);
-    background: transparent;
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.72rem;
+    background: color-mix(in srgb, var(--cli-bg-elevated) 86%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 7px;
     color: var(--cli-text);
     font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: 0.74rem;
     cursor: pointer;
     transition: all var(--transition-fast);
   }
 
   .plain-btn {
-    padding: var(--space-xs) var(--space-sm);
-    background: transparent;
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.72rem;
+    background: color-mix(in srgb, var(--cli-bg-elevated) 86%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 7px;
     color: var(--cli-text-dim);
     font-family: var(--font-sans);
-    font-size: var(--text-xs);
+    font-size: 0.74rem;
     cursor: pointer;
     transition: all var(--transition-fast);
   }
@@ -436,8 +460,8 @@
   }
 
   .connect-btn:hover:enabled {
-    background: var(--cli-bg-hover);
-    border-color: var(--cli-text-muted);
+    background: color-mix(in srgb, var(--cli-bg-hover) 60%, var(--cli-bg-elevated));
+    border-color: color-mix(in srgb, var(--cli-prefix-agent) 38%, var(--cli-border));
   }
 
   .connect-btn:disabled {
@@ -512,7 +536,7 @@
   .hint {
     color: var(--cli-text-muted);
     font-size: var(--text-xs);
-    line-height: 1.5;
+    line-height: 1.55;
     margin: 0;
   }
 
@@ -526,20 +550,27 @@
 
   .sign-out-btn {
     align-self: flex-start;
-    padding: var(--space-xs) var(--space-sm);
-    background: transparent;
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
-    color: var(--cli-error, #ef4444);
+    padding: 0.45rem 0.72rem;
+    background: color-mix(in srgb, var(--cli-error) 10%, var(--cli-bg-elevated));
+    border: 1px solid color-mix(in srgb, var(--cli-error) 55%, var(--cli-border));
+    border-radius: 7px;
+    color: color-mix(in srgb, var(--cli-error) 76%, var(--cli-text));
     font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: 0.74rem;
     cursor: pointer;
     transition: all var(--transition-fast);
   }
 
   .sign-out-btn:hover {
-    background: var(--cli-error-bg);
-    border-color: var(--cli-error, #ef4444);
+    background: color-mix(in srgb, var(--cli-error) 16%, var(--cli-bg-elevated));
+    border-color: color-mix(in srgb, var(--cli-error) 68%, var(--cli-border));
+  }
+
+  @media (max-width: 660px) {
+    .content {
+      padding: var(--space-md) var(--space-sm) var(--space-lg);
+      gap: var(--space-md);
+    }
   }
   .mono { font-family: var(--font-mono); }
   .dim { color: var(--cli-text-dim); }
