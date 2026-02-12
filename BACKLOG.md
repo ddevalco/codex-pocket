@@ -41,6 +41,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Admin/settings redesign phase 4: accessibility pass for keyboard/focus visibility, semantic labels, and screen-reader action feedback on `/admin` and `/settings`.
 - Repo hygiene: added `CONTRIBUTING.md` and documented ff-only sync policy + pre-release clean-tree check (`scripts/ci/check-clean-tree.sh`).
 - Composer quick-reply shortcuts: added one-tap presets in thread composer, with customizable label/text presets in `/settings` (persisted per-device).
+- Settings redesign follow-up: `/settings` now uses a responsive card grid hierarchy (desktop 2-column, mobile 1-column) with core controls prioritized.
 
 ## P0 (Stability)
 
@@ -54,9 +55,6 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Thread activity indicator (idle/working/blocked) polish:
   - Ensure it is visible on mobile.
   - Add a legend or tooltip.
-- Settings UI redesign:
-  - Rework `/settings` into a clearer, more modern layout with stronger visual hierarchy.
-  - Align styling/components with the Admin refresh so both surfaces feel consistent.
 - Thread export/share polish:
   - Add “Export as HTML/PDF” (optional).
 
