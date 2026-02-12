@@ -18,6 +18,13 @@
     db: { path: string; retentionDays: number; uploadDir?: string; uploadRetentionDays?: number };
     version?: { appCommit?: string };
   };
+  type UploadStats = {
+    fileCount: number;
+    totalBytes: number;
+    oldestAt: string | null;
+    newestAt: string | null;
+    lastPruneAt: string | null;
+  };
 
   let status = $state<Status | null>(null);
   let statusError = $state<string | null>(null);
@@ -35,6 +42,7 @@
   let rotatingToken = $state(false);
   let rotatedToken = $state<string | null>(null);
   let uploadRetentionDays = $state<number>(0);
+  let uploadStats = $state<UploadStats | null>(null);
   let savingUploadRetention = $state(false);
   let cliCommands = $state<Array<{ id: string; label: string; description: string; risky?: boolean }>>([]);
   let cliSelected = $state<string>("");
@@ -131,6 +139,33 @@
     } catch {
       opsLog = "";
     }
+  }
+
+  async function loadUploadStats() {
+    try {
+      const headers: Record<string, string> = {};
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/uploads/stats", { headers });
+      if (!res.ok) {
+        uploadStats = null;
+        return;
+      }
+      uploadStats = (await res.json()) as UploadStats;
+    } catch {
+      uploadStats = null;
+    }
+  }
+
+  function formatBytes(bytes: number): string {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let value = bytes;
+    let i = 0;
+    while (value >= 1024 && i < units.length - 1) {
+      value /= 1024;
+      i += 1;
+    }
+    return `${value >= 10 || i === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[i]}`;
   }
 
   async function loadCliCommands() {
@@ -233,6 +268,7 @@
     } finally {
       pruningUploads = false;
       await loadStatus();
+      await loadUploadStats();
       await loadOpsLog();
     }
   }
@@ -292,6 +328,7 @@
     } finally {
       savingUploadRetention = false;
       await loadStatus();
+      await loadUploadStats();
       await loadDebugEvents();
       await loadOpsLog();
     }
@@ -454,6 +491,7 @@
 
   $effect(() => {
     loadStatus();
+    loadUploadStats();
     loadLogs();
     loadDebugEvents();
     loadOpsLog();
@@ -731,6 +769,20 @@
 
     <SectionCard title="Uploads">
         <p class="hint">Uploads are stored locally on your Mac. Default retention is permanent.</p>
+        {#if uploadStats}
+          <div class="kv">
+            <div class="k">Stored files</div>
+            <div class="v">{uploadStats.fileCount}</div>
+            <div class="k">Storage used</div>
+            <div class="v">{formatBytes(uploadStats.totalBytes)}</div>
+            <div class="k">Oldest file</div>
+            <div class="v">{uploadStats.oldestAt ? new Date(uploadStats.oldestAt).toLocaleString() : "n/a"}</div>
+            <div class="k">Newest file</div>
+            <div class="v">{uploadStats.newestAt ? new Date(uploadStats.newestAt).toLocaleString() : "n/a"}</div>
+            <div class="k">Last prune activity</div>
+            <div class="v">{uploadStats.lastPruneAt ? new Date(uploadStats.lastPruneAt).toLocaleString() : "n/a"}</div>
+          </div>
+        {/if}
 
         <div class="field stack">
           <label for="upload-retention">upload retention (days)</label>
