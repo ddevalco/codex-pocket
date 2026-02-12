@@ -128,6 +128,40 @@ jobs:
           print('admin/uploads/stats ok')
           PY
 
+      - name: Smoke test admin upload settings update
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"retentionDays":3,"pruneIntervalHours":12}' \
+            "http://127.0.0.1:8790/admin/uploads/retention" > /tmp/admin-uploads-retention.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-uploads-retention.json'))
+          assert d.get('ok') is True, d
+          assert d.get('retentionDays') == 3, d
+          assert d.get('pruneIntervalHours') == 12, d
+          print('admin/uploads/retention update ok')
+          PY
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            "http://127.0.0.1:8790/admin/status" > /tmp/admin-status-after-uploads-update.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-status-after-uploads-update.json'))
+          db=d.get('db') or {}
+          assert db.get('uploadRetentionDays') == 3, d
+          assert db.get('uploadPruneIntervalHours') == 12, d
+          print('admin/status reflects upload settings update')
+          PY
+
       - name: Smoke test admin validate
         shell: bash
         run: |
