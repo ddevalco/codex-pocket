@@ -373,13 +373,13 @@ async function runCliCommand(cmd: CliCommand): Promise<{
       new Response(proc.stdout).arrayBuffer(),
       new Response(proc.stderr).arrayBuffer(),
     ]);
+    const exitCode = await proc.exited.catch(() => null);
     clearTimeout(timeout);
     const out = `${Buffer.from(outBuf).toString()}\n${Buffer.from(errBuf).toString()}`.trim();
     const limited = out.length > CLI_OUTPUT_LIMIT ? out.slice(0, CLI_OUTPUT_LIMIT) + "\n…(truncated)" : out;
-    const exitCode = proc.exitCode ?? null;
     return {
-      ok: exitCode === 0,
-      exitCode,
+      ok: !timedOut && exitCode === 0,
+      exitCode: typeof exitCode === "number" ? exitCode : null,
       timedOut,
       output: limited,
       command,
