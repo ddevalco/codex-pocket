@@ -42,6 +42,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Repo hygiene: added `CONTRIBUTING.md` and documented ff-only sync policy + pre-release clean-tree check (`scripts/ci/check-clean-tree.sh`).
 - Composer quick-reply shortcuts: added one-tap presets in thread composer, with customizable label/text presets in `/settings` (persisted per-device).
 - Settings redesign follow-up: `/settings` now uses a responsive card grid hierarchy (desktop 2-column, mobile 1-column) with core controls prioritized.
+- Thread export/share polish: added `.html` export in thread view + thread-list quick actions (Markdown/JSON retained).
 
 ## P0 (Stability)
 
@@ -56,7 +57,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
   - Ensure it is visible on mobile.
   - Add a legend or tooltip.
 - Thread export/share polish:
-  - Add “Export as HTML/PDF” (optional).
+  - Add “Export as PDF” (optional).
 
 ## P2 (Attachments)
 
