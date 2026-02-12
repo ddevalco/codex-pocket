@@ -118,6 +118,15 @@ interface AnchorMeta {
   connectedAt: string;
 }
 
+type AnchorAuthStatus = "unknown" | "ok" | "invalid";
+
+type AnchorAuthState = {
+  status: AnchorAuthStatus;
+  at?: string;
+  code?: string;
+  message?: string;
+};
+
 type DiagnoseCheck = {
   id: string;
   ok: boolean;
@@ -926,6 +935,7 @@ const anchorSockets = new Map<WebSocket, Set<string>>();
 const threadToClients = new Map<string, Set<WebSocket>>();
 const threadToAnchors = new Map<string, Set<WebSocket>>();
 const anchorMeta = new Map<WebSocket, AnchorMeta>();
+let anchorAuth: AnchorAuthState = { status: "unknown" };
 
 function listAnchors(): AnchorMeta[] {
   return Array.from(anchorMeta.values());
@@ -1062,6 +1072,7 @@ const server = Bun.serve<{ role: Role }>({
           port: ANCHOR_PORT,
           log: ANCHOR_LOG_PATH,
         },
+        anchorAuth,
         db: {
           path: DB_PATH,
           retentionDays: DB_RETENTION_DAYS,
@@ -1084,6 +1095,7 @@ const server = Bun.serve<{ role: Role }>({
           port: ANCHOR_PORT,
           log: ANCHOR_LOG_PATH,
         },
+        anchorAuth,
         db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS, uploadDir: UPLOAD_DIR, uploadRetentionDays: UPLOAD_RETENTION_DAYS },
         version: { appCommit: APP_COMMIT },
       });
@@ -1099,6 +1111,7 @@ const server = Bun.serve<{ role: Role }>({
         origin,
         server: { host: HOST, port: PORT },
         anchor: { running: isAnchorRunning(), connected: anchorSockets.size > 0, port: ANCHOR_PORT },
+        anchorAuth,
         db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS },
         uploads: { dir: UPLOAD_DIR, retentionDays: UPLOAD_RETENTION_DAYS },
         checks: v.checks,
@@ -1543,6 +1556,10 @@ const server = Bun.serve<{ role: Role }>({
         role,
       });
 
+      if (role === "client") {
+        send(ws, { type: "orbit.anchor-auth", ...anchorAuth });
+      }
+
       if (role === "anchor") {
         const stableId = typeof (ws.data as any)?.anchorId === "string" ? ((ws.data as any).anchorId as string) : "";
         const meta: AnchorMeta = {
@@ -1610,6 +1627,20 @@ const server = Bun.serve<{ role: Role }>({
         return;
       }
 
+      if (obj && obj.type === "orbit.anchor-auth" && role === "anchor") {
+        const status = typeof obj.status === "string" ? obj.status : "unknown";
+        if (status === "unknown" || status === "ok" || status === "invalid") {
+          anchorAuth = {
+            status,
+            at: typeof obj.at === "string" ? obj.at : anchorAuth.at,
+            code: typeof obj.code === "string" ? obj.code : anchorAuth.code,
+            message: typeof obj.message === "string" ? obj.message : anchorAuth.message,
+          };
+          broadcastToClients({ type: "orbit.anchor-auth", ...anchorAuth });
+        }
+        return;
+      }
+
       await relay(role, text);
     },
     close(ws) {
@@ -1623,6 +1654,10 @@ const server = Bun.serve<{ role: Role }>({
           anchorMeta.delete(ws);
           // Client expects anchorId for removal.
           broadcastToClients({ type: "orbit.anchor-disconnected", anchorId: meta.id, anchor: meta });
+        }
+        if (anchorSockets.size === 0) {
+          anchorAuth = { status: "unknown" };
+          broadcastToClients({ type: "orbit.anchor-auth", ...anchorAuth });
         }
       }
     },

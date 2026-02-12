@@ -138,7 +138,8 @@ class SocketStore {
           if (
             msg.type === "orbit.anchors" ||
             msg.type === "orbit.anchor-connected" ||
-            msg.type === "orbit.anchor-disconnected"
+            msg.type === "orbit.anchor-disconnected" ||
+            msg.type === "orbit.anchor-auth"
           ) {
             for (const handler of this.#protocolHandlers) {
               handler(msg);

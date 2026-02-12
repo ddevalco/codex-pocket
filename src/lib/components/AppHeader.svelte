@@ -38,6 +38,10 @@
     const selectedSandbox = $derived(sandboxOptions.find((s) => s.value === sandbox) || sandboxOptions[1]);
     const canReconnect = $derived(status === "error" || status === "disconnected");
     const showAnchorAlert = $derived(status === "connected" && anchors.status === "none");
+    const showAuthAlert = $derived(status === "connected" && anchors.auth.status === "invalid");
+    const authAlertText = $derived(
+        anchors.auth.code ? `Auth expired (${anchors.auth.code}) — re-login on Mac` : "Auth expired — re-login on Mac"
+    );
 
     function handleClickOutside(e: MouseEvent) {
         const target = e.target as HTMLElement;
@@ -104,6 +108,11 @@
         {#if showAnchorAlert}
             <span class="separator">·</span>
             <span class="anchor-alert">No device connected</span>
+        {/if}
+
+        {#if showAuthAlert}
+            <span class="separator">·</span>
+            <span class="anchor-alert anchor-alert--auth" title={anchors.auth.message ?? ""}>{authAlertText}</span>
         {/if}
 
         {#if sandbox && onSandboxChange}
@@ -246,6 +255,11 @@
         color: var(--cli-warning);
         font-size: var(--text-xs);
         line-height: 1.4;
+    }
+
+    .anchor-alert--auth {
+        border-color: var(--cli-error);
+        color: var(--cli-error);
     }
 
     .thread-id {

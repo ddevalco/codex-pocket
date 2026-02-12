@@ -30,6 +30,66 @@ let orbitHeartbeatInterval: ReturnType<typeof setInterval> | null = null;
 let orbitHeartbeatTimeout: ReturnType<typeof setTimeout> | null = null;
 let warnedNoAppServer = false;
 let appServerInitialized = false;
+let lastAuthErrorFingerprint = "";
+
+type AnchorAuthStatus = "unknown" | "ok" | "invalid";
+
+type AnchorAuthState = {
+  status: AnchorAuthStatus;
+  at?: string;
+  code?: string;
+  message?: string;
+};
+
+let anchorAuth: AnchorAuthState = { status: "unknown" };
+
+function sendAnchorAuth(update?: Partial<AnchorAuthState>): void {
+  if (update) {
+    anchorAuth = { ...anchorAuth, ...update };
+  }
+  if (orbitSocket && orbitSocket.readyState === WebSocket.OPEN) {
+    try {
+      orbitSocket.send(
+        JSON.stringify({
+          type: "orbit.anchor-auth",
+          ...anchorAuth,
+        })
+      );
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function resetAnchorAuth(): void {
+  anchorAuth = { status: "unknown" };
+  lastAuthErrorFingerprint = "";
+  sendAnchorAuth();
+}
+
+function extractAuthErrorCode(line: string): string | undefined {
+  const codeMatch = line.match(/"code"\s*:\s*"([^"]+)"/i);
+  if (codeMatch?.[1]) return codeMatch[1];
+  if (/token_invalidated/i.test(line)) return "token_invalidated";
+  if (/refresh_token_invalidated/i.test(line)) return "refresh_token_invalidated";
+  if (/refresh_token_reused/i.test(line)) return "refresh_token_reused";
+  return undefined;
+}
+
+function recordAuthInvalid(line: string): void {
+  const code = extractAuthErrorCode(line);
+  const trimmed = line.trim();
+  const fingerprint = `${code ?? "unknown"}|${trimmed}`;
+  if (anchorAuth.status === "invalid" && lastAuthErrorFingerprint === fingerprint) return;
+  lastAuthErrorFingerprint = fingerprint;
+  anchorAuth = {
+    status: "invalid",
+    at: new Date().toISOString(),
+    code,
+    message: trimmed.slice(0, 600),
+  };
+  sendAnchorAuth();
+}
 
 // Buffer pending approval requests from app-server so we can re-send them
 // when a client (re)subscribes to a thread via orbit.
@@ -74,6 +134,7 @@ function ensureAppServer(): void {
     });
     warnedNoAppServer = false;
     appServerInitialized = false;
+    resetAnchorAuth();
     initializeAppServer();
 
     appServer.exited.then((code) => {
@@ -116,6 +177,16 @@ function ensureAppServer(): void {
 
     streamLines(appServer.stderr, (line) => {
       console.error(`[app-server] ${line}`);
+      if (
+        /token_invalidated/i.test(line) ||
+        /refresh_token_invalidated/i.test(line) ||
+        /refresh_token_reused/i.test(line) ||
+        /authentication token has been invalidated/i.test(line) ||
+        /refresh token has been invalidated/i.test(line) ||
+        /refresh token has already been used/i.test(line)
+      ) {
+        recordAuthInvalid(line);
+      }
     });
   } catch (err) {
     console.error("[anchor] failed to start codex app-server", err);
@@ -366,6 +437,7 @@ async function connectOrbit(): Promise<void> {
       hostname: hostname(),
       platform: process.platform,
     }));
+    sendAnchorAuth();
     console.log("[anchor] connected to orbit");
     startOrbitHeartbeat(ws);
     resubscribeAllThreads();
