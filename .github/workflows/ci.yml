@@ -120,6 +120,32 @@ jobs:
           print('admin/validate ok')
           PY
 
+      - name: Smoke test admin repair (safe actions)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"actions":["ensureUploadDir","pruneUploads"]}' \
+            "http://127.0.0.1:8790/admin/repair" > /tmp/admin-repair.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-repair.json'))
+          assert isinstance(d, dict), d
+          assert isinstance(d.get('ok'), bool), d
+          assert isinstance(d.get('applied'), list), d
+          assert isinstance(d.get('errors'), list), d
+          assert isinstance(d.get('checks'), list), d
+          assert not d['errors'], d
+          assert 'ensureUploadDir' in d['applied'], d
+          assert 'pruneUploads' in d['applied'], d
+          print('admin/repair ok')
+          PY
+
       - name: Verify cache headers
         shell: bash
         run: |
