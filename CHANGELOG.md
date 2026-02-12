@@ -40,6 +40,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Security/Admin: phase-1 per-device token sessions added on the backend (`/admin/token/sessions*`) with create/list/revoke APIs and legacy-token auth compatibility.
 - Admin: added token session management UI in `/admin` (create/list/revoke session tokens) with one-time token display/copy and active/revoked status.
 - Security: token sessions now support `read_only` mode; read-only sessions are blocked from write HTTP actions and WebSocket upgrades.
+- Pairing/Security: `/admin/pair/new` now mints a unique token session per pairing code instead of reusing the legacy shared token.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).

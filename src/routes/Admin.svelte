@@ -389,7 +389,7 @@
 
   async function rotateToken() {
     if (rotatingToken) return;
-    const okToRotate = confirm("Rotate access token now? All connected devices will need to sign in again.");
+    const okToRotate = confirm("Rotate legacy access token now? Devices using session tokens remain valid.");
     if (!okToRotate) return;
     rotatedToken = null;
     rotatingToken = true;
@@ -973,7 +973,7 @@
           </DangerZone>
         </div>
         {#if rotatedToken}
-          <p class="hint" role="status" aria-live="polite">New token copied to clipboard. You will need to sign in again on all devices.</p>
+          <p class="hint" role="status" aria-live="polite">New legacy token copied to clipboard. Session-token devices stay connected.</p>
           <p><code>{rotatedToken}</code></p>
         {/if}
 

@@ -941,12 +941,21 @@ function randomPairCode(): string {
   return out;
 }
 
-const pairCodes = new Map<string, { token: string; expiresAt: number }>();
+const pairCodes = new Map<string, { token: string; sessionId?: string; expiresAt: number }>();
 
 function prunePairCodes(): void {
   const now = Date.now();
   for (const [code, rec] of pairCodes) {
-    if (now > rec.expiresAt) pairCodes.delete(code);
+    if (now > rec.expiresAt) {
+      pairCodes.delete(code);
+      if (rec.sessionId) {
+        try {
+          revokeTokenSession.run(nowSec(), rec.sessionId);
+        } catch {
+          // ignore
+        }
+      }
+    }
   }
 }
 
@@ -1989,7 +1998,14 @@ const server = Bun.serve<WsData>({
       prunePairCodes();
       const code = randomPairCode();
       const expiresAt = Date.now() + PAIR_TTL_SEC * 1000;
-      pairCodes.set(code, { token: AUTH_TOKEN, expiresAt });
+      let created: ReturnType<typeof mintTokenSession>;
+      try {
+        created = mintTokenSession(`Paired device ${new Date().toISOString()}`, "full");
+      } catch {
+        return okJson({ error: "failed to create pairing token session" }, { status: 500 });
+      }
+      pairCodes.set(code, { token: created.token, sessionId: created.id, expiresAt });
+      logAdmin(`pair: minted token session ${created.id}`);
       const origin = requestOrigin(url, req);
       return okJson({
         code,
