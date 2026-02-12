@@ -32,6 +32,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Admin/Settings redesign phase 1: added shared settings-surface primitives (`SectionCard`, `StatusChip`, `DangerZone`) and migrated `/settings` to use them without behavior changes.
 - Admin/Settings redesign phase 2: `/admin` now uses shared card primitives with a settings-style grid shell and status chips while preserving existing admin actions/flows.
 - Admin/Settings redesign phase 3: admin interactions now include disruptive-action confirmations, unified action result chips with timestamps, and progressive disclosure for advanced CLI/log/debug sections.
+- Admin/Settings redesign phase 4: accessibility pass adds stronger keyboard focus styles (including advanced disclosure summaries), explicit labels for critical controls, and screen-reader announcements for action results/errors.
 
 ### CLI / Update
 - CLI: `start` now falls back to background mode if the launchd plist is missing (keeps update/restart usable even if the agent file is deleted).

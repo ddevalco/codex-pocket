@@ -94,7 +94,12 @@
 <div class="settings stack">
   <AppHeader status={socket.status}>
     {#snippet actions()}
-      <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
+      <button
+        type="button"
+        onclick={() => theme.cycle()}
+        title="Theme: {theme.current}"
+        aria-label={`Cycle theme (current: ${theme.current})`}
+      >
         {themeIcons[theme.current]}
       </button>
     {/snippet}
@@ -109,14 +114,15 @@
             type="text"
             bind:value={config.url}
             placeholder="wss://orbit.example.com/ws/client"
+            aria-describedby="orbit-url-help"
             disabled={orbitLocked}
           />
         </div>
-        {#if LOCAL_MODE}
-          <p class="hint">
-            Local mode: Orbit URL is derived automatically from the site you opened.
-          </p>
-        {/if}
+        <p class="hint" id="orbit-url-help">
+          {LOCAL_MODE
+            ? "Local mode: Orbit URL is derived automatically from the site you opened."
+            : "Use your orbit websocket URL. Disconnect first to edit while connected."}
+        </p>
         <div class="row">
           <StatusChip tone={socket.status === "connected" ? "success" : socket.status === "error" ? "error" : "neutral"}>
             {socket.status}
@@ -161,7 +167,7 @@
           <ul class="anchor-list">
             {#each anchorList as anchor (anchor.id)}
               <li class="anchor-item">
-                <span class="anchor-status" title="Connected">●</span>
+                <span class="anchor-status" title="Connected" aria-hidden="true">●</span>
                 <div class="anchor-info">
                   <span class="anchor-hostname">{anchor.hostname}</span>
                   <span class="anchor-meta">{platformLabels[anchor.platform] ?? anchor.platform} · since {formatSince(anchor.connectedAt)}</span>
@@ -177,12 +183,17 @@
     <SectionCard title="Composer">
         <div class="field stack">
           <label for="enter-behavior">enter key</label>
-          <select id="enter-behavior" bind:value={enterBehavior} onchange={(e) => setEnterBehavior((e.target as HTMLSelectElement).value as EnterBehavior)}>
+          <select
+            id="enter-behavior"
+            aria-describedby="enter-behavior-help"
+            bind:value={enterBehavior}
+            onchange={(e) => setEnterBehavior((e.target as HTMLSelectElement).value as EnterBehavior)}
+          >
             <option value="newline">Enter inserts newline (Cmd/Ctrl+Enter sends)</option>
             <option value="send">Enter sends (Shift+Enter newline)</option>
           </select>
         </div>
-        <p class="hint">Default is newline on all devices. This is stored per-device in your browser.</p>
+        <p class="hint" id="enter-behavior-help">Default is newline on all devices. This is stored per-device in your browser.</p>
     </SectionCard>
 
     
@@ -200,7 +211,7 @@
 
     <SectionCard title="Account">
       <DangerZone>
-        <button class="sign-out-btn" type="button" onclick={() => auth.signOut()}>Sign out</button>
+        <button class="sign-out-btn" type="button" onclick={() => auth.signOut()} aria-label="Sign out and clear local auth token">Sign out</button>
       </DangerZone>
     </SectionCard>
   </div>
@@ -263,6 +274,7 @@
   .field input:focus {
     outline: none;
     border-color: var(--cli-prefix-agent);
+    box-shadow: var(--shadow-focus);
   }
 
   .field input:disabled {
@@ -295,6 +307,12 @@
   .connect-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  .connect-btn:focus-visible,
+  .sign-out-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
   }
 
   .anchor-list {
