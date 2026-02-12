@@ -11,6 +11,7 @@
     server: { host: string; port: number };
     uiDistDir: string;
     anchor: { running: boolean; cwd: string; host: string; port: number; log: string };
+    anchorAuth?: { status: "unknown" | "ok" | "invalid"; at?: string; code?: string; message?: string };
     db: { path: string; retentionDays: number; uploadDir?: string; uploadRetentionDays?: number };
     version?: { appCommit?: string };
   };
@@ -509,6 +510,24 @@
             <div class="k">Anchor log</div>
             <div class="v"><code>{status.anchor.log}</code></div>
 
+            <div class="k">Anchor auth</div>
+            <div class="v">
+              {#if status.anchorAuth?.status === "invalid"}
+                <span class="auth-bad">invalid</span>
+                {#if status.anchorAuth.code} <span class="dim">({status.anchorAuth.code})</span>{/if}
+                {#if status.anchorAuth.at} <span class="dim">at {status.anchorAuth.at}</span>{/if}
+                {#if status.anchorAuth.message}
+                  <div class="dim">{status.anchorAuth.message}</div>
+                {/if}
+                <div class="hint hint-error">Re-login in Codex desktop, then run `codex-pocket restart`.</div>
+              {:else if status.anchorAuth?.status === "ok"}
+                <span class="auth-ok">ok</span>
+                {#if status.anchorAuth.at} <span class="dim">since {status.anchorAuth.at}</span>{/if}
+              {:else}
+                <span class="dim">unknown</span>
+              {/if}
+            </div>
+
             <div class="k">DB</div>
             <div class="v"><code>{status.db.path}</code> (retention {status.db.retentionDays}d)</div>
 
@@ -802,6 +821,16 @@
   .hint-ok {
     border-color: #2c8a5a;
     color: #9be3bf;
+  }
+
+  .auth-bad {
+    color: var(--cli-error);
+    font-weight: 600;
+  }
+
+  .auth-ok {
+    color: #2c8a5a;
+    font-weight: 600;
   }
 
   .checks {

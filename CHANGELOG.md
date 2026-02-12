@@ -21,6 +21,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UI: message copy now defaults to copying plain text (markdown stripped); Shift+Click copies raw markdown source.
 - UI: message actions menu (copy, copy markdown, copy quoted, copy from here) + thread header “copy last 20”.
 - UI: mobile thread list shows more of the title by allowing 2-line titles while keeping the date visible.
+- UI/Admin/CLI: detect upstream Codex app-server auth invalidation and surface a clear recovery warning.
 - Admin: add a limited remote CLI runner for safe `codex-pocket` commands (with output capture).
 
 ### UX

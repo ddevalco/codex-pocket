@@ -18,6 +18,7 @@ Binary location after install:
 
 - `codex-pocket diagnose`
   - One command bug report (versions, ports, tailscale serve status, log tails).
+  - Warns if the upstream Codex app-server auth token is invalid.
 
 ## Commands
 
@@ -37,7 +38,7 @@ Binary location after install:
   - Equivalent of `stop` + `start`, then waits for `GET /health`.
 
 - `codex-pocket status`
-  - Prints `/admin/status` JSON.
+  - Prints `/admin/status` JSON (includes anchor auth status).
 
 - `codex-pocket logs [anchor|server]`
   - Prints logs via the Admin API.

@@ -69,6 +69,22 @@ codex-pocket logs server
 codex-pocket logs anchor
 ```
 
+### Messages Won't Send / Stuck After Long Runs
+
+If the UI is responsive but new messages never start running, the upstream Codex app-server token may have been invalidated
+(often after switching the desktop app between ChatGPT login and API key).
+
+Fix:
+
+1. Re-login in the Codex desktop app (ensure the correct auth mode is active).
+2. Restart Pocket so Anchor re-spawns app-server with fresh auth:
+
+```bash
+codex-pocket restart
+```
+
+`codex-pocket diagnose` will now warn if it detects invalid upstream auth.
+
 ### Duplicate Devices Showing In Settings
 
 This can happen when orphaned anchor processes are left behind after restarts/updates.
