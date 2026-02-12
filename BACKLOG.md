@@ -43,6 +43,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Composer quick-reply shortcuts: added one-tap presets in thread composer, with customizable label/text presets in `/settings` (persisted per-device).
 - Settings redesign follow-up: `/settings` now uses a responsive card grid hierarchy (desktop 2-column, mobile 1-column) with core controls prioritized.
 - Thread export/share polish: added `.html` export in thread view + thread-list quick actions (Markdown/JSON retained).
+- Security hardening: added rate limits for sensitive token-minting endpoints (`/admin/pair/new`, `/uploads/new`) with explicit `429` behavior and CI coverage.
 
 ## P0 (Stability)
 
@@ -72,7 +73,6 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 
 - Per-device tokens (instead of one global bearer token) and revocation UI.
 - Optional read-only mode for paired devices.
-- Rate limit sensitive endpoints (`/admin/pair/new`, `/uploads/new`).
 
 ## P4 (Platform)
 
