@@ -123,6 +123,8 @@ jobs:
           assert 'oldestAt' in d, d
           assert 'newestAt' in d, d
           assert 'lastPruneAt' in d, d
+          assert 'lastPruneMessage' in d, d
+          assert 'lastPruneSource' in d, d
           print('admin/uploads/stats ok')
           PY
 

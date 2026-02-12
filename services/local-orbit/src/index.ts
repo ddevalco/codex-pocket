@@ -692,6 +692,8 @@ type UploadStats = {
   oldestAt: string | null;
   newestAt: string | null;
   lastPruneAt: string | null;
+  lastPruneMessage: string | null;
+  lastPruneSource: "manual" | "scheduled" | "unknown" | null;
 };
 
 async function getUploadStats(): Promise<UploadStats> {
@@ -722,9 +724,30 @@ async function getUploadStats(): Promise<UploadStats> {
 
   const row = db
     .prepare(
-      "SELECT MAX(created_at) AS at FROM events WHERE thread_id = ? AND method = ? AND payload LIKE ?"
+      "SELECT created_at, payload FROM events WHERE thread_id = ? AND method = ? AND payload LIKE ? ORDER BY created_at DESC LIMIT 1"
     )
-    .get("admin", "admin.log", "%upload retention:%") as null | { at?: number };
+    .get("admin", "admin.log", "%upload retention:%") as null | { created_at?: number; payload?: string };
+
+  let lastPruneMessage: string | null = null;
+  let lastPruneSource: "manual" | "scheduled" | "unknown" | null = null;
+  if (row?.payload) {
+    try {
+      const parsed = JSON.parse(row.payload) as { message?: { message?: string } };
+      const msg = parsed?.message?.message;
+      if (typeof msg === "string" && msg.trim()) {
+        lastPruneMessage = msg.trim();
+        if (lastPruneMessage.includes("manual prune")) {
+          lastPruneSource = "manual";
+        } else if (lastPruneMessage.includes("deleted")) {
+          lastPruneSource = "scheduled";
+        } else {
+          lastPruneSource = "unknown";
+        }
+      }
+    } catch {
+      // ignore parse errors; keep null fields
+    }
+  }
 
   const toIso = (ms: number): string | null =>
     Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : null;
@@ -735,9 +758,11 @@ async function getUploadStats(): Promise<UploadStats> {
     oldestAt: oldestMs !== Number.POSITIVE_INFINITY ? toIso(oldestMs) : null,
     newestAt: newestMs > 0 ? toIso(newestMs) : null,
     lastPruneAt:
-      row && typeof row.at === "number" && row.at > 0
-        ? new Date(row.at * 1000).toISOString()
+      row && typeof row.created_at === "number" && row.created_at > 0
+        ? new Date(row.created_at * 1000).toISOString()
         : null,
+    lastPruneMessage,
+    lastPruneSource,
   };
 }
 
