@@ -31,6 +31,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Security: added in-process rate limits for sensitive token-minting endpoints (`/admin/pair/new`, `/uploads/new`) with explicit `429` responses and CI smoke coverage.
 - Attachments: composer now supports multi-image selection and shows removable attachment chips; image markdown is generated automatically on send so users no longer need to edit attachment markdown manually.
 - Admin uploads: added storage visibility in `/admin` (file count, bytes used, oldest/newest timestamps, and last prune activity) backed by a new authenticated `/admin/uploads/stats` endpoint.
+- Thread export/share: added PDF export action (print-to-PDF via browser print dialog) in thread view and thread-list quick actions, using existing HTML export content.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).

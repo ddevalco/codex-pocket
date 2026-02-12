@@ -46,6 +46,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Security hardening: added rate limits for sensitive token-minting endpoints (`/admin/pair/new`, `/uploads/new`) with explicit `429` behavior and CI coverage.
 - Attachment UX polish: composer now uses removable attachment chips and supports multiple image attachments per message without requiring manual markdown edits.
 - Upload retention visibility: `/admin` now shows upload footprint stats (size, file count, oldest/newest, and last prune activity).
+- Thread export/share polish: added PDF export action (print-to-PDF) in thread view + thread-list quick actions.
 
 ## P0 (Stability)
 
@@ -59,8 +60,6 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Thread activity indicator (idle/working/blocked) polish:
   - Ensure it is visible on mobile.
   - Add a legend or tooltip.
-- Thread export/share polish:
-  - Add “Export as PDF” (optional).
 
 ## P2 (Attachments)
 
