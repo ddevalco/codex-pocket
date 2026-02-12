@@ -296,6 +296,19 @@ const CLI_COMMANDS: CliCommand[] = [
     description: "Print local and tailnet URLs.",
   },
   {
+    id: "pair",
+    label: "Pair",
+    args: ["pair"],
+    description: "Mint a short-lived pairing link (prints the URL).",
+  },
+  {
+    id: "open-admin",
+    label: "Open Admin",
+    args: ["open-admin"],
+    description: "Open the Admin UI on the Mac (best-effort).",
+    risky: true,
+  },
+  {
     id: "start",
     label: "Start service",
     args: ["start"],
