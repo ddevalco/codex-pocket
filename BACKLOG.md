@@ -44,6 +44,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Settings redesign follow-up: `/settings` now uses a responsive card grid hierarchy (desktop 2-column, mobile 1-column) with core controls prioritized.
 - Thread export/share polish: added `.html` export in thread view + thread-list quick actions (Markdown/JSON retained).
 - Security hardening: added rate limits for sensitive token-minting endpoints (`/admin/pair/new`, `/uploads/new`) with explicit `429` behavior and CI coverage.
+- Attachment UX polish: composer now uses removable attachment chips and supports multiple image attachments per message without requiring manual markdown edits.
 
 ## P0 (Stability)
 
@@ -63,8 +64,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 ## P2 (Attachments)
 
 - Attachment UI polish:
-  - Optional “attachment chip” UI so users don’t have to see markdown inserted into the composer.
-  - Multiple attachments per message.
+  - Preview thumbnails for selected image chips (optional).
 - Upload retention:
   - Scheduled pruning + reporting in Admin.
   - Better visibility: size used, oldest/newest, last prune time.
