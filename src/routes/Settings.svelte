@@ -9,10 +9,19 @@
   import SectionCard from "../lib/components/system/SectionCard.svelte";
   import StatusChip from "../lib/components/system/StatusChip.svelte";
   import DangerZone from "../lib/components/system/DangerZone.svelte";
+  import {
+    DEFAULT_QUICK_REPLIES,
+    MAX_QUICK_REPLIES,
+    loadQuickReplies,
+    saveQuickReplies,
+    type QuickReply,
+  } from "../lib/quickReplies";
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   type EnterBehavior = "newline" | "send";
   let enterBehavior = $state<EnterBehavior>("newline");
+  let quickReplies = $state<QuickReply[]>([]);
+  let quickReplySaveNote = $state<string>("");
 
   $effect(() => {
     try {
@@ -21,6 +30,7 @@
     } catch {
       // ignore
     }
+    quickReplies = loadQuickReplies();
   });
 
   function setEnterBehavior(v: EnterBehavior) {
@@ -30,6 +40,36 @@
     } catch {
       // ignore
     }
+  }
+
+  function updateQuickReply(index: number, key: "label" | "text", value: string) {
+    quickReplySaveNote = "";
+    quickReplies = quickReplies.map((item, i) => {
+      if (i !== index) return item;
+      return { ...item, [key]: value };
+    });
+  }
+
+  function addQuickReply() {
+    if (quickReplies.length >= MAX_QUICK_REPLIES) return;
+    quickReplySaveNote = "";
+    quickReplies = [
+      ...quickReplies,
+      { label: `Reply ${quickReplies.length + 1}`, text: "" },
+    ];
+  }
+
+  function removeQuickReply(index: number) {
+    quickReplySaveNote = "";
+    quickReplies = quickReplies.filter((_, i) => i !== index);
+    if (quickReplies.length === 0) {
+      quickReplies = [...DEFAULT_QUICK_REPLIES];
+    }
+  }
+
+  function saveQuickReplyConfig() {
+    quickReplies = saveQuickReplies(quickReplies);
+    quickReplySaveNote = "Saved.";
   }
   import { anchors } from "../lib/anchors.svelte";
   const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1";
@@ -196,7 +236,55 @@
         <p class="hint" id="enter-behavior-help">Default is newline on all devices. This is stored per-device in your browser.</p>
     </SectionCard>
 
-    
+    <SectionCard title="Quick Replies">
+      <div class="stack quick-reply-settings">
+        {#each quickReplies as reply, i (`${i}-${reply.label}-${reply.text}`)}
+          <div class="quick-reply-row">
+            <div class="field stack">
+              <label for={`quick-reply-label-${i}`}>label</label>
+              <input
+                id={`quick-reply-label-${i}`}
+                type="text"
+                maxlength="24"
+                value={reply.label}
+                oninput={(e) => updateQuickReply(i, "label", (e.target as HTMLInputElement).value)}
+                placeholder="Proceed"
+              />
+            </div>
+            <div class="field stack">
+              <label for={`quick-reply-text-${i}`}>text</label>
+              <input
+                id={`quick-reply-text-${i}`}
+                type="text"
+                maxlength="280"
+                value={reply.text}
+                oninput={(e) => updateQuickReply(i, "text", (e.target as HTMLInputElement).value)}
+                placeholder="Proceed."
+              />
+            </div>
+            <button
+              type="button"
+              class="plain-btn"
+              onclick={() => removeQuickReply(i)}
+              aria-label={`Remove quick reply ${reply.label || i + 1}`}
+            >
+              Remove
+            </button>
+          </div>
+        {/each}
+        <div class="row">
+          <button type="button" class="plain-btn" onclick={addQuickReply} disabled={quickReplies.length >= MAX_QUICK_REPLIES}>
+            Add preset
+          </button>
+          <button type="button" class="connect-btn" onclick={saveQuickReplyConfig}>Save presets</button>
+          {#if quickReplySaveNote}
+            <span class="hint">{quickReplySaveNote}</span>
+          {/if}
+        </div>
+        <p class="hint">Shown in the thread composer as one-tap shortcuts. Stored per-device in your browser.</p>
+      </div>
+    </SectionCard>
+
     <SectionCard title="About">
         <p class="hint">
           UI build: <span class="mono">{UI_COMMIT || "unknown"}</span>
@@ -299,6 +387,23 @@
     transition: all var(--transition-fast);
   }
 
+  .plain-btn {
+    padding: var(--space-xs) var(--space-sm);
+    background: transparent;
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    color: var(--cli-text-dim);
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .plain-btn:hover:enabled {
+    background: var(--cli-bg-hover);
+    color: var(--cli-text);
+  }
+
   .connect-btn:hover:enabled {
     background: var(--cli-bg-hover);
     border-color: var(--cli-text-muted);
@@ -310,9 +415,28 @@
   }
 
   .connect-btn:focus-visible,
+  .plain-btn:focus-visible,
   .sign-out-btn:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
+  }
+
+  .quick-reply-settings {
+    --stack-gap: var(--space-sm);
+  }
+
+  .quick-reply-row {
+    display: grid;
+    grid-template-columns: 160px 1fr auto;
+    gap: var(--space-sm);
+    align-items: end;
+  }
+
+  @media (max-width: 760px) {
+    .quick-reply-row {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
   }
 
   .anchor-list {
