@@ -235,6 +235,7 @@
       <div class="attachment-chips" role="list" aria-label="Selected attachments">
         {#each pendingAttachments as item, i (`${item.localPath}:${item.filename}:${i}`)}
           <div class="attachment-chip" role="listitem">
+            <img class="attachment-thumb" src={item.viewUrl} alt={item.filename} loading="lazy" />
             <span class="attachment-name">{item.filename}</span>
             <button
               type="button"
@@ -521,6 +522,16 @@
     font-size: var(--text-xs);
     font-family: var(--font-sans);
     max-width: 100%;
+  }
+
+  .attachment-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid var(--cli-border);
+    background: var(--cli-bg);
+    flex: 0 0 auto;
   }
 
   .attachment-name {

@@ -49,6 +49,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Thread export/share polish: added PDF export action (print-to-PDF) in thread view + thread-list quick actions.
 - Backlog hygiene: removed stale completed P1 items (admin redesign parent + thread activity indicator polish) so active sections stay actionable.
 - Upload retention reporting: `/admin/uploads/stats` now includes last prune detail/source (manual/scheduled/unknown), shown in Admin Uploads UI.
+- Attachment chips now include image thumbnails in composer for faster visual confirmation before send.
 
 ## P0 (Stability)
 
@@ -59,7 +60,6 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 ## P2 (Attachments)
 
 - Attachment UI polish:
-  - Preview thumbnails for selected image chips (optional).
 - Upload retention:
   - Scheduled pruning + reporting in Admin.
 

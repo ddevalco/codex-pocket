@@ -34,6 +34,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Thread export/share: added PDF export action (print-to-PDF via browser print dialog) in thread view and thread-list quick actions, using existing HTML export content.
 - Docs/Backlog: cleaned stale completed P1 items from active backlog sections (admin redesign parent + thread indicator polish) to keep roadmap actionable.
 - Admin uploads reporting: `/admin/uploads/stats` now includes last prune detail/source (manual/scheduled/unknown), surfaced in Admin Uploads UI.
+- Attachments: composer attachment chips now render small image thumbnails for faster visual verification before sending.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
