@@ -37,6 +37,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - UI: fixed a thread list instability regression caused by subscription bookkeeping inside an effect (could manifest as empty/unstable thread list).
 - Admin/settings redesign phase 1: shared surface primitives (`SectionCard`, `StatusChip`, `DangerZone`) added and `/settings` migrated to use them.
 - Admin/settings redesign phase 2: `/admin` moved to shared card primitives and a settings-style grid hierarchy.
+- Admin/settings redesign phase 3: added admin interaction polish (confirmations, action-result chips, progressive disclosure for advanced sections).
 
 ## P0 (Stability)
 
