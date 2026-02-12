@@ -241,11 +241,29 @@ jobs:
           for i in 1 2; do
             curl -fsS \
               -H "Authorization: Bearer ci-token" \
-              -H "Content-Type: application/json" \
-              -X POST \
-              -d '{}' \
-              "http://127.0.0.1:8790/admin/pair/new" >/tmp/pair-${i}.json
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{}' \
+            "http://127.0.0.1:8790/admin/pair/new" >/tmp/pair-${i}.json
           done
+
+          # Pairing should return a per-device session token (not the legacy shared token).
+          pair_code=$(python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/pair-1.json'))
+          print((d.get('code') or '').strip())
+          PY
+          )
+          test -n "$pair_code"
+          paired_token=$(curl -fsS \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"code\":\"${pair_code}\"}" \
+            "http://127.0.0.1:8790/pair/consume" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("token") or "").strip())')
+          test -n "$paired_token"
+          test "$paired_token" != "ci-token"
+          curl -fsS -H "Authorization: Bearer ${paired_token}" "http://127.0.0.1:8790/admin/status" >/tmp/paired-status.json
+
           pair_status=$(curl -sS -o /tmp/pair-3.json -w '%{http_code}' \
             -H "Authorization: Bearer ci-token" \
             -H "Content-Type: application/json" \
@@ -270,6 +288,49 @@ jobs:
             -d '{"filename":"x.png","mime":"image/png","bytes":10}' \
             "http://127.0.0.1:8790/uploads/new")
           test "$upload_status" = "429"
+
+      - name: Smoke test read-only token session guard
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ro_token=$(curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"label":"ci-ro","mode":"read_only"}' \
+            "http://127.0.0.1:8790/admin/token/sessions/new" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("token") or "").strip())')
+          test -n "$ro_token"
+
+          # Read endpoint allowed.
+          curl -fsS -H "Authorization: Bearer ${ro_token}" "http://127.0.0.1:8790/admin/status" >/tmp/ro-status.json
+
+          # Write endpoint denied for read-only.
+          ro_write_status=$(curl -sS -o /tmp/ro-write.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${ro_token}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{}' \
+            "http://127.0.0.1:8790/admin/pair/new")
+          test "$ro_write_status" = "401"
+
+          # Read-only token may connect via ws, but mutating rpc must be denied with explicit error.
+          RO_TOKEN="$ro_token" bun -e '
+            const { WebSocket } = require("ws");
+            const token = process.env.RO_TOKEN;
+            const ws = new WebSocket("ws://127.0.0.1:8790/ws", { headers: { Authorization: `Bearer ${token}` } });
+            let ok = false;
+            ws.on("open", () => ws.send(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "turn/start", params: { threadId: "ci-ro" } })));
+            ws.on("message", (m) => {
+              const s = String(m);
+              if (s.includes("Read-only token session cannot call")) {
+                ok = true;
+                ws.close();
+              }
+            });
+            ws.on("close", () => process.exit(ok ? 0 : 1));
+            setTimeout(() => process.exit(1), 5000);
+          '
 
       - name: Verify cache headers
         shell: bash
