@@ -2,6 +2,7 @@ import { hostname, homedir } from "node:os";
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { readdir, stat, unlink, mkdir as mkdirAsync } from "node:fs/promises";
 import { dirname, join, basename } from "node:path";
+import { createHash } from "node:crypto";
 import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
 
@@ -615,6 +616,18 @@ db.exec(
   "CREATE INDEX IF NOT EXISTS idx_upload_tokens_expires ON upload_tokens(expires_at);"
 );
 
+db.exec(
+  "CREATE TABLE IF NOT EXISTS token_sessions (" +
+    "id TEXT PRIMARY KEY," +
+    "token_hash TEXT NOT NULL UNIQUE," +
+    "label TEXT NOT NULL," +
+    "created_at INTEGER NOT NULL," +
+    "last_used_at INTEGER NOT NULL," +
+    "revoked_at INTEGER" +
+  ");" +
+  "CREATE INDEX IF NOT EXISTS idx_token_sessions_revoked ON token_sessions(revoked_at);"
+);
+
 const insertEvent = db.prepare(
   "INSERT INTO events (thread_id, turn_id, direction, role, method, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
 );
@@ -629,8 +642,46 @@ const getUploadToken = db.prepare(
 
 const deleteUploadToken = db.prepare("DELETE FROM upload_tokens WHERE token = ?");
 
+const insertTokenSession = db.prepare(
+  "INSERT INTO token_sessions (id, token_hash, label, created_at, last_used_at, revoked_at) VALUES (?, ?, ?, ?, ?, NULL)"
+);
+
+const getTokenSessionByHash = db.prepare(
+  "SELECT id, label, created_at, last_used_at, revoked_at FROM token_sessions WHERE token_hash = ? LIMIT 1"
+);
+
+const touchTokenSessionLastUsed = db.prepare(
+  "UPDATE token_sessions SET last_used_at = ? WHERE id = ?"
+);
+
+const listTokenSessions = db.prepare(
+  "SELECT id, label, created_at, last_used_at, revoked_at FROM token_sessions ORDER BY created_at DESC"
+);
+
+const revokeTokenSession = db.prepare(
+  "UPDATE token_sessions SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL"
+);
+
+const countTokenSessions = db.prepare(
+  "SELECT COUNT(*) as n FROM token_sessions"
+);
+
+const countActiveTokenSessions = db.prepare(
+  "SELECT COUNT(*) as n FROM token_sessions WHERE revoked_at IS NULL"
+);
+
 function nowSec(): number {
   return Math.floor(Date.now() / 1000);
+}
+
+function getTokenSessionStats(): { total: number; active: number } {
+  try {
+    const total = Number((countTokenSessions.get() as { n?: number } | null)?.n ?? 0);
+    const active = Number((countActiveTokenSessions.get() as { n?: number } | null)?.n ?? 0);
+    return { total, active };
+  } catch {
+    return { total: 0, active: 0 };
+  }
 }
 
 function logAdmin(message: string): void {
@@ -889,13 +940,56 @@ function prunePairCodes(): void {
 
 setInterval(prunePairCodes, 60_000).unref?.();
 
+type TokenSessionRow = {
+  id: string;
+  label: string;
+  created_at: number;
+  last_used_at: number;
+  revoked_at: number | null;
+};
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function sanitizeSessionLabel(label: string | null | undefined): string {
+  const raw = (label ?? "").trim();
+  if (!raw) return `Device ${new Date().toISOString()}`;
+  return raw.slice(0, 120);
+}
+
+function mintTokenSession(label: string): { id: string; token: string; row: TokenSessionRow } {
+  const token = randomTokenHex(32);
+  const tokenHash = hashToken(token);
+  const id = randomTokenHex(16);
+  const createdAt = nowSec();
+  const nextLabel = sanitizeSessionLabel(label);
+  insertTokenSession.run(id, tokenHash, nextLabel, createdAt, createdAt);
+  return {
+    id,
+    token,
+    row: {
+      id,
+      label: nextLabel,
+      created_at: createdAt,
+      last_used_at: createdAt,
+      revoked_at: null,
+    },
+  };
+}
+
+type AuthContext =
+  | { ok: true; mode: "legacy" }
+  | { ok: true; mode: "session"; sessionId: string }
+  | { ok: false };
+
 function getBearer(req: Request): string | null {
   const auth = req.headers.get("authorization") ?? "";
   if (!auth.toLowerCase().startsWith("bearer ")) return null;
   return auth.slice(7).trim();
 }
 
-function authorised(req: Request): boolean {
+function authContext(req: Request): AuthContext {
   const provided =
     getBearer(req) ??
     (() => {
@@ -905,7 +999,24 @@ function authorised(req: Request): boolean {
         return null;
       }
     })();
-  return Boolean(provided && timingSafeEqual(provided, AUTH_TOKEN));
+  if (!provided) return { ok: false };
+  if (timingSafeEqual(provided, AUTH_TOKEN)) return { ok: true, mode: "legacy" };
+  try {
+    const row = getTokenSessionByHash.get(hashToken(provided)) as TokenSessionRow | null;
+    if (!row || row.revoked_at) return { ok: false };
+    try {
+      touchTokenSessionLastUsed.run(nowSec(), row.id);
+    } catch {
+      // ignore touch failures
+    }
+    return { ok: true, mode: "session", sessionId: row.id };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function authorised(req: Request): boolean {
+  return authContext(req).ok;
 }
 
 function randomTokenHex(bytes = 32): string {
@@ -1413,6 +1524,7 @@ const server = Bun.serve<{ role: Role }>({
     if (url.pathname === "/admin/status" && method === "GET") {
       if (!authorised(req)) return unauth();
       const res = okJson({
+        tokenSessions: getTokenSessionStats(),
         server: { host: HOST, port: PORT },
         uiDistDir: UI_DIST_DIR,
         anchor: {
@@ -1629,7 +1741,7 @@ const server = Bun.serve<{ role: Role }>({
 	      }
 	    }
 
-		    if (url.pathname === "/admin/token/rotate" && req.method === "POST") {
+	    if (url.pathname === "/admin/token/rotate" && req.method === "POST") {
 	      if (!authorised(req)) return unauth();
 	      const next = randomTokenHex(32);
 
@@ -1645,6 +1757,63 @@ const server = Bun.serve<{ role: Role }>({
 
 	      return okJson({ ok: true, token: next });
 	    }
+
+    if (url.pathname === "/admin/token/sessions" && method === "GET") {
+      if (!authorised(req)) return unauth();
+      const rows = listTokenSessions.all() as TokenSessionRow[];
+      return okJson({
+        sessions: rows.map((r) => ({
+          id: r.id,
+          label: r.label,
+          createdAt: r.created_at * 1000,
+          lastUsedAt: r.last_used_at * 1000,
+          revokedAt: typeof r.revoked_at === "number" ? r.revoked_at * 1000 : null,
+        })),
+        legacyTokenEnabled: true,
+      });
+    }
+
+    if (url.pathname === "/admin/token/sessions/new" && req.method === "POST") {
+      if (!authorised(req)) return unauth();
+      const body = (await req.json().catch(() => null)) as null | { label?: string };
+      const label = sanitizeSessionLabel(body?.label);
+      let created: ReturnType<typeof mintTokenSession>;
+      try {
+        created = mintTokenSession(label);
+      } catch {
+        return okJson({ error: "failed to create token session" }, { status: 500 });
+      }
+      logAdmin(`token sessions: created ${created.id} (${JSON.stringify(created.row.label)})`);
+      return okJson({
+        ok: true,
+        token: created.token,
+        session: {
+          id: created.row.id,
+          label: created.row.label,
+          createdAt: created.row.created_at * 1000,
+          lastUsedAt: created.row.last_used_at * 1000,
+          revokedAt: null,
+        },
+      });
+    }
+
+    if (url.pathname === "/admin/token/sessions/revoke" && req.method === "POST") {
+      if (!authorised(req)) return unauth();
+      const body = (await req.json().catch(() => null)) as null | { id?: string };
+      const id = (body?.id ?? "").trim();
+      if (!id) return okJson({ error: "id is required" }, { status: 400 });
+      let changed = 0;
+      try {
+        const res = revokeTokenSession.run(nowSec(), id) as { changes?: number };
+        changed = Number(res?.changes ?? 0);
+      } catch {
+        return okJson({ error: "failed to revoke token session" }, { status: 500 });
+      }
+      if (changed > 0) {
+        logAdmin(`token sessions: revoked ${id}`);
+      }
+      return okJson({ ok: true, revoked: changed > 0 });
+    }
 
 	    // Uploads (token required)
 		    if (url.pathname === "/uploads/new" && req.method === "POST") {

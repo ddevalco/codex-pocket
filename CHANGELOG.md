@@ -37,6 +37,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Admin uploads reporting: `/admin/uploads/stats` now includes last prune detail/source (manual/scheduled/unknown), surfaced in Admin Uploads UI.
 - Attachments: composer attachment chips now render small image thumbnails for faster visual verification before sending.
 - Admin uploads: auto-cleanup cadence is now configurable (1-168 hours) and visible in `/admin`, persisted with retention settings.
+- Security/Admin: phase-1 per-device token sessions added on the backend (`/admin/token/sessions*`) with create/list/revoke APIs and legacy-token auth compatibility.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
