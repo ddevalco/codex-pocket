@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ModeKind, ModelOption, ReasoningEffort } from "../types";
   import { api } from "../api";
+  import { loadQuickReplies, type QuickReply } from "../quickReplies";
 
 	  interface Props {
     model: string;
@@ -41,6 +42,7 @@
   let input = $state("");
   let modelOpen = $state(false);
   let reasoningOpen = $state(false);
+  let quickReplies = $state<QuickReply[]>([]);
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   type EnterBehavior = "newline" | "send";
@@ -55,6 +57,10 @@
     } catch {
       // ignore
     }
+  });
+
+  $effect(() => {
+    quickReplies = loadQuickReplies();
   });
 
   const canSubmit = $derived(input.trim().length > 0 && !disabled);
@@ -110,6 +116,15 @@
     if (!target.closest(".dropdown")) {
       closeAllDropdowns();
     }
+  }
+
+  function sendQuickReply(text: string) {
+    if (disabled) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    onSubmit(trimmed, pendingAttachments);
+    input = "";
+    pendingAttachments = [];
   }
 
 	  async function handlePickImage(e: Event) {
@@ -170,6 +185,21 @@
 
 <form class="prompt-input" onsubmit={handleSubmit}>
   <div class="input-container stack">
+    {#if quickReplies.length}
+      <div class="quick-replies row" role="group" aria-label="Quick reply shortcuts">
+        {#each quickReplies as reply, i (`${reply.label}:${reply.text}:${i}`)}
+          <button
+            type="button"
+            class="quick-reply-btn"
+            onclick={() => sendQuickReply(reply.text)}
+            disabled={disabled}
+            title={reply.text}
+          >
+            {reply.label}
+          </button>
+        {/each}
+      </div>
+    {/if}
     <textarea
       bind:value={input}
       onkeydown={handleKeydown}
@@ -369,6 +399,37 @@
   .input-container:focus-within {
     border-color: var(--cli-text-muted);
     box-shadow: var(--shadow-focus);
+  }
+
+  .quick-replies {
+    --row-gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md) 0 var(--space-md);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .quick-reply-btn {
+    border: 1px solid var(--cli-border);
+    background: var(--cli-bg-elevated);
+    color: var(--cli-text-dim);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .quick-reply-btn:hover:enabled {
+    background: var(--cli-bg-hover);
+    color: var(--cli-text);
+    border-color: color-mix(in srgb, var(--cli-prefix-agent) 35%, var(--cli-border));
+  }
+
+  .quick-reply-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   textarea {
