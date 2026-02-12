@@ -472,12 +472,17 @@
     {/snippet}
   </AppHeader>
 
-  <div class="content stack">
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Admin</span>
-      </div>
-      <div class="section-body stack">
+  <div class="content">
+    <div class="admin-grid">
+      <div class="col stack">
+        <div class="section stack">
+          <div class="section-header">
+            <div>
+              <span class="section-title">Status</span>
+              <div class="section-subtitle">Service state, builds, and storage.</div>
+            </div>
+          </div>
+          <div class="section-body stack">
         {#if statusError}
           <p class="hint hint-error">{statusError}</p>
         {/if}
@@ -485,6 +490,13 @@
         {#if !status}
           <p class="hint">Loading...</p>
         {:else}
+          <div class="status-pills">
+            <span class="pill ok">Server online</span>
+            <span class={`pill ${status.anchor.running ? "ok" : "warn"}`}>Anchor {status.anchor.running ? "running" : "stopped"}</span>
+            <span class={`pill ${status.anchorAuth?.status === "invalid" ? "bad" : status.anchorAuth?.status === "ok" ? "ok" : "muted"}`}>
+              Auth {status.anchorAuth?.status ?? "unknown"}
+            </span>
+          </div>
           <div class="kv">
             <div class="k">Server</div>
             <div class="v">{status.server.host}:{status.server.port}</div>
@@ -537,185 +549,220 @@
             <div class="k">Upload retention</div>
             <div class="v">{(status.db.uploadRetentionDays ?? uploadRetentionDays)} day(s) ({(status.db.uploadRetentionDays ?? uploadRetentionDays) === 0 ? "keep forever" : "auto-clean"})</div>
           </div>
-
-        <div class="row buttons">
-          <button type="button" onclick={runValidate} disabled={!auth.token || validating}>
-            {validating ? "Validating..." : "Validate"}
-          </button>
-          <button type="button" onclick={runRepair} disabled={!auth.token || repairing}>
-            {repairing ? "Repairing..." : "Repair"}
-          </button>
-          <button class="danger" type="button" onclick={stopAnchor} disabled={busy || !status.anchor.running}>Stop anchor</button>
-          <button type="button" onclick={loadLogs} disabled={busy}>Refresh logs</button>
+        {/if}
+          </div>
         </div>
 
-        {#if validateResp?.checks}
-          <div class="validate stack">
-            <div class="hint {validateResp.ok ? "hint-ok" : "hint-error"}">
-              {validateResp.ok ? "Validate: OK" : "Validate: issues detected"}
+        <div class="section stack">
+          <div class="section-header">
+            <div>
+              <span class="section-title">Controls</span>
+              <div class="section-subtitle">Validate, repair, and manage the service.</div>
             </div>
-            <div class="checks">
-              {#each validateResp.checks as c (c.id)}
-                <div class="check row">
-                  <span class="dot" class:bad={!c.ok}>●</span>
-                  <span class="sum">{c.summary}</span>
+          </div>
+          <div class="section-body stack">
+            <div class="toolbar">
+              <button class="btn" type="button" onclick={runValidate} disabled={!auth.token || validating}>
+                {validating ? "Validating..." : "Validate"}
+              </button>
+              <button class="btn" type="button" onclick={runRepair} disabled={!auth.token || repairing}>
+                {repairing ? "Repairing..." : "Repair"}
+              </button>
+              <button class="btn danger" type="button" onclick={stopAnchor} disabled={busy || !status?.anchor.running}>Stop anchor</button>
+              <button class="btn" type="button" onclick={loadLogs} disabled={busy}>Refresh logs</button>
+            </div>
+
+            {#if validateResp?.checks}
+              <div class="validate stack">
+                <div class="hint {validateResp.ok ? "hint-ok" : "hint-error"}">
+                  {validateResp.ok ? "Validate: OK" : "Validate: issues detected"}
                 </div>
-                {#if c.detail}
-                  <pre class="check-detail">{c.detail}</pre>
+                <div class="checks">
+                  {#each validateResp.checks as c (c.id)}
+                    <div class="check row">
+                      <span class="dot" class:bad={!c.ok}>●</span>
+                      <span class="sum">{c.summary}</span>
+                    </div>
+                    {#if c.detail}
+                      <pre class="check-detail">{c.detail}</pre>
+                    {/if}
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
+
+        <div class="section stack">
+          <div class="section-header">
+            <div>
+              <span class="section-title">Uploads</span>
+              <div class="section-subtitle">Retention and maintenance.</div>
+            </div>
+          </div>
+          <div class="section-body stack">
+            <p class="hint">Uploads are stored locally on your Mac. Default retention is permanent.</p>
+
+            <div class="field stack">
+              <label for="upload-retention">upload retention (days)</label>
+              <input
+                id="upload-retention"
+                type="number"
+                min="0"
+                max="3650"
+                bind:value={uploadRetentionDays}
+              />
+              <p class="hint">0 = keep uploads forever. Cleanup runs periodically on the Mac (and you can run it manually).</p>
+              <div class="toolbar">
+                <button class="btn" type="button" onclick={saveUploadRetention} disabled={!auth.token || savingUploadRetention}>
+                  {savingUploadRetention ? "Saving..." : "Save"}
+                </button>
+                <button class="btn" type="button" onclick={pruneUploadsNow} disabled={!auth.token || pruningUploads}>
+                  {pruningUploads ? "Pruning..." : "Run cleanup now"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section stack">
+          <div class="section-header">
+            <div>
+              <span class="section-title">Debug</span>
+              <div class="section-subtitle">Events and admin token controls.</div>
+            </div>
+          </div>
+          <div class="section-body stack">
+            <p class="hint">Last 50 stored events (redacted). Useful for diagnosing blank threads or protocol mismatches.</p>
+            <div class="toolbar">
+              <button class="btn" type="button" onclick={loadDebugEvents} disabled={busy}>Refresh events</button>
+              <button class="btn" type="button" onclick={pruneUploadsNow} disabled={!auth.token || pruningUploads}>
+                {pruningUploads ? "Pruning..." : "Run upload cleanup"}
+              </button>
+              <button class="btn danger" type="button" onclick={rotateToken} disabled={!auth.token || rotatingToken}>
+                {rotatingToken ? "Rotating..." : "Rotate access token"}
+              </button>
+            </div>
+            {#if rotatedToken}
+              <p class="hint">New token copied to clipboard. You will need to sign in again on all devices.</p>
+              <p><code>{rotatedToken}</code></p>
+            {/if}
+            <pre class="logs">{debugEvents || "(no events yet)"}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="col stack">
+        <div class="section stack">
+          <div class="section-header">
+            <div>
+              <span class="section-title">Remote CLI</span>
+              <div class="section-subtitle">Run a limited set of safe commands.</div>
+            </div>
+          </div>
+          <div class="section-body stack">
+            <div class="row buttons">
+              <label class="field">
+                <span>Command</span>
+                <select bind:value={cliSelected} disabled={cliRunning || cliCommands.length === 0}>
+                  {#each cliCommands as cmd (cmd.id)}
+                    <option value={cmd.id}>
+                      {cmd.label}{cmd.risky ? " (disruptive)" : ""}
+                    </option>
+                  {/each}
+                </select>
+              </label>
+              <button class="btn" type="button" onclick={runCliCommand} disabled={!auth.token || cliRunning || !cliSelected}>
+                {cliRunning ? "Running..." : "Run"}
+              </button>
+            </div>
+            {#if cliSelected}
+              {#each cliCommands as cmd (cmd.id)}
+                {#if cmd.id === cliSelected}
+                  <div class="hint">{cmd.description}</div>
+                  {#if cmd.risky}
+                    <div class="hint hint-error">This command may disconnect the admin session.</div>
+                  {/if}
                 {/if}
               {/each}
-            </div>
-          </div>
-        {/if}
-        {/if}
-      </div>
-    </div>
-
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">CLI (Remote)</span>
-      </div>
-      <div class="section-body stack">
-        <p class="hint">Run a limited set of safe `codex-pocket` CLI commands from this page.</p>
-        <div class="row buttons">
-          <label class="field">
-            <span>Command</span>
-            <select bind:value={cliSelected} disabled={cliRunning || cliCommands.length === 0}>
-              {#each cliCommands as cmd (cmd.id)}
-                <option value={cmd.id}>
-                  {cmd.label}{cmd.risky ? " (disruptive)" : ""}
-                </option>
-              {/each}
-            </select>
-          </label>
-          <button type="button" onclick={runCliCommand} disabled={!auth.token || cliRunning || !cliSelected}>
-            {cliRunning ? "Running..." : "Run"}
-          </button>
-        </div>
-        {#if cliSelected}
-          {#each cliCommands as cmd (cmd.id)}
-            {#if cmd.id === cliSelected}
-              <div class="hint">{cmd.description}</div>
-              {#if cmd.risky}
-                <div class="hint hint-error">This command may disconnect the admin session.</div>
+            {/if}
+            {#if cliError}
+              <p class="hint hint-error">{cliError}</p>
+            {/if}
+            {#if cliOutput}
+              <pre class="cli-output">{cliOutput}</pre>
+            {/if}
+            {#if cliPairUrl}
+              <div class="kv" style="margin-top: var(--space-md);">
+                <div class="k">Pair link</div>
+                <div class="v"><a href={cliPairUrl}>{cliPairUrl}</a></div>
+              </div>
+              {#if cliPairQrObjectUrl}
+                <div class="qr"><img alt="Pairing QR code" src={cliPairQrObjectUrl} /></div>
               {/if}
             {/if}
-          {/each}
-        {/if}
-        {#if cliError}
-          <p class="hint hint-error">{cliError}</p>
-        {/if}
-        {#if cliOutput}
-          <pre class="cli-output">{cliOutput}</pre>
-        {/if}
-        {#if cliPairUrl}
-          <div class="kv" style="margin-top: var(--space-md);">
-            <div class="k">Pair link</div>
-            <div class="v"><a href={cliPairUrl}>{cliPairUrl}</a></div>
-          </div>
-          {#if cliPairQrObjectUrl}
-            <div class="qr"><img alt="Pairing QR code" src={cliPairQrObjectUrl} /></div>
-          {/if}
-        {/if}
-      </div>
-    </div>
-
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Pair iPhone</span>
-      </div>
-      <div class="section-body stack">
-        <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
-        {#if pairError}
-          <p class="hint hint-error">{pairError}</p>
-        {/if}
-        <div class="row buttons">
-          <button class="primary" type="button" onclick={newPair} disabled={!auth.token}>Regenerate pairing code</button>
-        </div>
-        {#if !auth.token}
-          <p class="hint hint-error">Sign in first (token required) to create pairing codes.</p>
-        {/if}
-        {#if pair}
-          <div class="kv" style="margin-top: var(--space-md);">
-            <div class="k">Code</div>
-            <div class="v"><code>{pair.code}</code></div>
-            <div class="k">Expires</div>
-            <div class="v">{new Date(pair.expiresAt).toLocaleString()}</div>
-            <div class="k">Link</div>
-            <div class="v"><a href={pair.pairUrl}>{pair.pairUrl}</a></div>
-          </div>
-          {#if pairQrObjectUrl}
-            <div class="qr"><img alt="Pairing QR code" src={pairQrObjectUrl} /></div>
-          {:else}
-            <p class="hint hint-error">QR did not render. Open the Link above on your iPhone.</p>
-          {/if}
-        {/if}
-      </div>
-    </div>
-
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Anchor logs (tail)</span>
-      </div>
-      <div class="section-body">
-        <pre class="logs">{logs || "(no logs yet)"}</pre>
-      </div>
-    </div>
-
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Uploads</span>
-      </div>
-      <div class="section-body stack">
-        <p class="hint">Uploads are stored locally on your Mac. Default retention is permanent.</p>
-
-        <div class="field stack">
-          <label for="upload-retention">upload retention (days)</label>
-          <input
-            id="upload-retention"
-            type="number"
-            min="0"
-            max="3650"
-            bind:value={uploadRetentionDays}
-          />
-          <p class="hint">0 = keep uploads forever. Cleanup runs periodically on the Mac (and you can run it manually).</p>
-          <div class="row buttons">
-            <button type="button" onclick={saveUploadRetention} disabled={!auth.token || savingUploadRetention}>
-              {savingUploadRetention ? "Saving..." : "Save"}
-            </button>
-            <button type="button" onclick={pruneUploadsNow} disabled={!auth.token || pruningUploads}>
-              {pruningUploads ? "Pruning..." : "Run cleanup now"}
-            </button>
           </div>
         </div>
 
-        <p class="hint">Ops log (server maintenance + installer actions).</p>
-        <div class="row buttons">
+        <div class="section stack">
+          <div class="section-header">
+            <div>
+              <span class="section-title">Pair iPhone</span>
+              <div class="section-subtitle">Scan to connect a new device.</div>
+            </div>
+          </div>
+          <div class="section-body stack">
+            <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
+            {#if pairError}
+              <p class="hint hint-error">{pairError}</p>
+            {/if}
+            <div class="toolbar">
+              <button class="btn primary" type="button" onclick={newPair} disabled={!auth.token}>Regenerate pairing code</button>
+            </div>
+            {#if !auth.token}
+              <p class="hint hint-error">Sign in first (token required) to create pairing codes.</p>
+            {/if}
+            {#if pair}
+              <div class="kv" style="margin-top: var(--space-md);">
+                <div class="k">Code</div>
+                <div class="v"><code>{pair.code}</code></div>
+                <div class="k">Expires</div>
+                <div class="v">{new Date(pair.expiresAt).toLocaleString()}</div>
+                <div class="k">Link</div>
+                <div class="v"><a href={pair.pairUrl}>{pair.pairUrl}</a></div>
+              </div>
+              {#if pairQrObjectUrl}
+                <div class="qr"><img alt="Pairing QR code" src={pairQrObjectUrl} /></div>
+              {:else}
+                <p class="hint hint-error">QR did not render. Open the Link above on your iPhone.</p>
+              {/if}
+            {/if}
+          </div>
         </div>
-        <pre class="logs">{opsLog || "(no ops logs yet)"}</pre>
-      </div>
-    </div>
 
-<div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Debug</span>
-      </div>
-      <div class="section-body stack">
-        <p class="hint">Last 50 stored events (redacted). Useful for diagnosing blank threads or protocol mismatches.</p>
-        <div class="row buttons">
-          <button type="button" onclick={loadDebugEvents} disabled={busy}>Refresh events</button>
-          <button type="button" onclick={pruneUploadsNow} disabled={!auth.token || pruningUploads}>
-            {pruningUploads ? "Pruning..." : "Run upload cleanup"}
-          </button>
-          <button class="danger" type="button" onclick={rotateToken} disabled={!auth.token || rotatingToken}>
-            {rotatingToken ? "Rotating..." : "Rotate access token"}
-          </button>
+        <div class="section stack">
+          <div class="section-header">
+            <div>
+              <span class="section-title">Anchor logs</span>
+              <div class="section-subtitle">Tail of the anchor process.</div>
+            </div>
+          </div>
+          <div class="section-body">
+            <pre class="logs">{logs || "(no logs yet)"}</pre>
+          </div>
         </div>
-        {#if rotatedToken}
-          <p class="hint">New token copied to clipboard. You will need to sign in again on all devices.</p>
-          <p><code>{rotatedToken}</code></p>
-        {/if}
-        <pre class="logs">{debugEvents || "(no events yet)"}</pre>
+
+        <div class="section stack">
+          <div class="section-header">
+            <div>
+              <span class="section-title">Ops log</span>
+              <div class="section-subtitle">Server maintenance + installer actions.</div>
+            </div>
+          </div>
+          <div class="section-body">
+            <pre class="logs">{opsLog || "(no ops logs yet)"}</pre>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -724,16 +771,60 @@
 <style>
   .admin {
     min-height: 100vh;
+    background: radial-gradient(1200px 800px at 10% -10%, rgba(255, 255, 255, 0.06), transparent 60%),
+      radial-gradient(900px 600px at 90% -20%, rgba(255, 255, 255, 0.04), transparent 55%),
+      var(--cli-bg);
   }
   .content {
-    padding: var(--space-lg);
-    max-width: 1000px;
+    padding: calc(var(--space-lg) * 1.2) var(--space-lg);
+    max-width: 1200px;
     margin: 0 auto;
     width: 100%;
   }
+  .admin-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 1.2fr) minmax(320px, 0.8fr);
+    gap: var(--space-lg);
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+  @media (max-width: 980px) {
+    .admin-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .section {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+  .section-header {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title {
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    font-weight: 600;
+  }
+  .section-subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--cli-text-dim);
+  }
+  .section-body {
+    padding: var(--space-lg);
+  }
   .kv {
     display: grid;
-    grid-template-columns: 160px 1fr;
+    grid-template-columns: 140px 1fr;
     gap: var(--space-sm) var(--space-md);
     font-family: var(--font-mono);
     font-size: 13px;
@@ -747,7 +838,33 @@
   .buttons {
     gap: var(--space-sm);
     flex-wrap: wrap;
-    margin-top: var(--space-md);
+  }
+  .toolbar {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--cli-text);
+    font-size: 13px;
+  }
+  .btn:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .btn.primary {
+    background: rgba(64, 134, 255, 0.18);
+    border-color: rgba(64, 134, 255, 0.4);
+    color: #cfe1ff;
+  }
+  .btn.danger {
+    background: rgba(178, 60, 60, 0.2);
+    border-color: rgba(200, 80, 80, 0.6);
+    color: #ffd1d1;
   }
   .qr {
     margin-top: var(--space-md);
@@ -763,17 +880,45 @@
     background: #fff;
     padding: 6px;
   }
-  .danger {
-    background: #5d1b1b;
-    border: 1px solid #a33;
-    color: #fff;
+  .status-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+  }
+  .pill {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--cli-text-dim);
+  }
+  .pill.ok {
+    border-color: rgba(70, 200, 120, 0.35);
+    color: #9be3bf;
+    background: rgba(70, 200, 120, 0.08);
+  }
+  .pill.warn {
+    border-color: rgba(240, 170, 70, 0.4);
+    color: #ffd79a;
+    background: rgba(240, 170, 70, 0.08);
+  }
+  .pill.bad {
+    border-color: rgba(200, 80, 80, 0.6);
+    color: #ffd1d1;
+    background: rgba(200, 80, 80, 0.1);
+  }
+  .pill.muted {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--cli-text-dim);
   }
   .logs {
     max-height: 400px;
     overflow: auto;
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.25);
     padding: var(--space-md);
-    border-radius: 10px;
+    border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
@@ -857,7 +1002,7 @@
   .check-detail {
     margin: 0;
     padding: var(--space-sm);
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--cli-border);
     border-radius: var(--radius-sm);
     max-height: 200px;
@@ -868,7 +1013,7 @@
   .cli-output {
     margin: 0;
     padding: var(--space-sm);
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--cli-border);
     border-radius: var(--radius-sm);
     max-height: 260px;
