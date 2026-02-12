@@ -41,6 +41,10 @@
   let cliOutput = $state<string>("");
   let cliRunning = $state(false);
   let cliError = $state<string | null>(null);
+  let lastAction = $state<{ tone: "success" | "error"; label: string; at: number } | null>(null);
+  let showCliAdvanced = $state(false);
+  let showLogsAdvanced = $state(false);
+  let showDebugAdvanced = $state(false);
 
   type ValidateResp = {
     ok: boolean;
@@ -50,6 +54,14 @@
   let validateResp = $state<ValidateResp | null>(null);
   let validating = $state(false);
   let repairing = $state(false);
+
+  function stampAction(tone: "success" | "error", label: string) {
+    lastAction = { tone, label, at: Date.now() };
+  }
+
+  function formatActionTime(ts: number): string {
+    return new Date(ts).toLocaleTimeString();
+  }
 
   async function loadStatus() {
     statusError = null;
@@ -139,6 +151,11 @@
 
   async function runCliCommand() {
     if (!cliSelected || cliRunning) return;
+    const selectedCmd = cliCommands.find((c) => c.id === cliSelected);
+    if (selectedCmd?.risky) {
+      const ok = confirm(`Run disruptive command "${selectedCmd.label}"? This may disconnect this admin session.`);
+      if (!ok) return;
+    }
     cliRunning = true;
     cliError = null;
     cliOutput = "";
@@ -160,6 +177,7 @@
         | { output?: string; timedOut?: boolean; exitCode?: number | null; command?: string; error?: string };
       if (!res.ok) {
         cliError = data?.error ?? `command failed (${res.status})`;
+        stampAction("error", `CLI command failed (${selectedCmd?.label || cliSelected})`);
       }
       const summary = [
         data?.command ? `$ ${data.command}` : "",
@@ -179,8 +197,12 @@
           }
         }
       }
+      if (res.ok) {
+        stampAction("success", `CLI command completed (${selectedCmd?.label || cliSelected})`);
+      }
     } catch (e) {
       cliError = e instanceof Error ? e.message : "Failed to run command";
+      stampAction("error", "CLI command failed");
     } finally {
       cliRunning = false;
     }
@@ -207,6 +229,7 @@
       const headers: Record<string, string> = { "content-type": "application/json" };
       if (auth.token) headers.authorization = `Bearer ${auth.token}`;
       await fetch("/admin/uploads/prune", { method: "POST", headers, body: "{}" });
+      stampAction("success", "Uploads cleanup completed");
     } finally {
       pruningUploads = false;
       await loadStatus();
@@ -217,6 +240,8 @@
 
   async function rotateToken() {
     if (rotatingToken) return;
+    const okToRotate = confirm("Rotate access token now? All connected devices will need to sign in again.");
+    if (!okToRotate) return;
     rotatedToken = null;
     rotatingToken = true;
     try {
@@ -235,8 +260,10 @@
       }
       // Force sign-out so the admin UI re-prompts for the new token.
       await auth.signOut();
+      stampAction("success", "Access token rotated");
     } catch (e) {
       statusError = e instanceof Error ? e.message : "Failed to rotate token";
+      stampAction("error", "Access token rotation failed");
     } finally {
       rotatingToken = false;
       await loadStatus();
@@ -258,8 +285,10 @@
         const t = await res.text().catch(() => "");
         throw new Error(t || `save failed (${res.status})`);
       }
+      stampAction("success", "Upload retention saved");
     } catch (e) {
       statusError = e instanceof Error ? e.message : "Failed to save upload retention";
+      stampAction("error", "Upload retention save failed");
     } finally {
       savingUploadRetention = false;
       await loadStatus();
@@ -280,8 +309,10 @@
         throw new Error(`validate failed (${res.status})`);
       }
       validateResp = data;
+      stampAction(data.ok ? "success" : "error", data.ok ? "Validate completed (ok)" : "Validate completed (issues found)");
     } catch (e) {
       statusError = e instanceof Error ? e.message : "Validate failed";
+      stampAction("error", "Validate failed");
     } finally {
       validating = false;
     }
@@ -307,8 +338,10 @@
         throw new Error(`repair failed (${res.status})`);
       }
       validateResp = data;
+      stampAction(data.ok ? "success" : "error", data.ok ? "Repair completed (ok)" : "Repair completed (issues remain)");
     } catch (e) {
       statusError = e instanceof Error ? e.message : "Repair failed";
+      stampAction("error", "Repair failed");
     } finally {
       repairing = false;
       await loadStatus();
@@ -333,8 +366,10 @@
         const t = await res.text();
         throw new Error(t || `start failed (${res.status})`);
       }
+      stampAction("success", "Anchor start requested");
     } catch (e) {
       statusError = e instanceof Error ? e.message : "Failed to start anchor";
+      stampAction("error", "Anchor start failed");
     } finally {
       busy = false;
       await loadStatus();
@@ -344,6 +379,8 @@
 
   async function stopAnchor() {
     if (busy) return;
+    const okToStop = confirm("Stop anchor now? Active operations may disconnect.");
+    if (!okToStop) return;
     busy = true;
     statusError = null;
     try {
@@ -354,8 +391,10 @@
         const t = await res.text();
         throw new Error(t || `stop failed (${res.status})`);
       }
+      stampAction("success", "Anchor stopped");
     } catch (e) {
       statusError = e instanceof Error ? e.message : "Failed to stop anchor";
+      stampAction("error", "Anchor stop failed");
     } finally {
       busy = false;
       await loadStatus();
@@ -406,8 +445,10 @@
       }
       pair = { code: data.code, pairUrl: data.pairUrl, expiresAt: data.expiresAt };
       await updateQr();
+      stampAction("success", "Pairing code generated");
     } catch (e) {
       pairError = e instanceof Error ? e.message : "Failed to create pairing code";
+      stampAction("error", "Pairing code generation failed");
     }
   }
 
@@ -479,6 +520,13 @@
     <SectionCard title="Admin" subtitle="System status and core operations">
         {#if statusError}
           <p class="hint hint-error">{statusError}</p>
+        {/if}
+        {#if lastAction}
+          <div class="row">
+            <StatusChip tone={lastAction.tone}>
+              {lastAction.label} at {formatActionTime(lastAction.at)}
+            </StatusChip>
+          </div>
         {/if}
 
         {#if !status}
@@ -577,7 +625,9 @@
         {/if}
     </SectionCard>
 
-    <SectionCard title="CLI (Remote)" subtitle="Run a limited set of safe codex-pocket commands">
+    <details class="advanced" bind:open={showCliAdvanced}>
+      <summary>Advanced: Remote CLI</summary>
+      <SectionCard title="CLI (Remote)" subtitle="Run a limited set of safe codex-pocket commands">
         <p class="hint">Run a limited set of safe `codex-pocket` CLI commands from this page.</p>
         <div class="row buttons">
           <label class="field">
@@ -619,7 +669,8 @@
             <div class="qr"><img alt="Pairing QR code" src={cliPairQrObjectUrl} /></div>
           {/if}
         {/if}
-    </SectionCard>
+      </SectionCard>
+    </details>
 
     <SectionCard title="Pair iPhone" subtitle="Generate a short-lived code and scan on iPhone">
         <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
@@ -649,9 +700,12 @@
         {/if}
     </SectionCard>
 
-    <SectionCard title="Anchor Logs (Tail)">
+    <details class="advanced" bind:open={showLogsAdvanced}>
+      <summary>Advanced: Logs</summary>
+      <SectionCard title="Anchor Logs (Tail)">
         <pre class="logs">{logs || "(no logs yet)"}</pre>
-    </SectionCard>
+      </SectionCard>
+    </details>
 
     <SectionCard title="Uploads">
         <p class="hint">Uploads are stored locally on your Mac. Default retention is permanent.</p>
@@ -682,7 +736,9 @@
         <pre class="logs">{opsLog || "(no ops logs yet)"}</pre>
     </SectionCard>
 
-    <SectionCard title="Debug">
+    <details class="advanced" bind:open={showDebugAdvanced}>
+      <summary>Advanced: Debug</summary>
+      <SectionCard title="Debug">
         <p class="hint">Last 50 stored events (redacted). Useful for diagnosing blank threads or protocol mismatches.</p>
         <div class="row buttons">
           <button type="button" onclick={loadDebugEvents} disabled={busy}>Refresh events</button>
@@ -700,7 +756,8 @@
           <p><code>{rotatedToken}</code></p>
         {/if}
         <pre class="logs">{debugEvents || "(no events yet)"}</pre>
-    </SectionCard>
+      </SectionCard>
+    </details>
   </div>
 </div>
 
@@ -742,6 +799,27 @@
     gap: var(--space-sm);
     flex-wrap: wrap;
     margin-top: var(--space-md);
+  }
+
+  .advanced {
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    background: var(--cli-bg);
+  }
+
+  .advanced > summary {
+    cursor: pointer;
+    padding: var(--space-sm) var(--space-md);
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    color: var(--cli-text-dim);
+    list-style: none;
+    border-bottom: 1px solid transparent;
+  }
+
+  .advanced[open] > summary {
+    border-bottom-color: var(--cli-border);
+    background: var(--cli-bg-elevated);
   }
 
   .row :global(.danger-zone) {
