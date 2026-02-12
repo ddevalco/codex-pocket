@@ -6,6 +6,9 @@
   import { socket } from "../lib/socket.svelte";
   import AppHeader from "../lib/components/AppHeader.svelte";
   import NotificationSettings from "../lib/components/NotificationSettings.svelte";
+  import SectionCard from "../lib/components/system/SectionCard.svelte";
+  import StatusChip from "../lib/components/system/StatusChip.svelte";
+  import DangerZone from "../lib/components/system/DangerZone.svelte";
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   type EnterBehavior = "newline" | "send";
@@ -98,11 +101,7 @@
   </AppHeader>
 
   <div class="content stack">
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Connection</span>
-      </div>
-      <div class="section-body stack">
+    <SectionCard title="Connection">
         <div class="field stack">
           <label for="orbit-url">orbit url</label>
           <input
@@ -118,6 +117,11 @@
             Local mode: Orbit URL is derived automatically from the site you opened.
           </p>
         {/if}
+        <div class="row">
+          <StatusChip tone={socket.status === "connected" ? "success" : socket.status === "error" ? "error" : "neutral"}>
+            {socket.status}
+          </StatusChip>
+        </div>
         <div class="connect-actions row">
           <button
             class="connect-btn"
@@ -142,14 +146,9 @@
             ? "Auto-connect paused. Click Connect to resume."
             : "Connection is automatic on app load. Disconnect to pause and to change the URL."}
         </p>
-      </div>
-    </div>
+    </SectionCard>
 
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Devices</span>
-      </div>
-      <div class="section-body stack">
+    <SectionCard title="Devices">
         {#if !isSocketConnected}
           <p class="hint">
             Connect to load devices.
@@ -171,16 +170,11 @@
             {/each}
           </ul>
         {/if}
-      </div>
-    </div>
+    </SectionCard>
 
     <NotificationSettings />
 
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Composer</span>
-      </div>
-      <div class="section-body stack">
+    <SectionCard title="Composer">
         <div class="field stack">
           <label for="enter-behavior">enter key</label>
           <select id="enter-behavior" bind:value={enterBehavior} onchange={(e) => setEnterBehavior((e.target as HTMLSelectElement).value as EnterBehavior)}>
@@ -189,15 +183,10 @@
           </select>
         </div>
         <p class="hint">Default is newline on all devices. This is stored per-device in your browser.</p>
-      </div>
-    </div>
+    </SectionCard>
 
     
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">About</span>
-      </div>
-      <div class="section-body stack">
+    <SectionCard title="About">
         <p class="hint">
           UI build: <span class="mono">{UI_COMMIT || "unknown"}</span>
           {#if UI_BUILT_AT}
@@ -207,16 +196,13 @@
         <p class="hint">
           Server: <span class="mono">{appCommit || "unknown"}</span>
         </p>
-      </div>
-    </div>
-<div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Account</span>
-      </div>
-      <div class="section-body stack">
+    </SectionCard>
+
+    <SectionCard title="Account">
+      <DangerZone>
         <button class="sign-out-btn" type="button" onclick={() => auth.signOut()}>Sign out</button>
-      </div>
-    </div>
+      </DangerZone>
+    </SectionCard>
   </div>
 </div>
 
@@ -226,7 +212,7 @@
     min-height: 100vh;
     background: var(--cli-bg);
     color: var(--cli-text);
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: var(--text-sm);
   }
 
@@ -236,31 +222,6 @@
     max-width: var(--app-max-width);
     margin: 0 auto;
     width: 100%;
-  }
-
-  .section {
-    --stack-gap: 0;
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-  }
-
-  .section-header {
-    padding: var(--space-sm) var(--space-md);
-    background: var(--cli-bg-elevated);
-    border-bottom: 1px solid var(--cli-border);
-  }
-
-  .section-title {
-    font-size: var(--text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--cli-text-dim);
-  }
-
-  .section-body {
-    --stack-gap: var(--space-md);
-    padding: var(--space-md);
   }
 
   .field {

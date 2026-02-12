@@ -29,6 +29,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
 - UX: thread list ordering now preserves upstream activity timestamps (updatedAt/lastActivity) and uses a deterministic tie-breaker (less reorder-on-refresh).
 - Thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt fallback).
+- Admin/Settings redesign phase 1: added shared settings-surface primitives (`SectionCard`, `StatusChip`, `DangerZone`) and migrated `/settings` to use them without behavior changes.
 
 ### CLI / Update
 - CLI: `start` now falls back to background mode if the launchd plist is missing (keeps update/restart usable even if the agent file is deleted).
