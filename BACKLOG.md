@@ -47,19 +47,13 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Attachment UX polish: composer now uses removable attachment chips and supports multiple image attachments per message without requiring manual markdown edits.
 - Upload retention visibility: `/admin` now shows upload footprint stats (size, file count, oldest/newest, and last prune activity).
 - Thread export/share polish: added PDF export action (print-to-PDF) in thread view + thread-list quick actions.
+- Backlog hygiene: removed stale completed P1 items (admin redesign parent + thread activity indicator polish) so active sections stay actionable.
 
 ## P0 (Stability)
 
 - Extend CI smoke coverage to include WebSocket relay and (optionally) additional admin repair paths with stubs/bypasses for non-Tailscale environments.
 
 ## P1 (UX)
-
-- Admin UI redesign (Issue #25):
-  - Implement the system-settings style overhaul described in `docs/ADMIN_REDESIGN_PROPOSAL.md`.
-  - Prioritize status clarity, progressive disclosure, and mobile usability.
-- Thread activity indicator (idle/working/blocked) polish:
-  - Ensure it is visible on mobile.
-  - Add a legend or tooltip.
 
 ## P2 (Attachments)
 
