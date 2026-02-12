@@ -686,6 +686,61 @@ async function pruneUploads(): Promise<void> {
   }
 }
 
+type UploadStats = {
+  fileCount: number;
+  totalBytes: number;
+  oldestAt: string | null;
+  newestAt: string | null;
+  lastPruneAt: string | null;
+};
+
+async function getUploadStats(): Promise<UploadStats> {
+  await ensureUploadDir();
+  let fileCount = 0;
+  let totalBytes = 0;
+  let oldestMs = Number.POSITIVE_INFINITY;
+  let newestMs = 0;
+  try {
+    const entries = await readdir(UPLOAD_DIR);
+    for (const name of entries) {
+      const p = join(UPLOAD_DIR, name);
+      let st;
+      try {
+        st = await stat(p);
+      } catch {
+        continue;
+      }
+      if (!st.isFile()) continue;
+      fileCount += 1;
+      totalBytes += st.size;
+      if (st.mtimeMs < oldestMs) oldestMs = st.mtimeMs;
+      if (st.mtimeMs > newestMs) newestMs = st.mtimeMs;
+    }
+  } catch {
+    // treat as empty on read error
+  }
+
+  const row = db
+    .prepare(
+      "SELECT MAX(created_at) AS at FROM events WHERE thread_id = ? AND method = ? AND payload LIKE ?"
+    )
+    .get("admin", "admin.log", "%upload retention:%") as null | { at?: number };
+
+  const toIso = (ms: number): string | null =>
+    Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : null;
+
+  return {
+    fileCount,
+    totalBytes,
+    oldestAt: oldestMs !== Number.POSITIVE_INFINITY ? toIso(oldestMs) : null,
+    newestAt: newestMs > 0 ? toIso(newestMs) : null,
+    lastPruneAt:
+      row && typeof row.at === "number" && row.at > 0
+        ? new Date(row.at * 1000).toISOString()
+        : null,
+  };
+}
+
 function pruneExpiredUploadTokens(): void {
   try {
     db.prepare("DELETE FROM upload_tokens WHERE expires_at < ?").run(nowSec());
@@ -1423,6 +1478,12 @@ const server = Bun.serve<{ role: Role }>({
       const after = nowSec();
       logAdmin(`upload retention: manual prune completed (${after - before}s)`);
       return okJson({ ok: true });
+    }
+
+    if (url.pathname === "/admin/uploads/stats" && req.method === "GET") {
+      if (!authorised(req)) return unauth();
+      const stats = await getUploadStats();
+      return okJson(stats);
     }
 
     if (url.pathname === "/admin/debug/events" && method === "GET") {

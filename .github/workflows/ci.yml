@@ -106,6 +106,26 @@ jobs:
           print('admin/status ok')
           PY
 
+      - name: Smoke test admin uploads stats
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            "http://127.0.0.1:8790/admin/uploads/stats" > /tmp/admin-uploads-stats.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-uploads-stats.json'))
+          assert isinstance(d.get('fileCount'), int), d
+          assert isinstance(d.get('totalBytes'), int), d
+          assert 'oldestAt' in d, d
+          assert 'newestAt' in d, d
+          assert 'lastPruneAt' in d, d
+          print('admin/uploads/stats ok')
+          PY
+
       - name: Smoke test admin validate
         shell: bash
         run: |
