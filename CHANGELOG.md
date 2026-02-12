@@ -23,6 +23,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UI: mobile thread list shows more of the title by allowing 2-line titles while keeping the date visible.
 - UI/Admin/CLI: detect upstream Codex app-server auth invalidation and surface a clear recovery warning.
 - Admin: add a limited remote CLI runner for safe `codex-pocket` commands (with output capture).
+- Docs/UX: added `docs/ADMIN_REDESIGN_PROPOSAL.md` and aligned backlog/project planning for phased Admin + Settings UI redesign work.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
