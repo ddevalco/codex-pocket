@@ -50,6 +50,10 @@ const APP_COMMIT = (() => {
 
 let UPLOAD_DIR = (process.env.ZANE_LOCAL_UPLOAD_DIR ?? `${homedir()}/.codex-pocket/uploads`).trim();
 let UPLOAD_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_UPLOAD_RETENTION_DAYS ?? 0); // 0 = keep forever
+const DEFAULT_UPLOAD_PRUNE_INTERVAL_HOURS = 6;
+const MIN_UPLOAD_PRUNE_INTERVAL_HOURS = 1;
+const MAX_UPLOAD_PRUNE_INTERVAL_HOURS = 168;
+let UPLOAD_PRUNE_INTERVAL_HOURS = Number(process.env.ZANE_LOCAL_UPLOAD_PRUNE_INTERVAL_HOURS ?? DEFAULT_UPLOAD_PRUNE_INTERVAL_HOURS);
 const UPLOAD_MAX_BYTES = Number(process.env.ZANE_LOCAL_UPLOAD_MAX_BYTES ?? 25 * 1024 * 1024);
 const UPLOAD_URL_TTL_SEC = Number(process.env.ZANE_LOCAL_UPLOAD_URL_TTL_SEC ?? 7 * 24 * 60 * 60);
 
@@ -76,13 +80,22 @@ const CLI_OUTPUT_LIMIT = Number(process.env.ZANE_LOCAL_CLI_OUTPUT_LIMIT ?? 20000
 const CLI_TIMEOUT_MS = Number(process.env.ZANE_LOCAL_CLI_TIMEOUT_MS ?? 90_000);
 
 const DEFAULT_CONFIG_JSON_PATH = join(homedir(), ".codex-pocket", "config.json");
+const EFFECTIVE_CONFIG_JSON_PATH =
+  CONFIG_JSON_PATH || (existsSync(DEFAULT_CONFIG_JSON_PATH) ? DEFAULT_CONFIG_JSON_PATH : "");
+
+function parseUploadPruneIntervalHours(value: unknown): number | null {
+  const n = typeof value === "string" ? Number(value) : typeof value === "number" ? value : NaN;
+  if (!Number.isFinite(n)) return null;
+  const hours = Math.floor(n);
+  if (hours < MIN_UPLOAD_PRUNE_INTERVAL_HOURS || hours > MAX_UPLOAD_PRUNE_INTERVAL_HOURS) return null;
+  return hours;
+}
 
 function loadConfigJson(): Record<string, unknown> | null {
-  const path = CONFIG_JSON_PATH || (existsSync(DEFAULT_CONFIG_JSON_PATH) ? DEFAULT_CONFIG_JSON_PATH : "");
-  if (!path) return null;
+  if (!EFFECTIVE_CONFIG_JSON_PATH) return null;
   try {
     // Bun.file().textSync() is not available in all Bun versions; use node:fs for sync reads.
-    const text = readFileSync(path, "utf8");
+    const text = readFileSync(EFFECTIVE_CONFIG_JSON_PATH, "utf8");
     return JSON.parse(text) as Record<string, unknown>;
   } catch {
     return null;
@@ -105,6 +118,13 @@ function uploadConfigFromConfigJson(json: Record<string, unknown> | null): void 
   const n = typeof rd === "string" ? Number(rd) : typeof rd === "number" ? rd : NaN;
   if (Number.isFinite(n) && n >= 0) {
     UPLOAD_RETENTION_DAYS = n;
+  }
+  const ph =
+    (json.uploadPruneIntervalHours as number | string | undefined) ??
+    (json.upload_prune_interval_hours as number | string | undefined);
+  const intervalHours = parseUploadPruneIntervalHours(ph);
+  if (intervalHours !== null) {
+    UPLOAD_PRUNE_INTERVAL_HOURS = intervalHours;
   }
 }
 
@@ -774,8 +794,21 @@ function pruneExpiredUploadTokens(): void {
   }
 }
 
+let uploadPruneTimer: ReturnType<typeof setInterval> | null = null;
+
+function scheduleUploadPrune(): void {
+  if (uploadPruneTimer) {
+    clearInterval(uploadPruneTimer);
+    uploadPruneTimer = null;
+  }
+  const hours = parseUploadPruneIntervalHours(UPLOAD_PRUNE_INTERVAL_HOURS) ?? DEFAULT_UPLOAD_PRUNE_INTERVAL_HOURS;
+  UPLOAD_PRUNE_INTERVAL_HOURS = hours;
+  uploadPruneTimer = setInterval(() => void pruneUploads(), hours * 60 * 60 * 1000);
+  uploadPruneTimer.unref?.();
+}
+
 setInterval(pruneOldEvents, 6 * 60 * 60 * 1000).unref?.();
-setInterval(() => void pruneUploads(), 6 * 60 * 60 * 1000).unref?.();
+scheduleUploadPrune();
 setInterval(pruneExpiredUploadTokens, 10 * 60 * 1000).unref?.();
 pruneOldEvents();
 void pruneUploads();
@@ -884,12 +917,12 @@ function randomTokenHex(bytes = 32): string {
 }
 
 function persistTokenToConfigJson(nextToken: string): void {
-  if (!CONFIG_JSON_PATH) return;
+  if (!EFFECTIVE_CONFIG_JSON_PATH) return;
   try {
-    const text = Bun.file(CONFIG_JSON_PATH).textSync();
+    const text = Bun.file(EFFECTIVE_CONFIG_JSON_PATH).textSync();
     const json = JSON.parse(text) as Record<string, unknown>;
     json.token = nextToken;
-    Bun.write(CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
+    Bun.write(EFFECTIVE_CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
   } catch {
     // ignore
   }
@@ -1390,7 +1423,13 @@ const server = Bun.serve<{ role: Role }>({
           log: ANCHOR_LOG_PATH,
         },
         anchorAuth,
-        db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS, uploadDir: UPLOAD_DIR, uploadRetentionDays: UPLOAD_RETENTION_DAYS },
+        db: {
+          path: DB_PATH,
+          retentionDays: DB_RETENTION_DAYS,
+          uploadDir: UPLOAD_DIR,
+          uploadRetentionDays: UPLOAD_RETENTION_DAYS,
+          uploadPruneIntervalHours: UPLOAD_PRUNE_INTERVAL_HOURS,
+        },
         version: { appCommit: APP_COMMIT },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
@@ -1473,25 +1512,53 @@ const server = Bun.serve<{ role: Role }>({
 
     if (url.pathname === "/admin/uploads/retention" && req.method === "POST") {
       if (!authorised(req)) return unauth();
-      const body = (await req.json().catch(() => null)) as null | { retentionDays?: number };
-      const next = Number(body?.retentionDays ?? NaN);
-      if (!Number.isFinite(next) || next < 0 || next > 3650) {
-        return okJson({ error: "retentionDays must be a number between 0 and 3650" }, { status: 400 });
+      const body = (await req.json().catch(() => null)) as null | { retentionDays?: number; pruneIntervalHours?: number };
+      const hasRetention = typeof body?.retentionDays !== "undefined";
+      const hasPruneInterval = typeof body?.pruneIntervalHours !== "undefined";
+      if (!hasRetention && !hasPruneInterval) {
+        return okJson({ error: "No upload settings provided" }, { status: 400 });
       }
-      UPLOAD_RETENTION_DAYS = next;
-      if (CONFIG_JSON_PATH) {
+      if (hasRetention) {
+        const next = Number(body?.retentionDays ?? NaN);
+        if (!Number.isFinite(next) || next < 0 || next > 3650) {
+          return okJson({ error: "retentionDays must be a number between 0 and 3650" }, { status: 400 });
+        }
+        UPLOAD_RETENTION_DAYS = next;
+      }
+      if (hasPruneInterval) {
+        const intervalHours = parseUploadPruneIntervalHours(body?.pruneIntervalHours);
+        if (intervalHours === null) {
+          return okJson(
+            { error: `pruneIntervalHours must be an integer between ${MIN_UPLOAD_PRUNE_INTERVAL_HOURS} and ${MAX_UPLOAD_PRUNE_INTERVAL_HOURS}` },
+            { status: 400 }
+          );
+        }
+        UPLOAD_PRUNE_INTERVAL_HOURS = intervalHours;
+        scheduleUploadPrune();
+      }
+      if (EFFECTIVE_CONFIG_JSON_PATH) {
         try {
-          const text = Bun.file(CONFIG_JSON_PATH).textSync();
+          const text = Bun.file(EFFECTIVE_CONFIG_JSON_PATH).textSync();
           const json = JSON.parse(text) as Record<string, unknown>;
-          json.uploadRetentionDays = next;
+          json.uploadRetentionDays = UPLOAD_RETENTION_DAYS;
+          json.uploadPruneIntervalHours = UPLOAD_PRUNE_INTERVAL_HOURS;
           json.uploadDir = UPLOAD_DIR;
-          Bun.write(CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
+          Bun.write(EFFECTIVE_CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
         } catch {
           // ignore
         }
       }
-      logAdmin(`upload retention set to ${next} day(s)`);
-      return okJson({ ok: true, retentionDays: next });
+      if (hasRetention) {
+        logAdmin(`upload retention set to ${UPLOAD_RETENTION_DAYS} day(s)`);
+      }
+      if (hasPruneInterval) {
+        logAdmin(`upload retention: auto-cleanup interval set to ${UPLOAD_PRUNE_INTERVAL_HOURS} hour(s)`);
+      }
+      return okJson({
+        ok: true,
+        retentionDays: UPLOAD_RETENTION_DAYS,
+        pruneIntervalHours: UPLOAD_PRUNE_INTERVAL_HOURS,
+      });
     }
 
     if (url.pathname === "/admin/uploads/prune" && req.method === "POST") {

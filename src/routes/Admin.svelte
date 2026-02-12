@@ -15,7 +15,13 @@
     uiDistDir: string;
     anchor: { running: boolean; cwd: string; host: string; port: number; log: string };
     anchorAuth?: { status: "unknown" | "ok" | "invalid"; at?: string; code?: string; message?: string };
-    db: { path: string; retentionDays: number; uploadDir?: string; uploadRetentionDays?: number };
+    db: {
+      path: string;
+      retentionDays: number;
+      uploadDir?: string;
+      uploadRetentionDays?: number;
+      uploadPruneIntervalHours?: number;
+    };
     version?: { appCommit?: string };
   };
   type UploadStats = {
@@ -44,6 +50,7 @@
   let rotatingToken = $state(false);
   let rotatedToken = $state<string | null>(null);
   let uploadRetentionDays = $state<number>(0);
+  let uploadPruneIntervalHours = $state<number>(6);
   let uploadStats = $state<UploadStats | null>(null);
   let savingUploadRetention = $state(false);
   let cliCommands = $state<Array<{ id: string; label: string; description: string; risky?: boolean }>>([]);
@@ -91,6 +98,10 @@
         const rd = (status.db as any)?.uploadRetentionDays;
         if (typeof rd === "number" && Number.isFinite(rd)) {
           uploadRetentionDays = rd;
+        }
+        const ph = (status.db as any)?.uploadPruneIntervalHours;
+        if (typeof ph === "number" && Number.isFinite(ph)) {
+          uploadPruneIntervalHours = Math.max(1, Math.floor(ph));
         }
       } catch {
         // ignore
@@ -317,16 +328,19 @@
       const res = await fetch("/admin/uploads/retention", {
         method: "POST",
         headers,
-        body: JSON.stringify({ retentionDays: uploadRetentionDays }),
+        body: JSON.stringify({
+          retentionDays: uploadRetentionDays,
+          pruneIntervalHours: uploadPruneIntervalHours,
+        }),
       });
       if (!res.ok) {
         const t = await res.text().catch(() => "");
         throw new Error(t || `save failed (${res.status})`);
       }
-      stampAction("success", "Upload retention saved");
+      stampAction("success", "Upload settings saved");
     } catch (e) {
-      statusError = e instanceof Error ? e.message : "Failed to save upload retention";
-      stampAction("error", "Upload retention save failed");
+      statusError = e instanceof Error ? e.message : "Failed to save upload settings";
+      stampAction("error", "Upload settings save failed");
     } finally {
       savingUploadRetention = false;
       await loadStatus();
@@ -642,6 +656,8 @@
 
             <div class="k">Upload retention</div>
             <div class="v">{(status.db.uploadRetentionDays ?? uploadRetentionDays)} day(s) ({(status.db.uploadRetentionDays ?? uploadRetentionDays) === 0 ? "keep forever" : "auto-clean"})</div>
+            <div class="k">Auto cleanup cadence</div>
+            <div class="v">every {(status.db.uploadPruneIntervalHours ?? uploadPruneIntervalHours)} hour(s)</div>
           </div>
 
         <div class="row buttons">
@@ -806,6 +822,16 @@
             bind:value={uploadRetentionDays}
           />
           <p class="hint" id="upload-retention-help">0 = keep uploads forever. Cleanup runs periodically on the Mac (and you can run it manually).</p>
+          <label for="upload-prune-interval">auto cleanup interval (hours)</label>
+          <input
+            id="upload-prune-interval"
+            type="number"
+            min="1"
+            max="168"
+            aria-describedby="upload-prune-interval-help"
+            bind:value={uploadPruneIntervalHours}
+          />
+          <p class="hint" id="upload-prune-interval-help">Valid range is 1 to 168 hours (weekly max).</p>
           <div class="row buttons">
             <button type="button" onclick={saveUploadRetention} disabled={!auth.token || savingUploadRetention}>
               {savingUploadRetention ? "Saving..." : "Save"}
