@@ -1,5 +1,8 @@
 <script lang="ts">
   import AppHeader from "../lib/components/AppHeader.svelte";
+  import DangerZone from "../lib/components/system/DangerZone.svelte";
+  import SectionCard from "../lib/components/system/SectionCard.svelte";
+  import StatusChip from "../lib/components/system/StatusChip.svelte";
   import { socket } from "../lib/socket.svelte";
   import { theme } from "../lib/theme.svelte";
   import { auth } from "../lib/auth.svelte";
@@ -473,11 +476,7 @@
   </AppHeader>
 
   <div class="content stack">
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Admin</span>
-      </div>
-      <div class="section-body stack">
+    <SectionCard title="Admin" subtitle="System status and core operations">
         {#if statusError}
           <p class="hint hint-error">{statusError}</p>
         {/if}
@@ -485,6 +484,14 @@
         {#if !status}
           <p class="hint">Loading...</p>
         {:else}
+          <div class="row">
+            <StatusChip tone={status.anchor.running ? "success" : "warning"}>
+              Anchor {status.anchor.running ? "running" : "stopped"}
+            </StatusChip>
+            <StatusChip tone={status.anchorAuth?.status === "invalid" ? "error" : status.anchorAuth?.status === "ok" ? "success" : "neutral"}>
+              Auth {status.anchorAuth?.status || "unknown"}
+            </StatusChip>
+          </div>
           <div class="kv">
             <div class="k">Server</div>
             <div class="v">{status.server.host}:{status.server.port}</div>
@@ -568,14 +575,9 @@
           </div>
         {/if}
         {/if}
-      </div>
-    </div>
+    </SectionCard>
 
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">CLI (Remote)</span>
-      </div>
-      <div class="section-body stack">
+    <SectionCard title="CLI (Remote)" subtitle="Run a limited set of safe codex-pocket commands">
         <p class="hint">Run a limited set of safe `codex-pocket` CLI commands from this page.</p>
         <div class="row buttons">
           <label class="field">
@@ -617,14 +619,9 @@
             <div class="qr"><img alt="Pairing QR code" src={cliPairQrObjectUrl} /></div>
           {/if}
         {/if}
-      </div>
-    </div>
+    </SectionCard>
 
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Pair iPhone</span>
-      </div>
-      <div class="section-body stack">
+    <SectionCard title="Pair iPhone" subtitle="Generate a short-lived code and scan on iPhone">
         <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
         {#if pairError}
           <p class="hint hint-error">{pairError}</p>
@@ -650,23 +647,13 @@
             <p class="hint hint-error">QR did not render. Open the Link above on your iPhone.</p>
           {/if}
         {/if}
-      </div>
-    </div>
+    </SectionCard>
 
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Anchor logs (tail)</span>
-      </div>
-      <div class="section-body">
+    <SectionCard title="Anchor Logs (Tail)">
         <pre class="logs">{logs || "(no logs yet)"}</pre>
-      </div>
-    </div>
+    </SectionCard>
 
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Uploads</span>
-      </div>
-      <div class="section-body stack">
+    <SectionCard title="Uploads">
         <p class="hint">Uploads are stored locally on your Mac. Default retention is permanent.</p>
 
         <div class="field stack">
@@ -693,31 +680,27 @@
         <div class="row buttons">
         </div>
         <pre class="logs">{opsLog || "(no ops logs yet)"}</pre>
-      </div>
-    </div>
+    </SectionCard>
 
-<div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Debug</span>
-      </div>
-      <div class="section-body stack">
+    <SectionCard title="Debug">
         <p class="hint">Last 50 stored events (redacted). Useful for diagnosing blank threads or protocol mismatches.</p>
         <div class="row buttons">
           <button type="button" onclick={loadDebugEvents} disabled={busy}>Refresh events</button>
           <button type="button" onclick={pruneUploadsNow} disabled={!auth.token || pruningUploads}>
             {pruningUploads ? "Pruning..." : "Run upload cleanup"}
           </button>
-          <button class="danger" type="button" onclick={rotateToken} disabled={!auth.token || rotatingToken}>
-            {rotatingToken ? "Rotating..." : "Rotate access token"}
-          </button>
+          <DangerZone>
+            <button class="danger" type="button" onclick={rotateToken} disabled={!auth.token || rotatingToken}>
+              {rotatingToken ? "Rotating..." : "Rotate access token"}
+            </button>
+          </DangerZone>
         </div>
         {#if rotatedToken}
           <p class="hint">New token copied to clipboard. You will need to sign in again on all devices.</p>
           <p><code>{rotatedToken}</code></p>
         {/if}
         <pre class="logs">{debugEvents || "(no events yet)"}</pre>
-      </div>
-    </div>
+    </SectionCard>
   </div>
 </div>
 
@@ -726,11 +709,22 @@
     min-height: 100vh;
   }
   .content {
-    padding: var(--space-lg);
-    max-width: 1000px;
+    padding: var(--space-md);
+    max-width: var(--app-max-width);
     margin: 0 auto;
     width: 100%;
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: 1fr;
   }
+
+  @media (min-width: 980px) {
+    .content {
+      grid-template-columns: 1.3fr 1fr;
+      align-items: start;
+    }
+  }
+
   .kv {
     display: grid;
     grid-template-columns: 160px 1fr;
@@ -748,6 +742,10 @@
     gap: var(--space-sm);
     flex-wrap: wrap;
     margin-top: var(--space-md);
+  }
+
+  .row :global(.danger-zone) {
+    flex: 0 0 auto;
   }
   .qr {
     margin-top: var(--space-md);
