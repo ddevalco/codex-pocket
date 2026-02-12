@@ -80,9 +80,9 @@ We track the canonical backlog in GitHub Projects:
 Codex Pocket is a focused fork for a single use case: **run Codex locally on macOS and access it securely from iPhone over Tailscale**.
 
 Key differences:
-- **No Cloudflare dependency**: Codex Pocket uses a single local server (`local-orbit`) with a shared-token auth model.
+- **No Cloudflare dependency**: Codex Pocket uses a single local server (`local-orbit`) with token-based auth (legacy access token + per-device sessions).
 - **Tailnet-first exposure**: binds to `127.0.0.1` and is designed to be exposed via `tailscale serve` to devices on your tailnet (no public internet required).
-- **Simplified auth + pairing**: one bearer **Access Token** + short-lived one-time pairing QR in `/admin`.
+- **Simplified auth + pairing**: one legacy **Access Token** for bootstrap/admin plus short-lived pairing QR that mints per-device session tokens.
 - **Installer + lifecycle UX**: one-line installer, `launchd` integration (with background fallback), and a full `codex-pocket` CLI (`doctor/summary/urls/token/start/stop/restart/status/logs/pair/open-admin/ensure/smoke-test/update`).
 - **Local persistence**: SQLite-backed event log + replay endpoints powering the Review UI.
 - **iPhone-first usability**: default Enter = newline (send via Cmd/Ctrl+Enter), plus mobile-oriented UI fixes.
@@ -114,9 +114,12 @@ This repo includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that b
 
 ## Security Model
 - You must be on the same Tailscale tailnet as the Mac.
-- A single bearer token protects the WebSocket and admin API.
-- Pairing: `/admin` can mint a short-lived one-time pairing code (shown as a QR).
-  - Scan it on iPhone to store the bearer token locally.
+- Auth supports:
+  - legacy Access Token (bootstrap/admin),
+  - per-device token sessions (create/list/revoke in `/admin`).
+- Pairing: `/admin` mints a short-lived one-time pairing code (shown as QR).
+  - Consuming the code on iPhone returns a unique per-device session token.
+  - Session tokens can be revoked individually in `/admin`.
 
 ## Why Tailscale?
 
