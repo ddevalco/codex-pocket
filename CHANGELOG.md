@@ -27,6 +27,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Docs/Repo: added `CONTRIBUTING.md` with an explicit ff-only sync policy, PR/testing expectations, and a local pre-release clean-tree check script (`scripts/ci/check-clean-tree.sh`).
 - UX: added one-tap composer quick-reply shortcuts (default `Proceed`/`Elaborate`) plus a `/settings` editor to customize and persist preset labels/text per device.
 - Settings redesign follow-up: `/settings` now uses a responsive two-column card grid on desktop (single-column mobile) with core controls prioritized above secondary account/about details.
+- Admin/Settings redesign pass: refreshed `/admin` and `/settings` visual surfaces with calmer system-console styling (improved card hierarchy, spacing, button/input treatments, and responsive two-column admin operations layout) with no behavioral/API changes.
 - Thread export/share: added `.html` export format in thread view and thread-list quick actions (alongside existing Markdown/JSON exports).
 - Security: added in-process rate limits for sensitive token-minting endpoints (`/admin/pair/new`, `/uploads/new`) with explicit `429` responses and CI smoke coverage.
 - Attachments: composer now supports multi-image selection and shows removable attachment chips; image markdown is generated automatically on send so users no longer need to edit attachment markdown manually.

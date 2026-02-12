@@ -562,7 +562,8 @@
   </AppHeader>
 
   <div class="content stack">
-    <SectionCard title="Admin" subtitle="System status and core operations">
+    <div class="panel panel-main">
+      <SectionCard title="Admin" subtitle="System status and core operations">
         {#if statusError}
           <p class="hint hint-error" role="alert">{statusError}</p>
         {/if}
@@ -681,9 +682,10 @@
           </div>
         {/if}
         {/if}
-    </SectionCard>
+      </SectionCard>
+    </div>
 
-    <details class="advanced" bind:open={showCliAdvanced}>
+    <details class="advanced panel panel-side" bind:open={showCliAdvanced}>
       <summary id="advanced-cli-summary">Advanced: Remote CLI</summary>
       <div role="region" aria-labelledby="advanced-cli-summary">
       <SectionCard title="CLI (Remote)" subtitle="Run a limited set of safe codex-pocket commands">
@@ -732,7 +734,8 @@
       </div>
     </details>
 
-    <SectionCard title="Pair iPhone" subtitle="Generate a short-lived code and scan on iPhone">
+    <div class="panel panel-side">
+      <SectionCard title="Pair iPhone" subtitle="Generate a short-lived code and scan on iPhone">
         <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
         {#if pairError}
           <p class="hint hint-error" role="alert">{pairError}</p>
@@ -758,9 +761,10 @@
             <p class="hint hint-error">QR did not render. Open the Link above on your iPhone.</p>
           {/if}
         {/if}
-    </SectionCard>
+      </SectionCard>
+    </div>
 
-    <details class="advanced" bind:open={showLogsAdvanced}>
+    <details class="advanced panel panel-main" bind:open={showLogsAdvanced}>
       <summary id="advanced-logs-summary">Advanced: Logs</summary>
       <div role="region" aria-labelledby="advanced-logs-summary">
       <SectionCard title="Anchor Logs (Tail)">
@@ -769,7 +773,8 @@
       </div>
     </details>
 
-    <SectionCard title="Uploads">
+    <div class="panel panel-main">
+      <SectionCard title="Uploads">
         <p class="hint">Uploads are stored locally on your Mac. Default retention is permanent.</p>
         {#if uploadStats}
           <div class="kv">
@@ -815,9 +820,10 @@
         <div class="row buttons">
         </div>
         <pre class="logs">{opsLog || "(no ops logs yet)"}</pre>
-    </SectionCard>
+      </SectionCard>
+    </div>
 
-    <details class="advanced" bind:open={showDebugAdvanced}>
+    <details class="advanced panel panel-side" bind:open={showDebugAdvanced}>
       <summary id="advanced-debug-summary">Advanced: Debug</summary>
       <div role="region" aria-labelledby="advanced-debug-summary">
       <SectionCard title="Debug">
@@ -853,55 +859,149 @@
 <style>
   .admin {
     min-height: 100vh;
+    background:
+      radial-gradient(1200px 520px at 8% -18%, color-mix(in srgb, var(--cli-prefix-agent) 14%, transparent), transparent 70%),
+      radial-gradient(800px 420px at 92% -30%, color-mix(in srgb, var(--cli-prefix-web) 11%, transparent), transparent 74%),
+      var(--cli-bg);
   }
+
   .content {
-    padding: var(--space-md);
-    max-width: var(--app-max-width);
+    padding: var(--space-lg) var(--space-md) var(--space-xl);
+    max-width: 1240px;
     margin: 0 auto;
     width: 100%;
     display: grid;
-    gap: var(--space-md);
+    gap: var(--space-lg);
     grid-template-columns: 1fr;
   }
 
-  @media (min-width: 980px) {
+  @media (min-width: 1040px) {
     .content {
-      grid-template-columns: 1.3fr 1fr;
+      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
       align-items: start;
     }
+
+    .panel-main {
+      grid-column: 1;
+    }
+
+    .panel-side {
+      grid-column: 2;
+    }
+  }
+
+  .panel {
+    min-width: 0;
+  }
+
+  .admin :global(.section) {
+    border-radius: 12px;
+    border-color: color-mix(in srgb, var(--cli-border) 85%, transparent);
+    background: color-mix(in srgb, var(--cli-bg-elevated) 84%, var(--cli-bg));
+    box-shadow: 0 16px 34px -30px rgba(0, 0, 0, 0.9);
+  }
+
+  .admin :global(.section-header) {
+    padding: var(--space-md) var(--space-md) var(--space-sm);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cli-bg-elevated) 75%, var(--cli-bg)),
+      color-mix(in srgb, var(--cli-bg) 88%, transparent)
+    );
+  }
+
+  .admin :global(.section-title) {
+    font-size: 0.69rem;
+    letter-spacing: 0.11em;
+  }
+
+  .admin :global(.section-body) {
+    --stack-gap: var(--space-md);
+    padding: var(--space-md);
   }
 
   .kv {
     display: grid;
-    grid-template-columns: 160px 1fr;
+    grid-template-columns: minmax(140px, 178px) 1fr;
     gap: var(--space-sm) var(--space-md);
     font-family: var(--font-mono);
-    font-size: 13px;
+    font-size: 0.79rem;
+    line-height: 1.5;
   }
+
   .k {
-    opacity: 0.7;
+    color: var(--cli-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.65rem;
+    padding-top: 3px;
   }
+
+  .v {
+    min-width: 0;
+    color: var(--cli-text);
+  }
+
   .v code {
     word-break: break-all;
+    padding: 0.08rem 0.35rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--cli-bg-hover) 65%, transparent);
   }
+
   .buttons {
     gap: var(--space-sm);
     flex-wrap: wrap;
-    margin-top: var(--space-md);
+    margin-top: var(--space-sm);
+  }
+
+  button,
+  .admin a[href]:not(.brand) {
+    border-radius: 7px;
+  }
+
+  button {
+    padding: 0.45rem 0.72rem;
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in srgb, var(--cli-bg-elevated) 85%, transparent);
+    color: var(--cli-text);
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+  }
+
+  button:hover:enabled {
+    border-color: color-mix(in srgb, var(--cli-prefix-agent) 38%, var(--cli-border));
+    background: color-mix(in srgb, var(--cli-bg-hover) 60%, var(--cli-bg-elevated));
+  }
+
+  button:disabled {
+    opacity: 0.56;
+    cursor: not-allowed;
+  }
+
+  button.primary {
+    border-color: color-mix(in srgb, var(--cli-prefix-agent) 46%, var(--cli-border));
+    background: color-mix(in srgb, var(--cli-prefix-agent) 20%, var(--cli-bg-elevated));
   }
 
   .advanced {
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
-    background: var(--cli-bg);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 12px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--cli-bg-elevated) 84%, var(--cli-bg));
+    box-shadow: 0 14px 30px -28px rgba(0, 0, 0, 0.85);
   }
 
   .advanced > summary {
     cursor: pointer;
-    padding: var(--space-sm) var(--space-md);
-    font-family: var(--font-sans);
-    font-size: var(--text-xs);
-    color: var(--cli-text-dim);
+    padding: 0.78rem var(--space-md);
+    font-family: var(--font-mono);
+    font-size: 0.71rem;
+    color: var(--cli-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
     list-style: none;
     border-bottom: 1px solid transparent;
   }
@@ -914,7 +1014,7 @@
 
   .advanced[open] > summary {
     border-bottom-color: var(--cli-border);
-    background: var(--cli-bg-elevated);
+    background: color-mix(in srgb, var(--cli-bg-hover) 45%, var(--cli-bg-elevated));
   }
 
   button:focus-visible,
@@ -938,31 +1038,35 @@
     height: 260px;
     image-rendering: pixelated;
     border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    border-radius: 10px;
     background: #fff;
-    padding: 6px;
+    padding: 8px;
   }
+
   .danger {
-    background: #5d1b1b;
-    border: 1px solid #a33;
-    color: #fff;
+    border-color: color-mix(in srgb, var(--cli-error) 55%, var(--cli-border));
+    color: color-mix(in srgb, var(--cli-error) 75%, var(--cli-text));
+    background: color-mix(in srgb, var(--cli-error) 18%, var(--cli-bg-elevated));
   }
+
   .logs {
     max-height: 400px;
     overflow: auto;
-    background: rgba(0, 0, 0, 0.35);
+    background: color-mix(in srgb, var(--cli-bg) 84%, #000 16%);
     padding: var(--space-md);
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    line-height: 1.45;
+    font-size: 0.76rem;
   }
 
   .field input {
     width: 100%;
     padding: var(--space-sm);
-    background: var(--cli-bg);
+    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
     color: var(--cli-text);
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 8px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
   }
@@ -970,10 +1074,10 @@
   .field select {
     width: 100%;
     padding: var(--space-sm);
-    background: var(--cli-bg);
+    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
     color: var(--cli-text);
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 8px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
   }
@@ -998,8 +1102,7 @@
   }
 
   .hint-ok {
-    border-color: #2c8a5a;
-    color: #9be3bf;
+    color: color-mix(in srgb, var(--cli-success) 72%, var(--cli-text));
   }
 
   .auth-bad {
@@ -1008,7 +1111,7 @@
   }
 
   .auth-ok {
-    color: #2c8a5a;
+    color: var(--cli-success);
     font-weight: 600;
   }
 
@@ -1022,12 +1125,12 @@
     gap: var(--space-sm);
     align-items: baseline;
     font-family: var(--font-mono);
-    font-size: 13px;
+    font-size: 0.78rem;
   }
 
   .dot {
     font-size: 10px;
-    color: #2c8a5a;
+    color: var(--cli-success);
   }
   .dot.bad {
     color: var(--cli-error);
@@ -1036,25 +1139,47 @@
   .check-detail {
     margin: 0;
     padding: var(--space-sm);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--cli-bg) 84%, #000 16%);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    border-radius: 8px;
     max-height: 200px;
     overflow: auto;
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 
   .cli-output {
     margin: 0;
     padding: var(--space-sm);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--cli-bg) 84%, #000 16%);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    border-radius: 8px;
     max-height: 260px;
     overflow: auto;
-    font-size: 12px;
+    font-size: 0.75rem;
     white-space: pre-wrap;
   }
+
+  .hint {
+    color: var(--cli-text-muted);
+    line-height: 1.55;
+  }
+
+  @media (max-width: 660px) {
+    .content {
+      padding: var(--space-md) var(--space-sm) var(--space-lg);
+      gap: var(--space-md);
+    }
+
+    .kv {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+
+    .k {
+      padding-top: 0;
+    }
+  }
+
   .sr-only {
     position: absolute;
     width: 1px;
