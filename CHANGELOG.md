@@ -42,6 +42,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Security: token sessions now support `read_only` mode; read-only sessions are blocked from write HTTP actions and WebSocket upgrades.
 - Pairing/Security: `/admin/pair/new` now mints a unique token session per pairing code instead of reusing the legacy shared token.
 - Docs: updated README/Admin/Security/Protocol docs to reflect token-session auth, read-only mode, and per-device pairing tokens.
+- Security: read-only token sessions can now connect to WebSocket for live reads, while mutating client RPC methods are denied with explicit errors.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).

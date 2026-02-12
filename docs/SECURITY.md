@@ -25,7 +25,7 @@ Codex Pocket gives remote control of a local Codex session. Treat it like remote
 - Token sessions can be created/listed/revoked from `/admin`.
 - Token session mode:
   - `full`: normal read/write access
-  - `read_only`: read-only HTTP access; write endpoints and websocket upgrades are denied
+  - `read_only`: read-only HTTP access; write endpoints are denied and mutating websocket RPC calls are denied
 
 ### Pairing
 - Pairing uses a short-lived, one-time code.

@@ -1052,12 +1052,6 @@ function authorised(req: Request): boolean {
   return method === "GET" || method === "HEAD";
 }
 
-function canWrite(ctx: AuthContext): boolean {
-  if (!ctx.ok) return false;
-  if (ctx.mode === "legacy") return true;
-  return ctx.sessionMode !== "read_only";
-}
-
 function randomTokenHex(bytes = 32): string {
   const buf = new Uint8Array(bytes);
   crypto.getRandomValues(buf);
@@ -1199,6 +1193,26 @@ function extractTurnId(message: Record<string, unknown>): string | null {
 
 function extractMethod(message: Record<string, unknown>): string | null {
   return typeof (message as any).method === "string" ? ((message as any).method as string) : null;
+}
+
+function isReadOnlySafeRpcMethod(method: string): boolean {
+  const m = method.trim().toLowerCase();
+  if (!m) return false;
+  const explicit = new Set([
+    "thread/list",
+    "thread/read",
+    "thread/get",
+    "thread/messages",
+    "thread/events",
+    "thread/history",
+    "model/list",
+    "models/list",
+    "health",
+    "status",
+  ]);
+  if (explicit.has(m)) return true;
+  if (m.endsWith("/list") || m.endsWith("/get") || m.endsWith("/read") || m.endsWith("/status")) return true;
+  return false;
 }
 
 function logEvent(direction: "client" | "server", role: Role, messageText: string): void {
@@ -2124,7 +2138,6 @@ const server = Bun.serve<WsData>({
     if (url.pathname === "/ws") {
       const ctx = authContext(req);
       if (!ctx.ok) return new Response("Unauthorised", { status: 401 });
-      if (!canWrite(ctx)) return new Response("Forbidden for read-only token session", { status: 403 });
       const data: WsData = {
         role: "client",
         authSource: ctx.mode,
@@ -2137,7 +2150,6 @@ const server = Bun.serve<WsData>({
     if (url.pathname === "/ws/client" || url.pathname === "/ws/anchor") {
       const ctx = authContext(req);
       if (!ctx.ok) return new Response("Unauthorised", { status: 401 });
-      if (!canWrite(ctx)) return new Response("Forbidden for read-only token session", { status: 403 });
       const role: Role = url.pathname.endsWith("/anchor") ? "anchor" : "client";
       const anchorId =
         role === "anchor" ? (url.searchParams.get("anchorId") || url.searchParams.get("anchor_id")) : null;
@@ -2281,6 +2293,27 @@ const server = Bun.serve<WsData>({
           broadcastToClients({ type: "orbit.anchor-auth", ...anchorAuth });
         }
         return;
+      }
+
+      if (role === "client" && ws.data.authScope === "read_only" && obj) {
+        const method = extractMethod(obj);
+        if (method && !isReadOnlySafeRpcMethod(method)) {
+          const requestId = (obj as any).id;
+          const errorPayload = {
+            code: -32003,
+            message: `Read-only token session cannot call ${method}`,
+          };
+          if (typeof requestId === "string" || typeof requestId === "number" || requestId === null) {
+            send(ws, {
+              jsonrpc: "2.0",
+              id: requestId,
+              error: errorPayload,
+            });
+          } else {
+            send(ws, { type: "orbit.error", error: errorPayload.message });
+          }
+          return;
+        }
       }
 
       await relay(role, text);
