@@ -44,6 +44,8 @@ These are JSON objects with a `type` field.
 
 - `{ "type": "anchor.hello", "hostname": "...", "platform": "...", "ts": "..." }`
   - Announces anchor identity.
+- `{ "type": "orbit.anchor-auth", "status": "unknown"|"ok"|"invalid", "at": "...", "code": "...", "message": "..." }`
+  - Reports upstream auth status (e.g., when Codex app-server token is invalidated).
 
 ### local-orbit -> Client
 
@@ -51,6 +53,7 @@ These are JSON objects with a `type` field.
 - `{ "type": "orbit.anchors", "anchors": [ ... ] }`
 - `{ "type": "orbit.anchor-connected", "anchor": { ... } }`
 - `{ "type": "orbit.anchor-disconnected", "anchor": { ... } }`
+- `{ "type": "orbit.anchor-auth", "status": "unknown"|"ok"|"invalid", "at": "...", "code": "...", "message": "..." }`
 
 ### local-orbit -> Anchor
 

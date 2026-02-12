@@ -619,6 +619,25 @@ cmd_diagnose() {
     echo "health: FAILED (try: codex-pocket restart)"
   fi
 
+  local status_json
+  status_json="$(curl_auth "$base/admin/status" 2>/dev/null || true)"
+  if [[ -n "${status_json:-}" ]]; then
+    python3 - <<'PY' <<<"$status_json"
+import json,sys
+try:
+  d=json.load(sys.stdin)
+except Exception:
+  sys.exit(0)
+auth=(d.get("anchorAuth") or {})
+status=auth.get("status")
+if status=="invalid":
+  code=auth.get("code") or "unknown"
+  at=auth.get("at") or ""
+  print(f"anchor auth: INVALID ({code}) {('at '+at) if at else ''}".strip())
+  print("  hint: re-login in Codex desktop, then run: codex-pocket restart")
+PY
+  fi
+
   echo ""
   echo "${bold}Ports${reset}"
   if command -v lsof >/dev/null 2>&1; then

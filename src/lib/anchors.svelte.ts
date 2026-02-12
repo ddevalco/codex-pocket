@@ -12,9 +12,19 @@ interface AnchorInfo {
 
 type AnchorStatus = "unknown" | "checking" | "connected" | "none";
 
+type AnchorAuthStatus = "unknown" | "ok" | "invalid";
+
+type AnchorAuthState = {
+  status: AnchorAuthStatus;
+  at?: string;
+  code?: string;
+  message?: string;
+};
+
 class AnchorsStore {
   list = $state<AnchorInfo[]>([]);
   status = $state<AnchorStatus>("unknown");
+  auth = $state<AnchorAuthState>({ status: "unknown" });
   #checkTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
@@ -55,6 +65,16 @@ class AnchorsStore {
           this.list = this.list.filter((a) => a.id !== anchorId);
         }
         this.status = this.list.length ? "connected" : "none";
+      } else if (msg.type === "orbit.anchor-auth") {
+        const status = (msg.status as AnchorAuthStatus) || "unknown";
+        if (status === "unknown" || status === "ok" || status === "invalid") {
+          this.auth = {
+            status,
+            at: typeof msg.at === "string" ? msg.at : this.auth.at,
+            code: typeof msg.code === "string" ? msg.code : this.auth.code,
+            message: typeof msg.message === "string" ? msg.message : this.auth.message,
+          };
+        }
       }
     });
   }

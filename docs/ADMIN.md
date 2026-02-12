@@ -4,6 +4,7 @@ Open `/admin` in the browser.
 
 ## What it shows
 - Service status (UI dist, DB path/retention, anchor status)
+- Anchor auth status (detects when the upstream Codex app-server token is invalid)
 - Anchor log stream
 
 ## Pair iPhone
