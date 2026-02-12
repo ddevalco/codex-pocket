@@ -22,6 +22,8 @@
   let logs = $state<string>("");
   let pair = $state<{ code: string; pairUrl: string; expiresAt: number } | null>(null);
   let pairQrObjectUrl = $state<string>("");
+  let cliPairUrl = $state<string>("");
+  let cliPairQrObjectUrl = $state<string>("");
   let autoPairTried = $state(false);
   let debugEvents = $state<string>("");
   let opsLog = $state<string>("");
@@ -136,6 +138,11 @@
     cliRunning = true;
     cliError = null;
     cliOutput = "";
+    cliPairUrl = "";
+    if (cliPairQrObjectUrl) {
+      URL.revokeObjectURL(cliPairQrObjectUrl);
+      cliPairQrObjectUrl = "";
+    }
     try {
       const headers: Record<string, string> = { "content-type": "application/json" };
       if (auth.token) headers.authorization = `Bearer ${auth.token}`;
@@ -158,10 +165,34 @@
         .filter(Boolean)
         .join(" ");
       cliOutput = `${summary}\n${data?.output ?? ""}`.trim();
+      if (cliSelected === "pair") {
+        const match = cliOutput.match(/https?:\/\/\S+/i);
+        if (match?.[0]) {
+          cliPairUrl = match[0];
+          const codeMatch = cliPairUrl.match(/[?&]code=([^&]+)/i);
+          if (codeMatch?.[1]) {
+            await updateCliPairQr(decodeURIComponent(codeMatch[1]));
+          }
+        }
+      }
     } catch (e) {
       cliError = e instanceof Error ? e.message : "Failed to run command";
     } finally {
       cliRunning = false;
+    }
+  }
+
+  async function updateCliPairQr(code: string) {
+    try {
+      const headers: Record<string, string> = {};
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch(`/admin/pair/qr.svg?code=${encodeURIComponent(code)}`, { headers });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      if (cliPairQrObjectUrl) URL.revokeObjectURL(cliPairQrObjectUrl);
+      cliPairQrObjectUrl = URL.createObjectURL(blob);
+    } catch {
+      // ignore
     }
   }
 
@@ -399,6 +430,7 @@
     // Cleanup object URL on component teardown.
     return () => {
       if (pairQrObjectUrl) URL.revokeObjectURL(pairQrObjectUrl);
+      if (cliPairQrObjectUrl) URL.revokeObjectURL(cliPairQrObjectUrl);
     };
   });
 
@@ -556,6 +588,15 @@
         {/if}
         {#if cliOutput}
           <pre class="cli-output">{cliOutput}</pre>
+        {/if}
+        {#if cliPairUrl}
+          <div class="kv" style="margin-top: var(--space-md);">
+            <div class="k">Pair link</div>
+            <div class="v"><a href={cliPairUrl}>{cliPairUrl}</a></div>
+          </div>
+          {#if cliPairQrObjectUrl}
+            <div class="qr"><img alt="Pairing QR code" src={cliPairQrObjectUrl} /></div>
+          {/if}
         {/if}
       </div>
     </div>
