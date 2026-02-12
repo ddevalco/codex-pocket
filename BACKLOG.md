@@ -21,6 +21,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Fixed `ensure`/`smoke-test` validation parsing to avoid false failures.
 - CLI now validates `config.json` early (avoids Python stack traces when config is missing/empty/corrupt).
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.
+- Update-flow regression script now validates stale-listener cleanup behavior on configured ports (with default-port guard when available).
 
 - `index.html` is now served with `Cache-Control: no-store` to reduce cached broken bundle issues.
 - UI now shows build metadata (commit/time) and server shows app commit in /health + /admin/status.
