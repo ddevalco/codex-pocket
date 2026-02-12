@@ -510,7 +510,12 @@
   <AppHeader status={socket.status}>
     {#snippet actions()}
       <a href="/settings">Settings</a>
-      <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
+      <button
+        type="button"
+        onclick={() => theme.cycle()}
+        title="Theme: {theme.current}"
+        aria-label={`Cycle theme (current: ${theme.current})`}
+      >
         {theme.current}
       </button>
     {/snippet}
@@ -519,10 +524,15 @@
   <div class="content stack">
     <SectionCard title="Admin" subtitle="System status and core operations">
         {#if statusError}
-          <p class="hint hint-error">{statusError}</p>
+          <p class="hint hint-error" role="alert">{statusError}</p>
         {/if}
+        <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {#if lastAction}
+            {lastAction.label} at {formatActionTime(lastAction.at)}
+          {/if}
+        </p>
         {#if lastAction}
-          <div class="row">
+          <div class="row" aria-hidden="true">
             <StatusChip tone={lastAction.tone}>
               {lastAction.label} at {formatActionTime(lastAction.at)}
             </StatusChip>
@@ -600,13 +610,21 @@
           <button type="button" onclick={runRepair} disabled={!auth.token || repairing}>
             {repairing ? "Repairing..." : "Repair"}
           </button>
-          <button class="danger" type="button" onclick={stopAnchor} disabled={busy || !status.anchor.running}>Stop anchor</button>
+          <button
+            class="danger"
+            type="button"
+            onclick={stopAnchor}
+            disabled={busy || !status.anchor.running}
+            aria-label="Stop anchor service (disruptive action)"
+          >
+            Stop anchor
+          </button>
           <button type="button" onclick={loadLogs} disabled={busy}>Refresh logs</button>
         </div>
 
         {#if validateResp?.checks}
           <div class="validate stack">
-            <div class="hint {validateResp.ok ? "hint-ok" : "hint-error"}">
+            <div class="hint {validateResp.ok ? "hint-ok" : "hint-error"}" role="status" aria-live="polite" aria-atomic="true">
               {validateResp.ok ? "Validate: OK" : "Validate: issues detected"}
             </div>
             <div class="checks">
@@ -626,13 +644,14 @@
     </SectionCard>
 
     <details class="advanced" bind:open={showCliAdvanced}>
-      <summary>Advanced: Remote CLI</summary>
+      <summary id="advanced-cli-summary">Advanced: Remote CLI</summary>
+      <div role="region" aria-labelledby="advanced-cli-summary">
       <SectionCard title="CLI (Remote)" subtitle="Run a limited set of safe codex-pocket commands">
         <p class="hint">Run a limited set of safe `codex-pocket` CLI commands from this page.</p>
         <div class="row buttons">
           <label class="field">
             <span>Command</span>
-            <select bind:value={cliSelected} disabled={cliRunning || cliCommands.length === 0}>
+            <select id="cli-command" bind:value={cliSelected} disabled={cliRunning || cliCommands.length === 0}>
               {#each cliCommands as cmd (cmd.id)}
                 <option value={cmd.id}>
                   {cmd.label}{cmd.risky ? " (disruptive)" : ""}
@@ -655,7 +674,7 @@
           {/each}
         {/if}
         {#if cliError}
-          <p class="hint hint-error">{cliError}</p>
+          <p class="hint hint-error" role="alert">{cliError}</p>
         {/if}
         {#if cliOutput}
           <pre class="cli-output">{cliOutput}</pre>
@@ -670,12 +689,13 @@
           {/if}
         {/if}
       </SectionCard>
+      </div>
     </details>
 
     <SectionCard title="Pair iPhone" subtitle="Generate a short-lived code and scan on iPhone">
         <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
         {#if pairError}
-          <p class="hint hint-error">{pairError}</p>
+          <p class="hint hint-error" role="alert">{pairError}</p>
         {/if}
         <div class="row buttons">
           <button class="primary" type="button" onclick={newPair} disabled={!auth.token}>Regenerate pairing code</button>
@@ -701,10 +721,12 @@
     </SectionCard>
 
     <details class="advanced" bind:open={showLogsAdvanced}>
-      <summary>Advanced: Logs</summary>
+      <summary id="advanced-logs-summary">Advanced: Logs</summary>
+      <div role="region" aria-labelledby="advanced-logs-summary">
       <SectionCard title="Anchor Logs (Tail)">
-        <pre class="logs">{logs || "(no logs yet)"}</pre>
+        <pre class="logs" aria-label="Anchor logs tail">{logs || "(no logs yet)"}</pre>
       </SectionCard>
+      </div>
     </details>
 
     <SectionCard title="Uploads">
@@ -717,9 +739,10 @@
             type="number"
             min="0"
             max="3650"
+            aria-describedby="upload-retention-help"
             bind:value={uploadRetentionDays}
           />
-          <p class="hint">0 = keep uploads forever. Cleanup runs periodically on the Mac (and you can run it manually).</p>
+          <p class="hint" id="upload-retention-help">0 = keep uploads forever. Cleanup runs periodically on the Mac (and you can run it manually).</p>
           <div class="row buttons">
             <button type="button" onclick={saveUploadRetention} disabled={!auth.token || savingUploadRetention}>
               {savingUploadRetention ? "Saving..." : "Save"}
@@ -737,7 +760,8 @@
     </SectionCard>
 
     <details class="advanced" bind:open={showDebugAdvanced}>
-      <summary>Advanced: Debug</summary>
+      <summary id="advanced-debug-summary">Advanced: Debug</summary>
+      <div role="region" aria-labelledby="advanced-debug-summary">
       <SectionCard title="Debug">
         <p class="hint">Last 50 stored events (redacted). Useful for diagnosing blank threads or protocol mismatches.</p>
         <div class="row buttons">
@@ -746,17 +770,24 @@
             {pruningUploads ? "Pruning..." : "Run upload cleanup"}
           </button>
           <DangerZone>
-            <button class="danger" type="button" onclick={rotateToken} disabled={!auth.token || rotatingToken}>
+            <button
+              class="danger"
+              type="button"
+              onclick={rotateToken}
+              disabled={!auth.token || rotatingToken}
+              aria-label="Rotate access token (disruptive action)"
+            >
               {rotatingToken ? "Rotating..." : "Rotate access token"}
             </button>
           </DangerZone>
         </div>
         {#if rotatedToken}
-          <p class="hint">New token copied to clipboard. You will need to sign in again on all devices.</p>
+          <p class="hint" role="status" aria-live="polite">New token copied to clipboard. You will need to sign in again on all devices.</p>
           <p><code>{rotatedToken}</code></p>
         {/if}
-        <pre class="logs">{debugEvents || "(no events yet)"}</pre>
+        <pre class="logs" aria-label="Debug events">{debugEvents || "(no events yet)"}</pre>
       </SectionCard>
+      </div>
     </details>
   </div>
 </div>
@@ -817,9 +848,23 @@
     border-bottom: 1px solid transparent;
   }
 
+  .advanced > summary:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
+    border-bottom-color: var(--cli-border);
+  }
+
   .advanced[open] > summary {
     border-bottom-color: var(--cli-border);
     background: var(--cli-bg-elevated);
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
   }
 
   .row :global(.danger-zone) {
@@ -951,6 +996,17 @@
     overflow: auto;
     font-size: 12px;
     white-space: pre-wrap;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
   .dim { color: var(--cli-text-dim); }
 </style>
