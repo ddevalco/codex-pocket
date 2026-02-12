@@ -24,6 +24,8 @@
     oldestAt: string | null;
     newestAt: string | null;
     lastPruneAt: string | null;
+    lastPruneMessage: string | null;
+    lastPruneSource: "manual" | "scheduled" | "unknown" | null;
   };
 
   let status = $state<Status | null>(null);
@@ -781,6 +783,10 @@
             <div class="v">{uploadStats.newestAt ? new Date(uploadStats.newestAt).toLocaleString() : "n/a"}</div>
             <div class="k">Last prune activity</div>
             <div class="v">{uploadStats.lastPruneAt ? new Date(uploadStats.lastPruneAt).toLocaleString() : "n/a"}</div>
+            <div class="k">Last prune source</div>
+            <div class="v">{uploadStats.lastPruneSource || "n/a"}</div>
+            <div class="k">Last prune detail</div>
+            <div class="v">{uploadStats.lastPruneMessage || "n/a"}</div>
           </div>
         {/if}
 

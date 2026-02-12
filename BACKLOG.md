@@ -48,6 +48,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Upload retention visibility: `/admin` now shows upload footprint stats (size, file count, oldest/newest, and last prune activity).
 - Thread export/share polish: added PDF export action (print-to-PDF) in thread view + thread-list quick actions.
 - Backlog hygiene: removed stale completed P1 items (admin redesign parent + thread activity indicator polish) so active sections stay actionable.
+- Upload retention reporting: `/admin/uploads/stats` now includes last prune detail/source (manual/scheduled/unknown), shown in Admin Uploads UI.
 
 ## P0 (Stability)
 
