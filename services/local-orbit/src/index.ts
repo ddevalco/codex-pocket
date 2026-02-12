@@ -64,6 +64,12 @@ const AUTOSTART_ANCHOR = process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
 // Prefer an explicit env override, otherwise fall back to the machine hostname.
 const ANCHOR_ID = (process.env.ZANE_LOCAL_ANCHOR_ID ?? hostname()).trim() || "anchor";
 const PAIR_TTL_SEC = Number(process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
+const CLI_BIN =
+  process.env.ZANE_LOCAL_CLI_BIN?.trim() ||
+  `${homedir()}/.codex-pocket/bin/codex-pocket`;
+
+const CLI_OUTPUT_LIMIT = Number(process.env.ZANE_LOCAL_CLI_OUTPUT_LIMIT ?? 20000);
+const CLI_TIMEOUT_MS = Number(process.env.ZANE_LOCAL_CLI_TIMEOUT_MS ?? 90_000);
 
 const DEFAULT_CONFIG_JSON_PATH = join(homedir(), ".codex-pocket", "config.json");
 
@@ -132,6 +138,27 @@ type DiagnoseCheck = {
   ok: boolean;
   summary: string;
   detail?: string;
+};
+
+type CliCommandId =
+  | "status"
+  | "diagnose"
+  | "restart"
+  | "start"
+  | "stop"
+  | "ensure"
+  | "self-test"
+  | "smoke-test"
+  | "logs-server"
+  | "logs-anchor"
+  | "urls";
+
+type CliCommand = {
+  id: CliCommandId;
+  label: string;
+  args: string[];
+  description: string;
+  risky?: boolean;
 };
 
 function okJson(body: unknown, init: ResponseInit = {}): Response {
@@ -226,6 +253,146 @@ function runCmd(cmd: string, args: string[], timeoutMs = 2500): { ok: boolean; o
 function parseServeMentionsTarget(out: string, target: string): boolean {
   // Very loose check; output formats vary across Tailscale versions.
   return out.includes(target);
+}
+
+const CLI_COMMANDS: CliCommand[] = [
+  {
+    id: "status",
+    label: "Status",
+    args: ["status"],
+    description: "Fetch /admin/status JSON.",
+  },
+  {
+    id: "diagnose",
+    label: "Diagnose",
+    args: ["diagnose"],
+    description: "One-shot diagnostics (health, ports, tailscale, logs).",
+  },
+  {
+    id: "ensure",
+    label: "Ensure",
+    args: ["ensure"],
+    description: "Best-effort self-heal (validate + safe repairs).",
+  },
+  {
+    id: "self-test",
+    label: "Self-test",
+    args: ["self-test"],
+    description: "Stricter smoke tests (WS relay + events).",
+  },
+  {
+    id: "smoke-test",
+    label: "Smoke test",
+    args: ["smoke-test"],
+    description: "Fast health + admin checks.",
+  },
+  {
+    id: "logs-server",
+    label: "Logs: server",
+    args: ["logs", "server"],
+    description: "Tail server logs.",
+  },
+  {
+    id: "logs-anchor",
+    label: "Logs: anchor",
+    args: ["logs", "anchor"],
+    description: "Tail anchor logs.",
+  },
+  {
+    id: "urls",
+    label: "URLs",
+    args: ["urls"],
+    description: "Print local and tailnet URLs.",
+  },
+  {
+    id: "pair",
+    label: "Pair",
+    args: ["pair"],
+    description: "Mint a short-lived pairing link (prints the URL).",
+  },
+  {
+    id: "open-admin",
+    label: "Open Admin",
+    args: ["open-admin"],
+    description: "Open the Admin UI on the Mac (best-effort).",
+    risky: true,
+  },
+  {
+    id: "start",
+    label: "Start service",
+    args: ["start"],
+    description: "Start the service via launchd (or background fallback).",
+  },
+  {
+    id: "stop",
+    label: "Stop service",
+    args: ["stop"],
+    description: "Stop the service (may disconnect this admin session).",
+    risky: true,
+  },
+  {
+    id: "restart",
+    label: "Restart service",
+    args: ["restart"],
+    description: "Restart the service (this session may disconnect).",
+    risky: true,
+  },
+];
+
+function findCliCommand(id: string): CliCommand | null {
+  const cmd = CLI_COMMANDS.find((c) => c.id === id);
+  return cmd ?? null;
+}
+
+async function runCliCommand(cmd: CliCommand): Promise<{
+  ok: boolean;
+  exitCode: number | null;
+  timedOut: boolean;
+  output: string;
+  command: string;
+}> {
+  const bin = CLI_BIN;
+  const command = [bin, ...cmd.args].join(" ");
+  try {
+    const proc = Bun.spawn({
+      cmd: [bin, ...cmd.args],
+      stdout: "pipe",
+      stderr: "pipe",
+      stdin: "ignore",
+    });
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      try {
+        proc.kill("SIGKILL");
+      } catch {
+        // ignore
+      }
+    }, CLI_TIMEOUT_MS);
+    const [outBuf, errBuf] = await Promise.all([
+      new Response(proc.stdout).arrayBuffer(),
+      new Response(proc.stderr).arrayBuffer(),
+    ]);
+    clearTimeout(timeout);
+    const out = `${Buffer.from(outBuf).toString()}\n${Buffer.from(errBuf).toString()}`.trim();
+    const limited = out.length > CLI_OUTPUT_LIMIT ? out.slice(0, CLI_OUTPUT_LIMIT) + "\n…(truncated)" : out;
+    const exitCode = proc.exitCode ?? null;
+    return {
+      ok: exitCode === 0,
+      exitCode,
+      timedOut,
+      output: limited,
+      command,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      exitCode: null,
+      timedOut: false,
+      output: err instanceof Error ? err.message : "failed to run command",
+      command,
+    };
+  }
 }
 
 function fixTailscaleServe(): { ok: boolean; detail: string } {
@@ -1448,6 +1615,25 @@ const server = Bun.serve<{ role: Role }>({
       if (!authorised(req)) return unauth();
       const res = stopAnchor();
       return okJson(res, { status: res.ok ? 200 : 500 });
+    }
+
+    if (url.pathname === "/admin/cli/commands" && method === "GET") {
+      if (!authorised(req)) return unauth();
+      return okJson({ commands: CLI_COMMANDS });
+    }
+
+    if (url.pathname === "/admin/cli/run" && req.method === "POST") {
+      if (!authorised(req)) return unauth();
+      const body = (await req.json().catch(() => null)) as null | { id?: string };
+      const id = (body?.id ?? "").trim();
+      const cmd = findCliCommand(id);
+      if (!cmd) return okJson({ error: "unknown command" }, { status: 400 });
+      if (!existsSync(CLI_BIN)) {
+        return okJson({ error: `cli not found at ${CLI_BIN}` }, { status: 500 });
+      }
+      logAdmin(`cli: run ${cmd.id}`);
+      const result = await runCliCommand(cmd);
+      return okJson(result, { status: result.ok ? 200 : 500 });
     }
 
     if (url.pathname === "/admin/logs" && method === "GET") {
