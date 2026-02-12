@@ -40,9 +40,18 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 
 ## P1 (UX)
 
+- Admin UI redesign (Issue #25):
+  - Implement the system-settings style overhaul described in `docs/ADMIN_REDESIGN_PROPOSAL.md`.
+  - Prioritize status clarity, progressive disclosure, and mobile usability.
 - Thread activity indicator (idle/working/blocked) polish:
   - Ensure it is visible on mobile.
   - Add a legend or tooltip.
+- Composer quick-reply shortcuts:
+  - Add one-tap preset replies (for example: "Proceed", "Elaborate").
+  - Allow users to customize the shortcut labels/text in settings.
+- Settings UI redesign:
+  - Rework `/settings` into a clearer, more modern layout with stronger visual hierarchy.
+  - Align styling/components with the Admin refresh so both surfaces feel consistent.
 - Thread export/share polish:
   - Add “Export as HTML/PDF” (optional).
 
