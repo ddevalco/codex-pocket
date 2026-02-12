@@ -64,6 +64,10 @@ const AUTOSTART_ANCHOR = process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
 // Prefer an explicit env override, otherwise fall back to the machine hostname.
 const ANCHOR_ID = (process.env.ZANE_LOCAL_ANCHOR_ID ?? hostname()).trim() || "anchor";
 const PAIR_TTL_SEC = Number(process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
+const PAIR_NEW_RATE_LIMIT_MAX = Number(process.env.ZANE_LOCAL_PAIR_RATE_LIMIT_MAX ?? 6);
+const PAIR_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.ZANE_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC ?? 60);
+const UPLOAD_NEW_RATE_LIMIT_MAX = Number(process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX ?? 30);
+const UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC ?? 60);
 const CLI_BIN =
   process.env.ZANE_LOCAL_CLI_BIN?.trim() ||
   `${homedir()}/.codex-pocket/bin/codex-pocket`;
@@ -207,6 +211,49 @@ function requestOrigin(url: URL, req: Request): string {
   const xfHost = (req.headers.get("x-forwarded-host") ?? "").split(",")[0].trim();
   if (xfProto && xfHost) return `${xfProto}://${xfHost}`;
   return `${url.protocol}//${url.host}`;
+}
+
+type RateLimitBucket = {
+  count: number;
+  resetAtMs: number;
+};
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+
+function requestRateLimitKey(req: Request): string {
+  const forwarded = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+  const auth = (req.headers.get("authorization") ?? "").trim();
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  if (forwarded && token) return `${forwarded}|${token.slice(-8)}`;
+  if (forwarded) return forwarded;
+  if (token) return `token:${token.slice(-8)}`;
+  return (req.headers.get("user-agent") ?? "unknown").slice(0, 64);
+}
+
+function enforceRateLimit(scope: string, key: string, max: number, windowSec: number): { ok: true } | { ok: false; retryAfterSec: number } {
+  if (!Number.isFinite(max) || max <= 0 || !Number.isFinite(windowSec) || windowSec <= 0) {
+    return { ok: true };
+  }
+  const now = Date.now();
+  const windowMs = Math.floor(windowSec * 1000);
+  const bucketKey = `${scope}:${key}`;
+  const existing = rateLimitBuckets.get(bucketKey);
+  if (!existing || now >= existing.resetAtMs) {
+    rateLimitBuckets.set(bucketKey, { count: 1, resetAtMs: now + windowMs });
+    return { ok: true };
+  }
+  if (existing.count >= max) {
+    const retryAfterSec = Math.max(1, Math.ceil((existing.resetAtMs - now) / 1000));
+    return { ok: false, retryAfterSec };
+  }
+  existing.count += 1;
+  // Opportunistic cleanup to avoid unbounded growth.
+  if (rateLimitBuckets.size > 2000) {
+    for (const [k, v] of rateLimitBuckets) {
+      if (now >= v.resetAtMs) rateLimitBuckets.delete(k);
+    }
+  }
+  return { ok: true };
 }
 
 function resolveTailscaleCmd(): string | null {
@@ -1449,6 +1496,18 @@ const server = Bun.serve<{ role: Role }>({
 	    // Uploads (token required)
 		    if (url.pathname === "/uploads/new" && req.method === "POST") {
 		      if (!authorised(req)) return unauth();
+          const rate = enforceRateLimit(
+            "uploads/new",
+            requestRateLimitKey(req),
+            UPLOAD_NEW_RATE_LIMIT_MAX,
+            UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC
+          );
+          if (!rate.ok) {
+            return okJson(
+              { error: "rate limit exceeded", retryAfterSec: rate.retryAfterSec },
+              { status: 429, headers: { "retry-after": String(rate.retryAfterSec) } }
+            );
+          }
 		      const body = (await req.json().catch(() => null)) as null | {
 		        filename?: string;
 		        mime?: string;
@@ -1560,6 +1619,18 @@ const server = Bun.serve<{ role: Role }>({
 
     if (url.pathname === "/admin/pair/new" && req.method === "POST") {
       if (!authorised(req)) return unauth();
+      const rate = enforceRateLimit(
+        "admin/pair/new",
+        requestRateLimitKey(req),
+        PAIR_NEW_RATE_LIMIT_MAX,
+        PAIR_NEW_RATE_LIMIT_WINDOW_SEC
+      );
+      if (!rate.ok) {
+        return okJson(
+          { error: "rate limit exceeded", retryAfterSec: rate.retryAfterSec },
+          { status: 429, headers: { "retry-after": String(rate.retryAfterSec) } }
+        );
+      }
       prunePairCodes();
       const code = randomPairCode();
       const expiresAt = Date.now() + PAIR_TTL_SEC * 1000;

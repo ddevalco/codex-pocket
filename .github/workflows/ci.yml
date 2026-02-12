@@ -51,6 +51,10 @@ jobs:
           export ZANE_LOCAL_AUTOSTART_ANCHOR='0'
           export ZANE_LOCAL_UPLOAD_DIR='/tmp/codex-pocket-ci-uploads'
           export ZANE_LOCAL_UPLOAD_RETENTION_DAYS='0'
+          export ZANE_LOCAL_PAIR_RATE_LIMIT_MAX='2'
+          export ZANE_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC='120'
+          export ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX='2'
+          export ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC='120'
 
           mkdir -p "$ZANE_LOCAL_UPLOAD_DIR"
 
@@ -171,6 +175,45 @@ jobs:
             assert len(d['errors']) >= 1, d
           print('admin/repair non-tailscale behavior ok')
           PY
+
+      - name: Smoke test sensitive endpoint rate limits
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # /admin/pair/new: first two requests should pass, third should be rate-limited.
+          for i in 1 2; do
+            curl -fsS \
+              -H "Authorization: Bearer ci-token" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d '{}' \
+              "http://127.0.0.1:8790/admin/pair/new" >/tmp/pair-${i}.json
+          done
+          pair_status=$(curl -sS -o /tmp/pair-3.json -w '%{http_code}' \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{}' \
+            "http://127.0.0.1:8790/admin/pair/new")
+          test "$pair_status" = "429"
+
+          # /uploads/new: first two requests should pass, third should be rate-limited.
+          for i in 1 2; do
+            curl -fsS \
+              -H "Authorization: Bearer ci-token" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d '{"filename":"x.png","mime":"image/png","bytes":10}' \
+              "http://127.0.0.1:8790/uploads/new" >/tmp/upload-new-${i}.json
+          done
+          upload_status=$(curl -sS -o /tmp/upload-new-3.json -w '%{http_code}' \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"filename":"x.png","mime":"image/png","bytes":10}' \
+            "http://127.0.0.1:8790/uploads/new")
+          test "$upload_status" = "429"
 
       - name: Verify cache headers
         shell: bash

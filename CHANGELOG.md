@@ -28,6 +28,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UX: added one-tap composer quick-reply shortcuts (default `Proceed`/`Elaborate`) plus a `/settings` editor to customize and persist preset labels/text per device.
 - Settings redesign follow-up: `/settings` now uses a responsive two-column card grid on desktop (single-column mobile) with core controls prioritized above secondary account/about details.
 - Thread export/share: added `.html` export format in thread view and thread-list quick actions (alongside existing Markdown/JSON exports).
+- Security: added in-process rate limits for sensitive token-minting endpoints (`/admin/pair/new`, `/uploads/new`) with explicit `429` responses and CI smoke coverage.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
