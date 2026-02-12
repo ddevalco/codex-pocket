@@ -89,6 +89,7 @@ local-orbit will broadcast the message to all anchors so the anchor can observe 
 - `POST /pair/consume` (no auth)
   - body: `{ "code": "..." }`
   - returns `{ "token": "..." }`
+  - token is a newly minted per-device token session
   - codes are one-time use and expire.
 
 ## Persistence
@@ -104,4 +105,15 @@ local-orbit stores events in SQLite (default `~/.codex-pocket/codex-pocket.db`).
   - returns the last N stored event payloads (redacted).
 
 - `POST /admin/token/rotate` (auth required)
-  - rotates the Access Token, persists it to `config.json` (if configured), clears pairing codes, and disconnects clients.
+  - rotates the legacy Access Token, persists it to `config.json` (if configured), clears pairing codes, and disconnects clients.
+
+- `GET /admin/token/sessions` (auth required)
+  - returns token sessions (id, label, mode, created/last-used/revoked timestamps).
+
+- `POST /admin/token/sessions/new` (auth required)
+  - body: `{ "label"?: string, "mode"?: "full" | "read_only" }`
+  - returns `{ ok, token, session }` where `token` is only shown once.
+
+- `POST /admin/token/sessions/revoke` (auth required)
+  - body: `{ "id": "..." }`
+  - revokes that token session.
