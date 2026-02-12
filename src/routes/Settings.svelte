@@ -145,8 +145,9 @@
     {/snippet}
   </AppHeader>
 
-  <div class="content stack">
-    <SectionCard title="Connection">
+  <div class="content">
+    <div class="panel panel-wide">
+      <SectionCard title="Connection">
         <div class="field stack">
           <label for="orbit-url">orbit url</label>
           <input
@@ -192,9 +193,11 @@
             ? "Auto-connect paused. Click Connect to resume."
             : "Connection is automatic on app load. Disconnect to pause and to change the URL."}
         </p>
-    </SectionCard>
+      </SectionCard>
+    </div>
 
-    <SectionCard title="Devices">
+    <div class="panel">
+      <SectionCard title="Devices">
         {#if !isSocketConnected}
           <p class="hint">
             Connect to load devices.
@@ -216,11 +219,15 @@
             {/each}
           </ul>
         {/if}
-    </SectionCard>
+      </SectionCard>
+    </div>
 
-    <NotificationSettings />
+    <div class="panel">
+      <NotificationSettings />
+    </div>
 
-    <SectionCard title="Composer">
+    <div class="panel">
+      <SectionCard title="Composer">
         <div class="field stack">
           <label for="enter-behavior">enter key</label>
           <select
@@ -234,58 +241,62 @@
           </select>
         </div>
         <p class="hint" id="enter-behavior-help">Default is newline on all devices. This is stored per-device in your browser.</p>
-    </SectionCard>
+      </SectionCard>
+    </div>
 
-    <SectionCard title="Quick Replies">
-      <div class="stack quick-reply-settings">
-        {#each quickReplies as reply, i (`${i}-${reply.label}-${reply.text}`)}
-          <div class="quick-reply-row">
-            <div class="field stack">
-              <label for={`quick-reply-label-${i}`}>label</label>
-              <input
-                id={`quick-reply-label-${i}`}
-                type="text"
-                maxlength="24"
-                value={reply.label}
-                oninput={(e) => updateQuickReply(i, "label", (e.target as HTMLInputElement).value)}
-                placeholder="Proceed"
-              />
+    <div class="panel panel-wide">
+      <SectionCard title="Quick Replies">
+        <div class="stack quick-reply-settings">
+          {#each quickReplies as reply, i (`${i}-${reply.label}-${reply.text}`)}
+            <div class="quick-reply-row">
+              <div class="field stack">
+                <label for={`quick-reply-label-${i}`}>label</label>
+                <input
+                  id={`quick-reply-label-${i}`}
+                  type="text"
+                  maxlength="24"
+                  value={reply.label}
+                  oninput={(e) => updateQuickReply(i, "label", (e.target as HTMLInputElement).value)}
+                  placeholder="Proceed"
+                />
+              </div>
+              <div class="field stack">
+                <label for={`quick-reply-text-${i}`}>text</label>
+                <input
+                  id={`quick-reply-text-${i}`}
+                  type="text"
+                  maxlength="280"
+                  value={reply.text}
+                  oninput={(e) => updateQuickReply(i, "text", (e.target as HTMLInputElement).value)}
+                  placeholder="Proceed."
+                />
+              </div>
+              <button
+                type="button"
+                class="plain-btn"
+                onclick={() => removeQuickReply(i)}
+                aria-label={`Remove quick reply ${reply.label || i + 1}`}
+              >
+                Remove
+              </button>
             </div>
-            <div class="field stack">
-              <label for={`quick-reply-text-${i}`}>text</label>
-              <input
-                id={`quick-reply-text-${i}`}
-                type="text"
-                maxlength="280"
-                value={reply.text}
-                oninput={(e) => updateQuickReply(i, "text", (e.target as HTMLInputElement).value)}
-                placeholder="Proceed."
-              />
-            </div>
-            <button
-              type="button"
-              class="plain-btn"
-              onclick={() => removeQuickReply(i)}
-              aria-label={`Remove quick reply ${reply.label || i + 1}`}
-            >
-              Remove
+          {/each}
+          <div class="row">
+            <button type="button" class="plain-btn" onclick={addQuickReply} disabled={quickReplies.length >= MAX_QUICK_REPLIES}>
+              Add preset
             </button>
+            <button type="button" class="connect-btn" onclick={saveQuickReplyConfig}>Save presets</button>
+            {#if quickReplySaveNote}
+              <span class="hint">{quickReplySaveNote}</span>
+            {/if}
           </div>
-        {/each}
-        <div class="row">
-          <button type="button" class="plain-btn" onclick={addQuickReply} disabled={quickReplies.length >= MAX_QUICK_REPLIES}>
-            Add preset
-          </button>
-          <button type="button" class="connect-btn" onclick={saveQuickReplyConfig}>Save presets</button>
-          {#if quickReplySaveNote}
-            <span class="hint">{quickReplySaveNote}</span>
-          {/if}
+          <p class="hint">Shown in the thread composer as one-tap shortcuts. Stored per-device in your browser.</p>
         </div>
-        <p class="hint">Shown in the thread composer as one-tap shortcuts. Stored per-device in your browser.</p>
-      </div>
-    </SectionCard>
+      </SectionCard>
+    </div>
 
-    <SectionCard title="About">
+    <div class="panel">
+      <SectionCard title="About">
         <p class="hint">
           UI build: <span class="mono">{UI_COMMIT || "unknown"}</span>
           {#if UI_BUILT_AT}
@@ -295,13 +306,16 @@
         <p class="hint">
           Server: <span class="mono">{appCommit || "unknown"}</span>
         </p>
-    </SectionCard>
+      </SectionCard>
+    </div>
 
-    <SectionCard title="Account">
-      <DangerZone>
-        <button class="sign-out-btn" type="button" onclick={() => auth.signOut()} aria-label="Sign out and clear local auth token">Sign out</button>
-      </DangerZone>
-    </SectionCard>
+    <div class="panel">
+      <SectionCard title="Account">
+        <DangerZone>
+          <button class="sign-out-btn" type="button" onclick={() => auth.signOut()} aria-label="Sign out and clear local auth token">Sign out</button>
+        </DangerZone>
+      </SectionCard>
+    </div>
   </div>
 </div>
 
@@ -316,11 +330,28 @@
   }
 
   .content {
-    --stack-gap: var(--space-lg);
     padding: var(--space-md);
     max-width: var(--app-max-width);
     margin: 0 auto;
     width: 100%;
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 980px) {
+    .content {
+      grid-template-columns: 1.35fr 1fr;
+      align-items: start;
+    }
+  }
+
+  .panel {
+    min-width: 0;
+  }
+
+  .panel-wide {
+    grid-column: 1 / -1;
   }
 
   .field {
