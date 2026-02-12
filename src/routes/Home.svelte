@@ -387,7 +387,20 @@
     return false;
   }
 
-  async function exportThread(threadId: string, format: "md" | "json" | "html", force = false) {
+  function printHtmlAsPdf(html: string): boolean {
+    const printDoc = html.replace(
+      "</body>",
+      "<script>window.addEventListener('load', () => { setTimeout(() => { window.focus(); window.print(); }, 80); });<\\/script></body>"
+    );
+    const w = window.open("", "_blank");
+    if (!w) return false;
+    w.document.open();
+    w.document.write(printDoc);
+    w.document.close();
+    return true;
+  }
+
+  async function exportThread(threadId: string, format: "md" | "json" | "html" | "pdf", force = false) {
     const info = threads.list.find((t) => t.id === threadId);
     const titleRaw = ((info as any)?.title || (info as any)?.name || (info as any)?.preview || "").trim() || threadId.slice(0, 8);
     const title = safeFilename(titleRaw) || threadId.slice(0, 8);
@@ -415,6 +428,15 @@
       const f = new File([html], `${title}.html`, { type: "text/html" });
       const shared = await shareFileOrFallback(`Codex Pocket: ${title}`, f, html);
       if (!shared) downloadBlob(`${title}.html`, new Blob([html], { type: "text/html" }));
+      return;
+    }
+
+    if (format === "pdf") {
+      const html = threadToHtml(threadId);
+      const opened = printHtmlAsPdf(html);
+      if (!opened) {
+        downloadBlob(`${title}.html`, new Blob([html], { type: "text/html" }));
+      }
       return;
     }
 
@@ -576,6 +598,14 @@
                 }}
                 title="Share/export thread as HTML"
               >⌘</button>
+              <button
+                class="export-btn"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
+                }}
+                title="Print/export thread as PDF"
+              >PDF</button>
               <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>
               <button
                 class="archive-btn"

@@ -306,6 +306,23 @@
         downloadThreadHtml();
     }
 
+    function printThreadPdf() {
+        const html = threadToHtml();
+        if (!html) return;
+        const printDoc = html.replace(
+            "</body>",
+            "<script>window.addEventListener('load', () => { setTimeout(() => { window.focus(); window.print(); }, 80); });<\\/script></body>"
+        );
+        const w = window.open("", "_blank");
+        if (!w) {
+            downloadThreadHtml();
+            return;
+        }
+        w.document.open();
+        w.document.write(printDoc);
+        w.document.close();
+    }
+
     function downloadThread() {
         const id = threadId;
         if (!id) return;
@@ -643,6 +660,17 @@
                             title="Download thread as .html"
                         >
                             export html
+                        </button>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onclick={() => {
+                                closeMoreMenu();
+                                printThreadPdf();
+                            }}
+                            title="Print / save as PDF"
+                        >
+                            export pdf
                         </button>
                         <button
                             type="button"
