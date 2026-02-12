@@ -36,6 +36,29 @@ Output goes to `dist/`.
 Agent artifacts are local-only. Do not commit agent prompts, notes, or rule sets.
 Ignored by default: `.agents/`, `AGENT*.md`, `agent*.md`, `.agent/`, `prompts/`, `notes/`.
 
+## Git Sync Policy
+
+Keep `main` aligned with remote and avoid merge commits from `git pull`:
+
+```bash
+git fetch origin --prune
+git checkout main
+git pull --ff-only origin main
+```
+
+Recommended local defaults:
+
+```bash
+git config --global pull.ff only
+git config --global fetch.prune true
+```
+
+Before tagging/releasing from your machine, verify a clean tree:
+
+```bash
+./scripts/ci/check-clean-tree.sh
+```
+
 ## Run Local-Orbit (server)
 
 Local-Orbit requires an access token.

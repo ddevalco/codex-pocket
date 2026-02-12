@@ -37,3 +37,12 @@ an effect created a feedback loop and made the thread list appear empty/unusable
 - Private repos: GitHub provides a monthly free tier of minutes/storage (limits vary by plan).
 
 If the repo stays public, you generally don’t need to think about cost.
+
+## Release Hygiene Note
+
+CI checkouts are always clean, so dirty-tree protection is most useful on local maintainer machines.
+Before creating tags/releases locally, run:
+
+```bash
+./scripts/ci/check-clean-tree.sh
+```

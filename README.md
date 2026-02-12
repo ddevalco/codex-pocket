@@ -47,6 +47,7 @@ If anything doesn’t work, run:
 - CI: [`docs/CI.md`](docs/CI.md)
 - Differences from Zane: [`docs/DIFFERENCES_FROM_ZANE.md`](docs/DIFFERENCES_FROM_ZANE.md)
 - Development: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
+- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ### Backlog (Canonical)
 

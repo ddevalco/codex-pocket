@@ -24,6 +24,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UI/Admin/CLI: detect upstream Codex app-server auth invalidation and surface a clear recovery warning.
 - Admin: add a limited remote CLI runner for safe `codex-pocket` commands (with output capture).
 - Docs/UX: added `docs/ADMIN_REDESIGN_PROPOSAL.md` and aligned backlog/project planning for phased Admin + Settings UI redesign work.
+- Docs/Repo: added `CONTRIBUTING.md` with an explicit ff-only sync policy, PR/testing expectations, and a local pre-release clean-tree check script (`scripts/ci/check-clean-tree.sh`).
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
