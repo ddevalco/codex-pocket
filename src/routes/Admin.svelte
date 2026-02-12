@@ -30,6 +30,11 @@
   let rotatedToken = $state<string | null>(null);
   let uploadRetentionDays = $state<number>(0);
   let savingUploadRetention = $state(false);
+  let cliCommands = $state<Array<{ id: string; label: string; description: string; risky?: boolean }>>([]);
+  let cliSelected = $state<string>("");
+  let cliOutput = $state<string>("");
+  let cliRunning = $state(false);
+  let cliError = $state<string | null>(null);
 
   type ValidateResp = {
     ok: boolean;
@@ -107,6 +112,56 @@
       opsLog = (data.data ?? []).join("\n");
     } catch {
       opsLog = "";
+    }
+  }
+
+  async function loadCliCommands() {
+    try {
+      const headers: Record<string, string> = {};
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/cli/commands", { headers });
+      if (!res.ok) return;
+      const data = (await res.json()) as { commands?: Array<{ id: string; label: string; description: string; risky?: boolean }> };
+      cliCommands = (data.commands ?? []).filter((c) => c && typeof c.id === "string");
+      if (!cliSelected && cliCommands.length) {
+        cliSelected = cliCommands[0]!.id;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function runCliCommand() {
+    if (!cliSelected || cliRunning) return;
+    cliRunning = true;
+    cliError = null;
+    cliOutput = "";
+    try {
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (auth.token) headers.authorization = `Bearer ${auth.token}`;
+      const res = await fetch("/admin/cli/run", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ id: cliSelected }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | null
+        | { output?: string; timedOut?: boolean; exitCode?: number | null; command?: string; error?: string };
+      if (!res.ok) {
+        cliError = data?.error ?? `command failed (${res.status})`;
+      }
+      const summary = [
+        data?.command ? `$ ${data.command}` : "",
+        data?.timedOut ? "[timed out]" : "",
+        typeof data?.exitCode === "number" ? `exit ${data.exitCode}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      cliOutput = `${summary}\n${data?.output ?? ""}`.trim();
+    } catch (e) {
+      cliError = e instanceof Error ? e.message : "Failed to run command";
+    } finally {
+      cliRunning = false;
     }
   }
 
@@ -333,6 +388,11 @@
   });
 
   $effect(() => {
+    if (!auth.token) return;
+    loadCliCommands();
+  });
+
+  $effect(() => {
     // If the pair changes for any reason, re-render the QR.
     void updateQr();
 
@@ -456,6 +516,46 @@
             </div>
           </div>
         {/if}
+        {/if}
+      </div>
+    </div>
+
+    <div class="section stack">
+      <div class="section-header">
+        <span class="section-title">CLI (Remote)</span>
+      </div>
+      <div class="section-body stack">
+        <p class="hint">Run a limited set of safe `codex-pocket` CLI commands from this page.</p>
+        <div class="row buttons">
+          <label class="field">
+            <span>Command</span>
+            <select bind:value={cliSelected} disabled={cliRunning || cliCommands.length === 0}>
+              {#each cliCommands as cmd (cmd.id)}
+                <option value={cmd.id}>
+                  {cmd.label}{cmd.risky ? " (disruptive)" : ""}
+                </option>
+              {/each}
+            </select>
+          </label>
+          <button type="button" onclick={runCliCommand} disabled={!auth.token || cliRunning || !cliSelected}>
+            {cliRunning ? "Running..." : "Run"}
+          </button>
+        </div>
+        {#if cliSelected}
+          {#each cliCommands as cmd (cmd.id)}
+            {#if cmd.id === cliSelected}
+              <div class="hint">{cmd.description}</div>
+              {#if cmd.risky}
+                <div class="hint hint-error">This command may disconnect the admin session.</div>
+              {/if}
+            {/if}
+          {/each}
+        {/if}
+        {#if cliError}
+          <p class="hint hint-error">{cliError}</p>
+        {/if}
+        {#if cliOutput}
+          <pre class="cli-output">{cliOutput}</pre>
         {/if}
       </div>
     </div>
@@ -628,7 +728,24 @@
     font-size: var(--text-sm);
   }
 
+  .field select {
+    width: 100%;
+    padding: var(--space-sm);
+    background: var(--cli-bg);
+    color: var(--cli-text);
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
   .field input:focus {
+    outline: none;
+    border-color: var(--cli-text-muted);
+    box-shadow: var(--shadow-focus);
+  }
+
+  .field select:focus {
     outline: none;
     border-color: var(--cli-text-muted);
     box-shadow: var(--shadow-focus);
@@ -676,6 +793,18 @@
     max-height: 200px;
     overflow: auto;
     font-size: 12px;
+  }
+
+  .cli-output {
+    margin: 0;
+    padding: var(--space-sm);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    max-height: 260px;
+    overflow: auto;
+    font-size: 12px;
+    white-space: pre-wrap;
   }
   .dim { color: var(--cli-text-dim); }
 </style>

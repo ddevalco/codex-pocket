@@ -5,6 +5,7 @@ Open `/admin` in the browser.
 ## What it shows
 - Service status (UI dist, DB path/retention, anchor status)
 - Anchor log stream
+- Remote CLI (a limited allowlist of `codex-pocket` commands)
 
 ## Pair iPhone
 - On first sign-in, `/admin` auto-generates a short-lived pairing QR.
@@ -26,6 +27,14 @@ Codex Pocket can rename a thread by updating the same Codex title store file.
 - **Anchor** is the local agent running on your Mac. It spawns `codex app-server` and relays messages to the web UI.
 - Anchor is auto-started by default when the service starts.
 - Use "Stop anchor" if you want to suspend Codex spawning and remote control temporarily.
+
+## Remote CLI
+The Admin UI includes a limited command runner for safe, hardcoded `codex-pocket` commands. This is useful when
+you’re remote and need to troubleshoot.
+
+Notes:
+- Commands are allowlisted and do **not** include token-printing or update flows.
+- Disruptive commands (stop/restart) can disconnect the admin session.
 
 ## SQLite persistence
 - local-orbit stores selected events in SQLite (default `~/.codex-pocket/codex-pocket.db`).
