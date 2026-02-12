@@ -37,6 +37,7 @@
   type TokenSession = {
     id: string;
     label: string;
+    mode: "full" | "read_only";
     createdAt: number;
     lastUsedAt: number;
     revokedAt: number | null;
@@ -73,6 +74,7 @@
   let tokenSessions = $state<TokenSession[]>([]);
   let loadingTokenSessions = $state(false);
   let tokenSessionLabel = $state("");
+  let tokenSessionMode = $state<"full" | "read_only">("full");
   let creatingTokenSession = $state(false);
   let createdSessionToken = $state<string | null>(null);
   let tokenSessionError = $state<string | null>(null);
@@ -213,7 +215,7 @@
       const res = await fetch("/admin/token/sessions/new", {
         method: "POST",
         headers,
-        body: JSON.stringify({ label: tokenSessionLabel }),
+        body: JSON.stringify({ label: tokenSessionLabel, mode: tokenSessionMode }),
       });
       const data = (await res.json().catch(() => null)) as null | { ok?: boolean; token?: string; error?: string };
       if (!res.ok || !data?.ok || !data.token) {
@@ -226,6 +228,7 @@
         // ignore
       }
       tokenSessionLabel = "";
+      tokenSessionMode = "full";
       stampAction("success", "Token session created");
       await loadTokenSessions();
       await loadStatus();
@@ -988,6 +991,11 @@
               bind:value={tokenSessionLabel}
               placeholder="Dane iPhone"
             />
+            <label for="token-session-mode">session mode</label>
+            <select id="token-session-mode" bind:value={tokenSessionMode}>
+              <option value="full">Full access</option>
+              <option value="read_only">Read-only</option>
+            </select>
             <div class="row buttons">
               <button type="button" onclick={createTokenSession} disabled={!auth.token || creatingTokenSession}>
                 {creatingTokenSession ? "Creating..." : "Create token session"}
@@ -1019,6 +1027,7 @@
                     </StatusChip>
                   </div>
                   <div class="hint mono">id: {session.id}</div>
+                  <div class="hint">mode: {session.mode === "read_only" ? "read-only" : "full access"}</div>
                   <div class="hint">created: {new Date(session.createdAt).toLocaleString()}</div>
                   <div class="hint">last used: {new Date(session.lastUsedAt).toLocaleString()}</div>
                   {#if session.revokedAt}

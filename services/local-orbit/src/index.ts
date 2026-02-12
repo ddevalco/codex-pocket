@@ -141,6 +141,12 @@ if (!AUTH_TOKEN) {
 }
 
 type Role = "client" | "anchor";
+type WsData = {
+  role: Role;
+  anchorId?: string;
+  authSource?: "legacy" | "session";
+  authScope?: "full" | "read_only";
+};
 
 interface AnchorMeta {
   id: string;
@@ -621,12 +627,18 @@ db.exec(
     "id TEXT PRIMARY KEY," +
     "token_hash TEXT NOT NULL UNIQUE," +
     "label TEXT NOT NULL," +
+    "mode TEXT NOT NULL DEFAULT 'full'," +
     "created_at INTEGER NOT NULL," +
     "last_used_at INTEGER NOT NULL," +
     "revoked_at INTEGER" +
   ");" +
   "CREATE INDEX IF NOT EXISTS idx_token_sessions_revoked ON token_sessions(revoked_at);"
 );
+try {
+  db.exec("ALTER TABLE token_sessions ADD COLUMN mode TEXT NOT NULL DEFAULT 'full';");
+} catch {
+  // already migrated
+}
 
 const insertEvent = db.prepare(
   "INSERT INTO events (thread_id, turn_id, direction, role, method, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
@@ -643,11 +655,11 @@ const getUploadToken = db.prepare(
 const deleteUploadToken = db.prepare("DELETE FROM upload_tokens WHERE token = ?");
 
 const insertTokenSession = db.prepare(
-  "INSERT INTO token_sessions (id, token_hash, label, created_at, last_used_at, revoked_at) VALUES (?, ?, ?, ?, ?, NULL)"
+  "INSERT INTO token_sessions (id, token_hash, label, mode, created_at, last_used_at, revoked_at) VALUES (?, ?, ?, ?, ?, ?, NULL)"
 );
 
 const getTokenSessionByHash = db.prepare(
-  "SELECT id, label, created_at, last_used_at, revoked_at FROM token_sessions WHERE token_hash = ? LIMIT 1"
+  "SELECT id, label, mode, created_at, last_used_at, revoked_at FROM token_sessions WHERE token_hash = ? LIMIT 1"
 );
 
 const touchTokenSessionLastUsed = db.prepare(
@@ -655,7 +667,7 @@ const touchTokenSessionLastUsed = db.prepare(
 );
 
 const listTokenSessions = db.prepare(
-  "SELECT id, label, created_at, last_used_at, revoked_at FROM token_sessions ORDER BY created_at DESC"
+  "SELECT id, label, mode, created_at, last_used_at, revoked_at FROM token_sessions ORDER BY created_at DESC"
 );
 
 const revokeTokenSession = db.prepare(
@@ -943,10 +955,15 @@ setInterval(prunePairCodes, 60_000).unref?.();
 type TokenSessionRow = {
   id: string;
   label: string;
+  mode: "full" | "read_only";
   created_at: number;
   last_used_at: number;
   revoked_at: number | null;
 };
+
+function parseTokenSessionMode(mode: unknown): "full" | "read_only" {
+  return mode === "read_only" ? "read_only" : "full";
+}
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -958,19 +975,21 @@ function sanitizeSessionLabel(label: string | null | undefined): string {
   return raw.slice(0, 120);
 }
 
-function mintTokenSession(label: string): { id: string; token: string; row: TokenSessionRow } {
+function mintTokenSession(label: string, mode: "full" | "read_only"): { id: string; token: string; row: TokenSessionRow } {
   const token = randomTokenHex(32);
   const tokenHash = hashToken(token);
   const id = randomTokenHex(16);
   const createdAt = nowSec();
   const nextLabel = sanitizeSessionLabel(label);
-  insertTokenSession.run(id, tokenHash, nextLabel, createdAt, createdAt);
+  const nextMode = parseTokenSessionMode(mode);
+  insertTokenSession.run(id, tokenHash, nextLabel, nextMode, createdAt, createdAt);
   return {
     id,
     token,
     row: {
       id,
       label: nextLabel,
+      mode: nextMode,
       created_at: createdAt,
       last_used_at: createdAt,
       revoked_at: null,
@@ -980,7 +999,7 @@ function mintTokenSession(label: string): { id: string; token: string; row: Toke
 
 type AuthContext =
   | { ok: true; mode: "legacy" }
-  | { ok: true; mode: "session"; sessionId: string }
+  | { ok: true; mode: "session"; sessionId: string; sessionMode: "full" | "read_only" }
   | { ok: false };
 
 function getBearer(req: Request): string | null {
@@ -1009,14 +1028,25 @@ function authContext(req: Request): AuthContext {
     } catch {
       // ignore touch failures
     }
-    return { ok: true, mode: "session", sessionId: row.id };
+    return { ok: true, mode: "session", sessionId: row.id, sessionMode: parseTokenSessionMode(row.mode) };
   } catch {
     return { ok: false };
   }
 }
 
 function authorised(req: Request): boolean {
-  return authContext(req).ok;
+  const ctx = authContext(req);
+  if (!ctx.ok) return false;
+  if (ctx.mode !== "session") return true;
+  if (ctx.sessionMode !== "read_only") return true;
+  const method = req.method.toUpperCase();
+  return method === "GET" || method === "HEAD";
+}
+
+function canWrite(ctx: AuthContext): boolean {
+  if (!ctx.ok) return false;
+  if (ctx.mode === "legacy") return true;
+  return ctx.sessionMode !== "read_only";
 }
 
 function randomTokenHex(bytes = 32): string {
@@ -1481,7 +1511,7 @@ async function relay(fromRole: Role, msgText: string): Promise<void> {
   for (const ws of all.keys()) send(ws, msgOut);
 }
 
-const server = Bun.serve<{ role: Role }>({
+const server = Bun.serve<WsData>({
   hostname: HOST,
   port: PORT,
 	  async fetch(req, server) {
@@ -1765,6 +1795,7 @@ const server = Bun.serve<{ role: Role }>({
         sessions: rows.map((r) => ({
           id: r.id,
           label: r.label,
+          mode: parseTokenSessionMode(r.mode),
           createdAt: r.created_at * 1000,
           lastUsedAt: r.last_used_at * 1000,
           revokedAt: typeof r.revoked_at === "number" ? r.revoked_at * 1000 : null,
@@ -1775,11 +1806,12 @@ const server = Bun.serve<{ role: Role }>({
 
     if (url.pathname === "/admin/token/sessions/new" && req.method === "POST") {
       if (!authorised(req)) return unauth();
-      const body = (await req.json().catch(() => null)) as null | { label?: string };
+      const body = (await req.json().catch(() => null)) as null | { label?: string; mode?: string };
       const label = sanitizeSessionLabel(body?.label);
+      const mode = parseTokenSessionMode(body?.mode);
       let created: ReturnType<typeof mintTokenSession>;
       try {
-        created = mintTokenSession(label);
+        created = mintTokenSession(label, mode);
       } catch {
         return okJson({ error: "failed to create token session" }, { status: 500 });
       }
@@ -1790,6 +1822,7 @@ const server = Bun.serve<{ role: Role }>({
         session: {
           id: created.row.id,
           label: created.row.label,
+          mode: created.row.mode,
           createdAt: created.row.created_at * 1000,
           lastUsedAt: created.row.last_used_at * 1000,
           revokedAt: null,
@@ -2073,18 +2106,32 @@ const server = Bun.serve<{ role: Role }>({
 
     // Convenience alias for client WS.
     if (url.pathname === "/ws") {
-      if (!authorised(req)) return new Response("Unauthorised", { status: 401 });
-      if (server.upgrade(req, { data: { role: "client" as Role } })) return new Response(null, { status: 101 });
+      const ctx = authContext(req);
+      if (!ctx.ok) return new Response("Unauthorised", { status: 401 });
+      if (!canWrite(ctx)) return new Response("Forbidden for read-only token session", { status: 403 });
+      const data: WsData = {
+        role: "client",
+        authSource: ctx.mode,
+        authScope: ctx.mode === "session" && ctx.sessionMode === "read_only" ? "read_only" : "full",
+      };
+      if (server.upgrade(req, { data })) return new Response(null, { status: 101 });
       return new Response("Upgrade required", { status: 426 });
     }
 
     if (url.pathname === "/ws/client" || url.pathname === "/ws/anchor") {
-      if (!authorised(req)) return new Response("Unauthorised", { status: 401 });
+      const ctx = authContext(req);
+      if (!ctx.ok) return new Response("Unauthorised", { status: 401 });
+      if (!canWrite(ctx)) return new Response("Forbidden for read-only token session", { status: 403 });
       const role: Role = url.pathname.endsWith("/anchor") ? "anchor" : "client";
       const anchorId =
         role === "anchor" ? (url.searchParams.get("anchorId") || url.searchParams.get("anchor_id")) : null;
-
-      if (server.upgrade(req, { data: { role, ...(anchorId ? { anchorId } : {}) } as any })) {
+      const data: WsData = {
+        role,
+        ...(anchorId ? { anchorId } : {}),
+        authSource: ctx.mode,
+        authScope: ctx.mode === "session" && ctx.sessionMode === "read_only" ? "read_only" : "full",
+      };
+      if (server.upgrade(req, { data })) {
         return new Response(null, { status: 101 });
       }
       return new Response("Upgrade required", { status: 426 });
