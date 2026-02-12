@@ -259,12 +259,7 @@ jobs:
             -H "Content-Type: application/json" \
             -X POST \
             -d "{\"code\":\"${pair_code}\"}" \
-            "http://127.0.0.1:8790/pair/consume" | python3 - <<'PY'
-          import json,sys
-          d=json.load(sys.stdin)
-          print((d.get('token') or '').strip())
-          PY
-          )
+            "http://127.0.0.1:8790/pair/consume" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("token") or "").strip())')
           test -n "$paired_token"
           test "$paired_token" != "ci-token"
           curl -fsS -H "Authorization: Bearer ${paired_token}" "http://127.0.0.1:8790/admin/status" >/tmp/paired-status.json
@@ -304,12 +299,7 @@ jobs:
             -H "Content-Type: application/json" \
             -X POST \
             -d '{"label":"ci-ro","mode":"read_only"}' \
-            "http://127.0.0.1:8790/admin/token/sessions/new" | python3 - <<'PY'
-          import json,sys
-          d=json.load(sys.stdin)
-          print((d.get('token') or '').strip())
-          PY
-          )
+            "http://127.0.0.1:8790/admin/token/sessions/new" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("token") or "").strip())')
           test -n "$ro_token"
 
           # Read endpoint allowed.
