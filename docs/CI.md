@@ -14,6 +14,8 @@ The workflow is defined in:
 - Verifies:
   - `GET /health` returns OK
   - `GET /admin/validate` returns sane JSON (auth required)
+  - `POST /admin/repair` with safe actions (`ensureUploadDir`, `pruneUploads`) returns sane JSON and no errors
+  - `POST /admin/repair` with `fixTailscaleServe` behaves deterministically in non-Tailscale CI environments (explicit apply or explicit error)
   - WebSocket relay path works (client ↔ anchor protocol surface, simulated)
   - `GET /admin/status` returns sane JSON (auth required)
   - Cache headers:
