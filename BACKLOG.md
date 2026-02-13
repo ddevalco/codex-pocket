@@ -60,7 +60,8 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - CI: added smoke coverage for token-session security behavior (pairing token semantics + read-only guards).
 - CLI/update: stale owned listeners now use bounded SIGKILL fallback cleanup (including symlink-safe ownership detection) to reduce restart flakiness.
 - CI: added edge guards for one-time pair-code consumption and immediate auth denial after token-session revocation.
+- Docs: added a phased native iOS roadmap (`docs/NATIVE_IOS_ROADMAP.md`) with constraints, milestones, and decision gates.
 
-## P4 (Platform)
+## Active Items
 
-- Native iOS app (optional): better background behavior, push notifications for “approval required”, better file picker.
+- None currently open in Project 2.
