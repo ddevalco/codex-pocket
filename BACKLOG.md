@@ -50,23 +50,19 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Backlog hygiene: removed stale completed P1 items (admin redesign parent + thread activity indicator polish) so active sections stay actionable.
 - Upload retention reporting: `/admin/uploads/stats` now includes last prune detail/source (manual/scheduled/unknown), shown in Admin Uploads UI.
 - Attachment chips now include image thumbnails in composer for faster visual confirmation before send.
+- Admin/Settings redesign pass: calmer system-console visual refresh for `/admin` and `/settings`.
+- Admin uploads: auto-cleanup interval (hours) is now configurable and persisted in `/admin`.
+- Security/auth model: backend token sessions added (create/list/revoke) with legacy-token compatibility.
+- Admin: token session management UI added (create/list/revoke, mode display, one-time token copy).
+- Security: token sessions support `read_only` mode with server-side enforcement for write operations.
+- Pairing: `/admin/pair/new` now mints per-device session tokens instead of returning the legacy shared token.
+- Security/read-only UX: read-only sessions can connect to WebSocket for live reads; mutating RPC methods are denied explicitly.
+- CI: added smoke coverage for token-session security behavior (pairing token semantics + read-only guards).
 
 ## P0 (Stability)
 
-- Extend CI smoke coverage to include WebSocket relay and (optionally) additional admin repair paths with stubs/bypasses for non-Tailscale environments.
-
-## P1 (UX)
-
-## P2 (Attachments)
-
-- Attachment UI polish:
-- Upload retention:
-  - Scheduled pruning + reporting in Admin.
-
-## P3 (Security / Admin)
-
-- Per-device tokens (instead of one global bearer token) and revocation UI.
-- Optional read-only mode for paired devices.
+- CI smoke coverage hardening (remaining edge paths).
+- Update reliability with stale processes (remaining hardening).
 
 ## P4 (Platform)
 
