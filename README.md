@@ -45,6 +45,7 @@ If anything doesn’t work, run:
 - Troubleshooting/FAQ: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - CI: [`docs/CI.md`](docs/CI.md)
+- Native iOS roadmap: [`docs/NATIVE_IOS_ROADMAP.md`](docs/NATIVE_IOS_ROADMAP.md)
 - Differences from Zane: [`docs/DIFFERENCES_FROM_ZANE.md`](docs/DIFFERENCES_FROM_ZANE.md)
 - Development: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
@@ -220,6 +221,7 @@ Note about the Codex desktop app:
 - Protocol: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)
 - Security hardening: [`docs/HARDENING.md`](docs/HARDENING.md)
 - Troubleshooting: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- Native iOS roadmap: [`docs/NATIVE_IOS_ROADMAP.md`](docs/NATIVE_IOS_ROADMAP.md)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 
 ## Attribution
