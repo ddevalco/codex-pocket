@@ -677,7 +677,8 @@
   </AppHeader>
 
   <div class="content stack">
-    <div class="panel panel-main">
+    <div class="overview-grid">
+      <div class="panel panel-core">
       <SectionCard title="Admin" subtitle="System status and core operations">
         {#if statusError}
           <p class="hint hint-error" role="alert">{statusError}</p>
@@ -800,58 +801,8 @@
         {/if}
         {/if}
       </SectionCard>
-    </div>
-
-    <details class="advanced panel panel-side" bind:open={showCliAdvanced}>
-      <summary id="advanced-cli-summary">Advanced: Remote CLI</summary>
-      <div role="region" aria-labelledby="advanced-cli-summary">
-      <SectionCard title="CLI (Remote)" subtitle="Run a limited set of safe codex-pocket commands">
-        <p class="hint">Run a limited set of safe `codex-pocket` CLI commands from this page.</p>
-        <div class="row buttons">
-          <label class="field">
-            <span>Command</span>
-            <select id="cli-command" bind:value={cliSelected} disabled={cliRunning || cliCommands.length === 0}>
-              {#each cliCommands as cmd (cmd.id)}
-                <option value={cmd.id}>
-                  {cmd.label}{cmd.risky ? " (disruptive)" : ""}
-                </option>
-              {/each}
-            </select>
-          </label>
-          <button type="button" onclick={runCliCommand} disabled={!auth.token || cliRunning || !cliSelected}>
-            {cliRunning ? "Running..." : "Run"}
-          </button>
-        </div>
-        {#if cliSelected}
-          {#each cliCommands as cmd (cmd.id)}
-            {#if cmd.id === cliSelected}
-              <div class="hint">{cmd.description}</div>
-              {#if cmd.risky}
-                <div class="hint hint-error">This command may disconnect the admin session.</div>
-              {/if}
-            {/if}
-          {/each}
-        {/if}
-        {#if cliError}
-          <p class="hint hint-error" role="alert">{cliError}</p>
-        {/if}
-        {#if cliOutput}
-          <pre class="cli-output">{cliOutput}</pre>
-        {/if}
-        {#if cliPairUrl}
-          <div class="kv" style="margin-top: var(--space-md);">
-            <div class="k">Pair link</div>
-            <div class="v"><a href={cliPairUrl}>{cliPairUrl}</a></div>
-          </div>
-          {#if cliPairQrObjectUrl}
-            <div class="qr"><img alt="Pairing QR code" src={cliPairQrObjectUrl} /></div>
-          {/if}
-        {/if}
-      </SectionCard>
       </div>
-    </details>
-
-    <div class="panel panel-side">
+      <div class="panel panel-pair">
       <SectionCard title="Pair iPhone" subtitle="Generate a short-lived code and scan on iPhone">
         <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
         {#if pairError}
@@ -879,18 +830,10 @@
           {/if}
         {/if}
       </SectionCard>
+      </div>
     </div>
 
-    <details class="advanced panel panel-main" bind:open={showLogsAdvanced}>
-      <summary id="advanced-logs-summary">Advanced: Logs</summary>
-      <div role="region" aria-labelledby="advanced-logs-summary">
-      <SectionCard title="Anchor Logs (Tail)">
-        <pre class="logs" aria-label="Anchor logs tail">{logs || "(no logs yet)"}</pre>
-      </SectionCard>
-      </div>
-    </details>
-
-    <div class="panel panel-main">
+    <div class="panel panel-full">
       <SectionCard title="Uploads">
         <p class="hint">Uploads are stored locally on your Mac. Default retention is permanent.</p>
         {#if uploadStats}
@@ -950,109 +893,169 @@
       </SectionCard>
     </div>
 
-    <details class="advanced panel panel-side" bind:open={showDebugAdvanced}>
-      <summary id="advanced-debug-summary">Advanced: Debug</summary>
-      <div role="region" aria-labelledby="advanced-debug-summary">
-      <SectionCard title="Debug">
-        <p class="hint">Last 50 stored events (redacted). Useful for diagnosing blank threads or protocol mismatches.</p>
-        <div class="row buttons">
-          <button type="button" onclick={loadDebugEvents} disabled={busy}>Refresh events</button>
-          <button type="button" onclick={pruneUploadsNow} disabled={!auth.token || pruningUploads}>
-            {pruningUploads ? "Pruning..." : "Run upload cleanup"}
-          </button>
-          <DangerZone>
-            <button
-              class="danger"
-              type="button"
-              onclick={rotateToken}
-              disabled={!auth.token || rotatingToken}
-              aria-label="Rotate access token (disruptive action)"
-            >
-              {rotatingToken ? "Rotating..." : "Rotate access token"}
+    <div class="advanced-stack">
+      <details class="advanced" bind:open={showCliAdvanced}>
+        <summary id="advanced-cli-summary">Advanced: Remote CLI</summary>
+        <div role="region" aria-labelledby="advanced-cli-summary">
+        <SectionCard title="CLI (Remote)" subtitle="Run a limited set of safe codex-pocket commands">
+          <p class="hint">Run a limited set of safe `codex-pocket` CLI commands from this page.</p>
+          <div class="row buttons">
+            <label class="field">
+              <span>Command</span>
+              <select id="cli-command" bind:value={cliSelected} disabled={cliRunning || cliCommands.length === 0}>
+                {#each cliCommands as cmd (cmd.id)}
+                  <option value={cmd.id}>
+                    {cmd.label}{cmd.risky ? " (disruptive)" : ""}
+                  </option>
+                {/each}
+              </select>
+            </label>
+            <button type="button" onclick={runCliCommand} disabled={!auth.token || cliRunning || !cliSelected}>
+              {cliRunning ? "Running..." : "Run"}
             </button>
-          </DangerZone>
+          </div>
+          {#if cliSelected}
+            {#each cliCommands as cmd (cmd.id)}
+              {#if cmd.id === cliSelected}
+                <div class="hint">{cmd.description}</div>
+                {#if cmd.risky}
+                  <div class="hint hint-error">This command may disconnect the admin session.</div>
+                {/if}
+              {/if}
+            {/each}
+          {/if}
+          {#if cliError}
+            <p class="hint hint-error" role="alert">{cliError}</p>
+          {/if}
+          {#if cliOutput}
+            <pre class="cli-output">{cliOutput}</pre>
+          {/if}
+          {#if cliPairUrl}
+            <div class="kv" style="margin-top: var(--space-md);">
+              <div class="k">Pair link</div>
+              <div class="v"><a href={cliPairUrl}>{cliPairUrl}</a></div>
+            </div>
+            {#if cliPairQrObjectUrl}
+              <div class="qr"><img alt="Pairing QR code" src={cliPairQrObjectUrl} /></div>
+            {/if}
+          {/if}
+        </SectionCard>
         </div>
-        {#if rotatedToken}
-          <p class="hint" role="status" aria-live="polite">New legacy token copied to clipboard. Session-token devices stay connected.</p>
-          <p><code>{rotatedToken}</code></p>
-        {/if}
+      </details>
 
-        <div class="token-sessions stack">
-          <div class="row">
-            <StatusChip tone="neutral">Token sessions: {status?.tokenSessions?.active ?? tokenSessions.filter((s) => !s.revokedAt).length} active</StatusChip>
-            <StatusChip tone="neutral">Total: {status?.tokenSessions?.total ?? tokenSessions.length}</StatusChip>
-          </div>
-          <div class="field stack">
-            <label for="token-session-label">new token label</label>
-            <input
-              id="token-session-label"
-              type="text"
-              maxlength="120"
-              bind:value={tokenSessionLabel}
-              placeholder="Dane iPhone"
-            />
-            <label for="token-session-mode">session mode</label>
-            <select id="token-session-mode" bind:value={tokenSessionMode}>
-              <option value="full">Full access</option>
-              <option value="read_only">Read-only</option>
-            </select>
-            <div class="row buttons">
-              <button type="button" onclick={createTokenSession} disabled={!auth.token || creatingTokenSession}>
-                {creatingTokenSession ? "Creating..." : "Create token session"}
-              </button>
-              <button type="button" onclick={loadTokenSessions} disabled={!auth.token || loadingTokenSessions}>
-                {loadingTokenSessions ? "Refreshing..." : "Refresh sessions"}
-              </button>
-            </div>
-          </div>
-          {#if tokenSessionError}
-            <p class="hint hint-error">{tokenSessionError}</p>
-          {/if}
-          {#if createdSessionToken}
-            <p class="hint" role="status" aria-live="polite">
-              New session token copied to clipboard (best effort). Save it now; this value is shown once.
-            </p>
-            <p><code>{createdSessionToken}</code></p>
-          {/if}
-          {#if tokenSessions.length === 0}
-            <p class="hint">No session tokens yet. Legacy access token is still enabled.</p>
-          {:else}
-            <div class="token-session-list stack">
-              {#each tokenSessions as session (session.id)}
-                <div class="token-session-item">
-                  <div class="row token-session-head">
-                    <strong>{session.label || session.id}</strong>
-                    <StatusChip tone={session.revokedAt ? "error" : "success"}>
-                      {session.revokedAt ? "revoked" : "active"}
-                    </StatusChip>
-                  </div>
-                  <div class="hint mono">id: {session.id}</div>
-                  <div class="hint">mode: {session.mode === "read_only" ? "read-only" : "full access"}</div>
-                  <div class="hint">created: {new Date(session.createdAt).toLocaleString()}</div>
-                  <div class="hint">last used: {new Date(session.lastUsedAt).toLocaleString()}</div>
-                  {#if session.revokedAt}
-                    <div class="hint">revoked: {new Date(session.revokedAt).toLocaleString()}</div>
-                  {:else}
-                    <div class="row buttons">
-                      <button
-                        class="danger"
-                        type="button"
-                        onclick={() => revokeTokenSession(session.id)}
-                        disabled={revokingSessionId === session.id}
-                      >
-                        {revokingSessionId === session.id ? "Revoking..." : "Revoke"}
-                      </button>
-                    </div>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          {/if}
+      <details class="advanced" bind:open={showLogsAdvanced}>
+        <summary id="advanced-logs-summary">Advanced: Logs</summary>
+        <div role="region" aria-labelledby="advanced-logs-summary">
+        <SectionCard title="Anchor Logs (Tail)">
+          <pre class="logs" aria-label="Anchor logs tail">{logs || "(no logs yet)"}</pre>
+        </SectionCard>
         </div>
-        <pre class="logs" aria-label="Debug events">{debugEvents || "(no events yet)"}</pre>
-      </SectionCard>
-      </div>
-    </details>
+      </details>
+
+      <details class="advanced" bind:open={showDebugAdvanced}>
+        <summary id="advanced-debug-summary">Advanced: Debug</summary>
+        <div role="region" aria-labelledby="advanced-debug-summary">
+        <SectionCard title="Debug">
+          <p class="hint">Last 50 stored events (redacted). Useful for diagnosing blank threads or protocol mismatches.</p>
+          <div class="row buttons">
+            <button type="button" onclick={loadDebugEvents} disabled={busy}>Refresh events</button>
+            <button type="button" onclick={pruneUploadsNow} disabled={!auth.token || pruningUploads}>
+              {pruningUploads ? "Pruning..." : "Run upload cleanup"}
+            </button>
+            <DangerZone>
+              <button
+                class="danger"
+                type="button"
+                onclick={rotateToken}
+                disabled={!auth.token || rotatingToken}
+                aria-label="Rotate access token (disruptive action)"
+              >
+                {rotatingToken ? "Rotating..." : "Rotate access token"}
+              </button>
+            </DangerZone>
+          </div>
+          {#if rotatedToken}
+            <p class="hint" role="status" aria-live="polite">New legacy token copied to clipboard. Session-token devices stay connected.</p>
+            <p><code>{rotatedToken}</code></p>
+          {/if}
+
+          <div class="token-sessions stack">
+            <div class="row">
+              <StatusChip tone="neutral">Token sessions: {status?.tokenSessions?.active ?? tokenSessions.filter((s) => !s.revokedAt).length} active</StatusChip>
+              <StatusChip tone="neutral">Total: {status?.tokenSessions?.total ?? tokenSessions.length}</StatusChip>
+            </div>
+            <div class="field stack">
+              <label for="token-session-label">new token label</label>
+              <input
+                id="token-session-label"
+                type="text"
+                maxlength="120"
+                bind:value={tokenSessionLabel}
+                placeholder="Dane iPhone"
+              />
+              <label for="token-session-mode">session mode</label>
+              <select id="token-session-mode" bind:value={tokenSessionMode}>
+                <option value="full">Full access</option>
+                <option value="read_only">Read-only</option>
+              </select>
+              <div class="row buttons">
+                <button type="button" onclick={createTokenSession} disabled={!auth.token || creatingTokenSession}>
+                  {creatingTokenSession ? "Creating..." : "Create token session"}
+                </button>
+                <button type="button" onclick={loadTokenSessions} disabled={!auth.token || loadingTokenSessions}>
+                  {loadingTokenSessions ? "Refreshing..." : "Refresh sessions"}
+                </button>
+              </div>
+            </div>
+            {#if tokenSessionError}
+              <p class="hint hint-error">{tokenSessionError}</p>
+            {/if}
+            {#if createdSessionToken}
+              <p class="hint" role="status" aria-live="polite">
+                New session token copied to clipboard (best effort). Save it now; this value is shown once.
+              </p>
+              <p><code>{createdSessionToken}</code></p>
+            {/if}
+            {#if tokenSessions.length === 0}
+              <p class="hint">No session tokens yet. Legacy access token is still enabled.</p>
+            {:else}
+              <div class="token-session-list stack">
+                {#each tokenSessions as session (session.id)}
+                  <div class="token-session-item">
+                    <div class="row token-session-head">
+                      <strong>{session.label || session.id}</strong>
+                      <StatusChip tone={session.revokedAt ? "error" : "success"}>
+                        {session.revokedAt ? "revoked" : "active"}
+                      </StatusChip>
+                    </div>
+                    <div class="hint mono">id: {session.id}</div>
+                    <div class="hint">mode: {session.mode === "read_only" ? "read-only" : "full access"}</div>
+                    <div class="hint">created: {new Date(session.createdAt).toLocaleString()}</div>
+                    <div class="hint">last used: {new Date(session.lastUsedAt).toLocaleString()}</div>
+                    {#if session.revokedAt}
+                      <div class="hint">revoked: {new Date(session.revokedAt).toLocaleString()}</div>
+                    {:else}
+                      <div class="row buttons">
+                        <button
+                          class="danger"
+                          type="button"
+                          onclick={() => revokeTokenSession(session.id)}
+                          disabled={revokingSessionId === session.id}
+                        >
+                          {revokingSessionId === session.id ? "Revoking..." : "Revoke"}
+                        </button>
+                      </div>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+          <pre class="logs" aria-label="Debug events">{debugEvents || "(no events yet)"}</pre>
+        </SectionCard>
+        </div>
+      </details>
+    </div>
   </div>
 </div>
 
@@ -1070,23 +1073,27 @@
     max-width: 1240px;
     margin: 0 auto;
     width: 100%;
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-lg);
+  }
+
+  .overview-grid {
+    display: grid;
     grid-template-columns: 1fr;
+    gap: var(--space-lg);
+    align-items: start;
+  }
+
+  .advanced-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
   }
 
   @media (min-width: 1040px) {
-    .content {
-      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-      align-items: start;
-    }
-
-    .panel-main {
-      grid-column: 1;
-    }
-
-    .panel-side {
-      grid-column: 2;
+    .overview-grid {
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     }
   }
 
@@ -1157,23 +1164,34 @@
 
   button,
   .admin a[href]:not(.brand) {
-    border-radius: 7px;
+    border-radius: 10px;
   }
 
   button {
-    padding: 0.45rem 0.72rem;
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
-    background: color-mix(in srgb, var(--cli-bg-elevated) 85%, transparent);
+    padding: 0.5rem 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--cli-border) 70%, transparent);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cli-bg-elevated) 95%, #fff 5%),
+      color-mix(in srgb, var(--cli-bg-elevated) 80%, var(--cli-bg))
+    );
     color: var(--cli-text);
-    font-family: var(--font-mono);
-    font-size: 0.74rem;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 600;
     letter-spacing: 0.01em;
+    box-shadow: 0 8px 16px -13px rgba(0, 0, 0, 0.9);
     cursor: pointer;
   }
 
   button:hover:enabled {
-    border-color: color-mix(in srgb, var(--cli-prefix-agent) 38%, var(--cli-border));
-    background: color-mix(in srgb, var(--cli-bg-hover) 60%, var(--cli-bg-elevated));
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--cli-prefix-agent) 45%, var(--cli-border));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cli-bg-hover) 70%, #fff 8%),
+      color-mix(in srgb, var(--cli-bg-elevated) 88%, var(--cli-bg))
+    );
   }
 
   button:disabled {
@@ -1187,18 +1205,25 @@
   }
 
   .advanced {
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 78%, transparent);
     border-radius: 12px;
     overflow: hidden;
-    background: color-mix(in srgb, var(--cli-bg-elevated) 84%, var(--cli-bg));
-    box-shadow: 0 14px 30px -28px rgba(0, 0, 0, 0.85);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cli-bg-elevated) 92%, var(--cli-bg)),
+      color-mix(in srgb, var(--cli-bg-elevated) 82%, #000 4%)
+    );
+    box-shadow: 0 14px 32px -30px rgba(0, 0, 0, 0.85);
   }
 
   .advanced > summary {
     cursor: pointer;
-    padding: 0.78rem var(--space-md);
+    padding: 0.82rem var(--space-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     font-family: var(--font-mono);
-    font-size: 0.71rem;
+    font-size: 0.72rem;
     color: var(--cli-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.09em;
@@ -1215,6 +1240,22 @@
   .advanced[open] > summary {
     border-bottom-color: var(--cli-border);
     background: color-mix(in srgb, var(--cli-bg-hover) 45%, var(--cli-bg-elevated));
+    color: var(--cli-text);
+  }
+
+  .advanced > summary::after {
+    content: "▾";
+    font-size: 0.78rem;
+    letter-spacing: 0;
+    transition: transform 0.16s ease;
+  }
+
+  .advanced[open] > summary::after {
+    transform: rotate(180deg);
+  }
+
+  .advanced > summary::-webkit-details-marker {
+    display: none;
   }
 
   button:focus-visible,
