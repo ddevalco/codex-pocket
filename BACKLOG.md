@@ -58,11 +58,8 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - Pairing: `/admin/pair/new` now mints per-device session tokens instead of returning the legacy shared token.
 - Security/read-only UX: read-only sessions can connect to WebSocket for live reads; mutating RPC methods are denied explicitly.
 - CI: added smoke coverage for token-session security behavior (pairing token semantics + read-only guards).
-
-## P0 (Stability)
-
-- CI smoke coverage hardening (remaining edge paths).
-- Update reliability with stale processes (remaining hardening).
+- CLI/update: stale owned listeners now use bounded SIGKILL fallback cleanup (including symlink-safe ownership detection) to reduce restart flakiness.
+- CI: added edge guards for one-time pair-code consumption and immediate auth denial after token-session revocation.
 
 ## P4 (Platform)
 
