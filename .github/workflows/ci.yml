@@ -263,6 +263,13 @@ jobs:
           test -n "$paired_token"
           test "$paired_token" != "ci-token"
           curl -fsS -H "Authorization: Bearer ${paired_token}" "http://127.0.0.1:8790/admin/status" >/tmp/paired-status.json
+          # Pair codes are one-time use.
+          pair_consume_again_status=$(curl -sS -o /tmp/pair-consume-again.json -w '%{http_code}' \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"code\":\"${pair_code}\"}" \
+            "http://127.0.0.1:8790/pair/consume")
+          test "$pair_consume_again_status" = "400"
 
           pair_status=$(curl -sS -o /tmp/pair-3.json -w '%{http_code}' \
             -H "Authorization: Bearer ci-token" \
@@ -294,13 +301,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          ro_token=$(curl -fsS \
+          curl -fsS \
             -H "Authorization: Bearer ci-token" \
             -H "Content-Type: application/json" \
             -X POST \
             -d '{"label":"ci-ro","mode":"read_only"}' \
-            "http://127.0.0.1:8790/admin/token/sessions/new" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("token") or "").strip())')
+            "http://127.0.0.1:8790/admin/token/sessions/new" > /tmp/ro-session-new.json
+          ro_token=$(python3 -c 'import json; d=json.load(open("/tmp/ro-session-new.json")); print((d.get("token") or "").strip())')
+          ro_session_id=$(python3 -c 'import json; d=json.load(open("/tmp/ro-session-new.json")); print((((d.get("session") or {}).get("id")) or "").strip())')
           test -n "$ro_token"
+          test -n "$ro_session_id"
 
           # Read endpoint allowed.
           curl -fsS -H "Authorization: Bearer ${ro_token}" "http://127.0.0.1:8790/admin/status" >/tmp/ro-status.json
@@ -331,6 +341,18 @@ jobs:
             ws.on("close", () => process.exit(ok ? 0 : 1));
             setTimeout(() => process.exit(1), 5000);
           '
+
+          # Revoked session token must stop authenticating immediately.
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"id\":\"${ro_session_id}\"}" \
+            "http://127.0.0.1:8790/admin/token/sessions/revoke" >/tmp/ro-revoke.json
+          ro_after_revoke_status=$(curl -sS -o /tmp/ro-after-revoke.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${ro_token}" \
+            "http://127.0.0.1:8790/admin/status")
+          test "$ro_after_revoke_status" = "401"
 
       - name: Verify cache headers
         shell: bash

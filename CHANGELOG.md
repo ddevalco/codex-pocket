@@ -77,6 +77,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - CI now smoke-tests `/admin/repair` safe actions and non-Tailscale `fixTailscaleServe` behavior to harden self-heal path coverage across environments.
 - CI now smoke-tests `/admin/uploads/retention` updates (retention + auto-cleanup interval) and verifies `/admin/status` reflects saved upload settings.
 - CI now smoke-tests token-session security behavior (pairing returns per-device token, read-only session write/WS mutating guards).
+- CI now also verifies pair codes are one-time consumable and revoked session tokens immediately lose auth.
 
 ## 2026-02-08
 
