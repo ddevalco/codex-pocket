@@ -57,6 +57,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - CLI: `start` now falls back to background mode if the launchd plist is missing (keeps update/restart usable even if the agent file is deleted).
 - CLI: improved owned-process detection by also checking process CWD (helps kill stale listeners from older installs where the command line is just `bun run src/index.ts`).
 - `codex-pocket update` stop/restart now more aggressively cleans up *owned* stale listeners and orphaned anchors before rebuilding/restarting.
+- CLI/update stale-listener cleanup now has a bounded `SIGKILL` fallback for **owned** listeners that ignore `SIGTERM` (reduces post-update restart flakiness without killing unrelated processes).
 - `ensure`/`smoke-test` now retry `/admin/validate` a few times to avoid false failures immediately after restart.
 - Start/stop/restart now kill stale listeners using the configured ports (not hard-coded 8790).
 - `codex-pocket update` now always prints a final `summary` and exits non-zero if `ensure` or `smoke-test` fail (next: `codex-pocket diagnose`).
