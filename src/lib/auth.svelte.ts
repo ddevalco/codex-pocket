@@ -80,6 +80,7 @@ function decodeJwtPayload(token: string): { exp?: number } | null {
 }
 
 class AuthStore {
+  localMode = LOCAL_MODE;
   status = $state<AuthStatus>("loading");
   hasPasskey = $state(false);
   token = $state<string | null>(null);
@@ -101,7 +102,7 @@ class AuthStore {
 
     if (LOCAL_MODE) {
       // Local mode has no Auth service; treat the stored token as the shared bearer token.
-      // The existing UI can be reused by entering the token as the "username".
+      // UI should prompt for an access token in local installs.
       this.status = this.token ? "signed_in" : "signed_out";
       this.user = this.token ? { id: "local", name: "local" } : null;
       this.hasPasskey = false;

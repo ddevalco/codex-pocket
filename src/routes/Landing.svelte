@@ -7,11 +7,12 @@
 
   let showAuthModal = $state(false);
   let authMode = $state<"login" | "register">("login");
-  let username = $state("");
-  let newUsername = $state("");
+  let loginInput = $state("");
+  let registerInput = $state("");
 
   const needsSetup = $derived(auth.status === "needs_setup");
   const isSignedIn = $derived(auth.status === "signed_in");
+  const isLocalMode = $derived(auth.localMode);
 
   $effect(() => {
     if (needsSetup) {
@@ -59,8 +60,10 @@
       </p>
       {#if !isSignedIn}
         <div class="hero-actions row">
-          <button class="primary-btn" type="button" onclick={() => openModal("login")}>Sign in</button>
-          <button class="ghost-btn" type="button" onclick={() => openModal("register")}>Create account</button>
+          <button class="primary-btn" type="button" onclick={() => openModal("login")}>{isLocalMode ? "Use access token" : "Sign in"}</button>
+          {#if !isLocalMode}
+            <button class="ghost-btn" type="button" onclick={() => openModal("register")}>Create account</button>
+          {/if}
         </div>
       {/if}
     </div>
@@ -90,7 +93,7 @@
     <div class="modal-overlay" role="presentation" onclick={closeModal}></div>
     <div class="auth-modal" role="dialog" aria-modal="true">
       <div class="modal-header">
-        <span>{authMode === "login" ? "Sign in" : "Create account"}</span>
+        <span>{authMode === "login" ? (isLocalMode ? "Enter access token" : "Sign in") : "Create account"}</span>
         <button class="modal-close" type="button" onclick={closeModal}>×</button>
       </div>
       <div class="modal-body stack">
@@ -102,48 +105,54 @@
           <input
             type="text"
             class="auth-input"
-            placeholder="Username"
-            bind:value={username}
+            placeholder={isLocalMode ? "Access token" : "Username"}
+            bind:value={loginInput}
             onkeydown={(e) => {
-              if (e.key === "Enter" && username.trim()) auth.signIn(username.trim());
+              if (e.key === "Enter" && loginInput.trim()) auth.signIn(loginInput.trim());
             }}
           />
           <button
             class="primary-btn"
             type="button"
-            onclick={() => auth.signIn(username.trim())}
-            disabled={auth.busy || !username.trim()}
+            onclick={() => auth.signIn(loginInput.trim())}
+            disabled={auth.busy || !loginInput.trim()}
           >
-            {auth.busy ? "Working..." : "Sign in with passkey"}
+            {auth.busy ? "Working..." : isLocalMode ? "Sign in with token" : "Sign in with passkey"}
           </button>
-          <button
-            class="link-btn"
-            type="button"
-            onclick={() => {
-              authMode = "register";
-              auth.error = null;
-            }}
-          >
-            Create new account
-          </button>
+          {#if !isLocalMode}
+            <button
+              class="link-btn"
+              type="button"
+              onclick={() => {
+                authMode = "register";
+                auth.error = null;
+              }}
+            >
+              Create new account
+            </button>
+          {/if}
         {:else}
-          <input
-            type="text"
-            class="auth-input"
-            placeholder="Username"
-            bind:value={newUsername}
-            onkeydown={(e) => {
-              if (e.key === "Enter" && newUsername.trim()) auth.register(newUsername.trim());
-            }}
-          />
-          <button
-            class="primary-btn"
-            type="button"
-            onclick={() => auth.register(newUsername.trim())}
-            disabled={auth.busy || !newUsername.trim()}
-          >
-            {auth.busy ? "Working..." : "Create passkey"}
-          </button>
+          {#if isLocalMode}
+            <p class="auth-help">Account creation is disabled in local mode. Use your access token to sign in.</p>
+          {:else}
+            <input
+              type="text"
+              class="auth-input"
+              placeholder="Username"
+              bind:value={registerInput}
+              onkeydown={(e) => {
+                if (e.key === "Enter" && registerInput.trim()) auth.register(registerInput.trim());
+              }}
+            />
+            <button
+              class="primary-btn"
+              type="button"
+              onclick={() => auth.register(registerInput.trim())}
+              disabled={auth.busy || !registerInput.trim()}
+            >
+              {auth.busy ? "Working..." : "Create passkey"}
+            </button>
+          {/if}
           <button
             class="link-btn"
             type="button"
@@ -318,6 +327,12 @@
     background: var(--cli-error-bg);
     color: var(--cli-error);
     font-size: var(--text-sm);
+  }
+
+  .auth-help {
+    margin: 0;
+    color: var(--cli-text-dim);
+    line-height: 1.5;
   }
 
   .link-btn {
