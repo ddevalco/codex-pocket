@@ -23,6 +23,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UI: mobile thread list shows more of the title by allowing 2-line titles while keeping the date visible.
 - UI/Admin/CLI: detect upstream Codex app-server auth invalidation and surface a clear recovery warning.
 - Admin: add a limited remote CLI runner for safe `codex-pocket` commands (with output capture).
+- UI: Admin page refreshed with a structured, settings-style layout and clearer hierarchy.
 - Docs/UX: added `docs/ADMIN_REDESIGN_PROPOSAL.md` and aligned backlog/project planning for phased Admin + Settings UI redesign work.
 - Docs: added `docs/NATIVE_IOS_ROADMAP.md` with phased native-client milestones, constraints, and decision gates.
 - Docs/Repo: added `CONTRIBUTING.md` with an explicit ff-only sync policy, PR/testing expectations, and a local pre-release clean-tree check script (`scripts/ci/check-clean-tree.sh`).
