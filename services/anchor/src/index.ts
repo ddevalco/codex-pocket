@@ -12,13 +12,8 @@ const PORT = Number(process.env.ANCHOR_PORT ?? 8788);
 const HOST = process.env.ANCHOR_HOST ?? "127.0.0.1";
 const ORBIT_URL = process.env.ANCHOR_ORBIT_URL ?? "";
 const ANCHOR_APP_CWD = process.env.ANCHOR_APP_CWD ?? process.cwd();
-const ANCHOR_JWT_TTL_SEC = Number(process.env.ANCHOR_JWT_TTL_SEC ?? 300);
-const AUTH_URL = process.env.AUTH_URL ?? "";
-const FORCE_LOGIN = process.env.ZANE_FORCE_LOGIN === "1";
-const CREDENTIALS_FILE = process.env.ZANE_CREDENTIALS_FILE ?? "";
 
 let ZANE_ANCHOR_JWT_SECRET = "";
-let USER_ID: string | undefined;
 
 const MAX_SUBSCRIBED_THREADS = 1000;
 const subscribedThreads = new Set<string>();
@@ -328,56 +323,15 @@ function resubscribeAllThreads(): void {
   }
 }
 
-function base64UrlEncode(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += 1) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-async function signJwtHs256(payload: Record<string, unknown>, secret: string): Promise<string> {
-  const header = { alg: "HS256", typ: "JWT" };
-  const encoder = new TextEncoder();
-  const headerPart = base64UrlEncode(encoder.encode(JSON.stringify(header)));
-  const payloadPart = base64UrlEncode(encoder.encode(JSON.stringify(payload)));
-  const data = encoder.encode(`${headerPart}.${payloadPart}`);
-  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
-    "sign",
-  ]);
-  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, data));
-  const signaturePart = base64UrlEncode(signature);
-  return `${headerPart}.${payloadPart}.${signaturePart}`;
-}
-
 async function buildOrbitUrl(): Promise<string | null> {
   if (!ORBIT_URL) return null;
   try {
     const url = new URL(ORBIT_URL);
     // Provide a stable id so local-orbit can dedupe this device across reconnects.
     url.searchParams.set("anchorId", `${hostname()}:${process.platform}`);
-    // Local-Orbit mode: if connecting to a non-TLS ws:// URL on localhost, treat
-    // ZANE_ANCHOR_JWT_SECRET as a shared bearer token (not a JWT).
-    //
-    // This lets users run the stack entirely on their Mac and expose it via
-    // Tailscale (tailscale serve) without Cloudflare.
+    // Local-only mode uses a shared bearer token.
     if (ZANE_ANCHOR_JWT_SECRET) {
-      if (url.protocol === "ws:" && url.hostname === "127.0.0.1") {
-        url.searchParams.set("token", ZANE_ANCHOR_JWT_SECRET);
-      } else {
-        const now = Math.floor(Date.now() / 1000);
-        const token = await signJwtHs256(
-          {
-            iss: "zane-anchor",
-            aud: "zane-orbit-anchor",
-            sub: USER_ID,
-            iat: now,
-            exp: now + ANCHOR_JWT_TTL_SEC,
-          },
-          ZANE_ANCHOR_JWT_SECRET
-        );
-        url.searchParams.set("token", token);
-      }
+      url.searchParams.set("token", ZANE_ANCHOR_JWT_SECRET);
     }
     return url.toString();
   } catch (err) {
@@ -562,156 +516,19 @@ async function streamLines(
   if (tail.length > 0) onLine(tail);
 }
 
-interface Credentials {
-  anchorJwtSecret: string;
-  userId: string;
-}
-
-async function loadCredentials(): Promise<Credentials | null> {
-  if (!CREDENTIALS_FILE) return null;
-  try {
-    const text = await Bun.file(CREDENTIALS_FILE).text();
-    const data = JSON.parse(text) as Partial<Credentials>;
-    if (data.anchorJwtSecret && data.userId) {
-      return { anchorJwtSecret: data.anchorJwtSecret, userId: data.userId };
-    }
-  } catch {
-    // File doesn't exist or is invalid
-  }
-  return null;
-}
-
-async function saveCredentials(creds: Credentials): Promise<void> {
-  if (!CREDENTIALS_FILE) return;
-  try {
-    await Bun.write(CREDENTIALS_FILE, JSON.stringify(creds, null, 2) + "\n");
-    const { chmod } = await import("node:fs/promises");
-    await chmod(CREDENTIALS_FILE, 0o600);
-  } catch (err) {
-    console.warn("[anchor] could not save credentials", err);
-  }
-}
-
-async function deviceLogin(): Promise<boolean> {
-  if (!AUTH_URL) {
-    console.error("[anchor] AUTH_URL is required for device login");
-    return false;
-  }
-
-  console.log("\n  Sign in to connect to Orbit:\n");
-
-  try {
-    const codeRes = await fetch(`${AUTH_URL}/auth/device/code`, { method: "POST" });
-    if (!codeRes.ok) {
-      console.error("[anchor] failed to request device code");
-      return false;
-    }
-
-    const codeData = (await codeRes.json()) as {
-      deviceCode: string;
-      userCode: string;
-      verificationUrl: string;
-      expiresIn: number;
-      interval: number;
-    };
-
-    console.log(`    ${codeData.verificationUrl}\n`);
-    console.log(`  Enter code: \x1b[1m${codeData.userCode}\x1b[0m\n`);
-
-    // Try to open browser
-    try {
-      Bun.spawn(["open", codeData.verificationUrl]);
-    } catch {
-      // Ignore — user can open manually
-    }
-
-    console.log("  Waiting for authorisation...");
-
-    const deadline = Date.now() + codeData.expiresIn * 1000;
-    const interval = codeData.interval * 1000;
-
-    while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, interval));
-
-      const tokenRes = await fetch(`${AUTH_URL}/auth/device/token`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ deviceCode: codeData.deviceCode }),
-      });
-
-      if (!tokenRes.ok) {
-        const errBody = await tokenRes.text().catch(() => "");
-        console.error(`  [anchor] poll error (${tokenRes.status}): ${errBody}`);
-        continue;
-      }
-
-      const tokenData = (await tokenRes.json()) as {
-        status: "pending" | "authorised" | "expired";
-        userId?: string;
-        anchorJwtSecret?: string;
-      };
-
-      if (tokenData.status === "pending") continue;
-
-      if (tokenData.status === "authorised" && tokenData.userId && tokenData.anchorJwtSecret) {
-        ZANE_ANCHOR_JWT_SECRET = tokenData.anchorJwtSecret;
-        USER_ID = tokenData.userId;
-
-        await saveCredentials({ anchorJwtSecret: ZANE_ANCHOR_JWT_SECRET, userId: USER_ID });
-
-        console.log("  \x1b[32mAuthorised!\x1b[0m Credentials saved.\n");
-        return true;
-      }
-
-      // expired
-      console.error("  Code expired. Run 'zane login' to try again.");
-      return false;
-    }
-
-    console.error("  Timed out. Run 'zane login' to try again.");
-    return false;
-  } catch (err) {
-    console.error("[anchor] device login failed", err);
-    return false;
-  }
-}
-
 console.log(`[anchor] starting (local listen disabled) host=${HOST} port=${PORT}`);
 
 async function startup() {
-  // Prefer explicit env (local-orbit passes a shared bearer token via env).
-  // Saved credentials are only used as a fallback.
+  // local-orbit passes a shared bearer token via env.
   ZANE_ANCHOR_JWT_SECRET = (process.env.ZANE_ANCHOR_JWT_SECRET ?? "").trim();
-  USER_ID = (process.env.ZANE_USER_ID ?? "").trim() || undefined;
-
-  const saved = await loadCredentials();
-  if (saved) {
-    if (!ZANE_ANCHOR_JWT_SECRET) ZANE_ANCHOR_JWT_SECRET = saved.anchorJwtSecret;
-    if (!USER_ID) USER_ID = saved.userId;
-  }
-
-  // Local-only mode: when AUTH_URL is unset/empty we cannot do "device login".
-  // In that case we treat ZANE_ANCHOR_JWT_SECRET as a shared bearer token (not a JWT)
-  // and allow Orbit connection without a USER_ID.
-  const canDeviceLogin = Boolean(AUTH_URL);
-  if (ORBIT_URL && ZANE_ANCHOR_JWT_SECRET && !USER_ID && !canDeviceLogin) {
-    USER_ID = "local";
-  }
-
-  const needsLogin =
-    Boolean(ORBIT_URL) &&
-    ((FORCE_LOGIN && canDeviceLogin) || !ZANE_ANCHOR_JWT_SECRET || (canDeviceLogin && !USER_ID));
 
 console.log(`\nCodex Pocket Anchor`);
   console.log(`  Local:     disabled (no local listen)`);
 
-  if (needsLogin) {
-    const ok = await deviceLogin();
-    if (!ok) {
-      console.log(`  Orbit:     not connected (login required)`);
-      console.log();
-      return;
-    }
+  if (ORBIT_URL && !ZANE_ANCHOR_JWT_SECRET) {
+    console.log(`  Orbit:     not connected (missing shared token)`);
+    console.log();
+    return;
   }
 
   if (ORBIT_URL) {

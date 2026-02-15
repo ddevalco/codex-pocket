@@ -909,7 +909,6 @@ function startAnchor(): { ok: boolean; error?: string } {
         ANCHOR_PORT: String(ANCHOR_PORT),
         ANCHOR_ORBIT_URL: `ws://127.0.0.1:${PORT}/ws/anchor?anchorId=${encodeURIComponent(ANCHOR_ID)}`,
         ZANE_ANCHOR_JWT_SECRET: AUTH_TOKEN,
-        AUTH_URL: "",
       },
     });
     anchorProc.exited.then(() => {

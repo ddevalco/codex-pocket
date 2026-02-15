@@ -1,7 +1,6 @@
 const STORE_KEY = "__zane_config_store__";
 const STORAGE_KEY = "zane_config";
-const AUTH_BASE_URL = (import.meta.env.AUTH_URL ?? "").replace(/\/$/, "");
-const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1" || AUTH_BASE_URL.length === 0;
+const LOCAL_MODE = true;
 const DEFAULT_LOCAL_DEV_ORBIT_WS = "ws://127.0.0.1:8790/ws";
 interface SavedConfig {
   url: string;
