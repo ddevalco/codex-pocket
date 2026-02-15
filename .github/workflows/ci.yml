@@ -190,6 +190,11 @@ jobs:
             -H "Content-Type: application/json" \
             -X POST \
             -d '{"actions":["ensureUploadDir","pruneUploads"]}' \
+            "http://127.0.0.1:8790/admin/repair" > /tmp/admin-repair.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-repair.json'))
             "http://127.0.0.1:8790/admin/repair" > /tmp/admin-repair-safe.json
 
           python3 - <<'PY'
@@ -203,6 +208,9 @@ jobs:
           assert not d['errors'], d
           assert 'ensureUploadDir' in d['applied'], d
           assert 'pruneUploads' in d['applied'], d
+          print('admin/repair ok')
+          PY
+
           print('admin/repair safe actions ok')
           PY
 

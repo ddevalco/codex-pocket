@@ -14,6 +14,7 @@ The workflow is defined in:
 - Verifies:
   - `GET /health` returns OK
   - `GET /admin/validate` returns sane JSON (auth required)
+  - `POST /admin/repair` with safe actions (`ensureUploadDir`, `pruneUploads`) returns sane JSON and no errors
   - `GET /admin/uploads/stats` returns upload footprint stats (auth required)
   - `POST /admin/repair` with safe actions (`ensureUploadDir`, `pruneUploads`) returns sane JSON and no errors
   - `POST /admin/repair` with `fixTailscaleServe` behaves deterministically in non-Tailscale CI environments (explicit apply or explicit error)

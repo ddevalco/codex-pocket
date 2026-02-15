@@ -16,6 +16,7 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 - CLI: stop/start now kill stale listeners using configured ports (not hard-coded 8790).
 - Added GitHub Actions CI workflow to build and smoke-test local-orbit on every push/PR.
 - CI now smoke-tests the WebSocket relay path (client ↔ anchor).
+- CI now smoke-tests safe `/admin/repair` actions (`ensureUploadDir`, `pruneUploads`) to cover self-heal endpoint regressions.
 - CI now smoke-tests `/admin/repair` safe actions and non-Tailscale `fixTailscaleServe` behavior.
 - `codex-pocket update` now always prints a final `summary` block and exits non-zero if post-update `ensure`/`smoke-test` fail.
 - Fixed `ensure`/`smoke-test` validation parsing to avoid false failures.

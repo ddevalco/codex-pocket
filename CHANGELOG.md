@@ -77,6 +77,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 ### CI
 - Added GitHub Actions workflow to build the UI and run a local-orbit smoke test (health, admin status, cache headers, events endpoint).
 - CI now also smoke-tests the WebSocket relay path (client ↔ anchor) to catch blank-thread regressions.
+- CI now also smoke-tests `POST /admin/repair` using safe actions (`ensureUploadDir`, `pruneUploads`) to catch regressions in the self-heal path.
 - CI now smoke-tests `/admin/repair` safe actions and non-Tailscale `fixTailscaleServe` behavior to harden self-heal path coverage across environments.
 - CI now smoke-tests `/admin/uploads/retention` updates (retention + auto-cleanup interval) and verifies `/admin/status` reflects saved upload settings.
 - CI now smoke-tests token-session security behavior (pairing returns per-device token, read-only session write/WS mutating guards).
