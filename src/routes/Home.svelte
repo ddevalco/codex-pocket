@@ -175,6 +175,24 @@
     return local;
   }
 
+  function threadRepoLabel(thread: { repo?: string }): string {
+    return (thread.repo ?? "").trim();
+  }
+
+  function threadProjectLabel(thread: { repo?: string; project?: string }): string {
+    const repo = threadRepoLabel(thread);
+    const project = (thread.project ?? "").trim();
+    if (repo && project && repo.toLowerCase() === project.toLowerCase()) return "";
+    return project;
+  }
+
+  function threadContextTitle(
+    thread: { cwd?: string; path?: string },
+    label: string,
+  ): string {
+    return thread.cwd || thread.path || label;
+  }
+
   function indicatorTitle(ind: "blocked" | "working" | "idle"): string {
     if (ind === "blocked") return "Waiting for your action";
     if (ind === "working") return "Working";
@@ -550,6 +568,8 @@
         {/if}
         <ul class="thread-list">
           {#each visibleThreads as thread (thread.id)}
+            {@const repoLabel = threadRepoLabel(thread)}
+            {@const projectLabel = threadProjectLabel(thread)}
             <li class="thread-item row">
               <a
                 class="thread-link row"
@@ -571,6 +591,22 @@
                 >●</span>
                 <span class="thread-main stack">
                   <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
+                  {#if repoLabel || projectLabel}
+                    <span
+                      class="thread-context row"
+                      title={threadContextTitle(
+                        thread,
+                        repoLabel && projectLabel ? `${repoLabel}/${projectLabel}` : repoLabel || projectLabel || ""
+                      )}
+                    >
+                      {#if repoLabel}
+                        <span class="thread-repo-pill">{repoLabel}</span>
+                      {/if}
+                      {#if projectLabel}
+                        <span class="thread-project">{projectLabel}</span>
+                      {/if}
+                    </span>
+                  {/if}
                   <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
                 </span>
               </a>
@@ -1079,6 +1115,36 @@
     flex: 1;
     min-width: 0;
     --stack-gap: 2px;
+  }
+
+  .thread-context {
+    min-width: 0;
+    --row-gap: 6px;
+    align-items: center;
+  }
+
+  .thread-repo-pill {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--cli-prefix-agent) 35%, transparent);
+    background: color-mix(in oklab, var(--cli-prefix-agent) 10%, transparent);
+    color: var(--cli-text);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .thread-project {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--cli-text-dim);
+    font-size: var(--text-xs);
   }
 
   .thread-meta {

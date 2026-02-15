@@ -13,6 +13,39 @@ const DEFAULT_SETTINGS: ThreadSettings = {
   mode: "code",
 };
 
+function lastPathSegment(input: string | undefined): string | undefined {
+  if (!input) return undefined;
+  const normalized = input.replace(/\\/g, "/").replace(/\/+$/, "");
+  if (!normalized) return undefined;
+  const idx = normalized.lastIndexOf("/");
+  if (idx < 0) return normalized || undefined;
+  const out = normalized.slice(idx + 1);
+  return out || undefined;
+}
+
+function repoNameFromOrigin(origin: string | undefined): string | undefined {
+  if (!origin) return undefined;
+  const trimmed = origin.trim();
+  if (!trimmed) return undefined;
+
+  // git@host:owner/repo.git
+  const scpLike = trimmed.match(/^[^@]+@[^:]+:(.+)$/);
+  let pathPart = scpLike?.[1] ?? "";
+
+  if (!pathPart) {
+    try {
+      pathPart = new URL(trimmed).pathname.replace(/^\/+/, "");
+    } catch {
+      // ignore URL parse errors
+    }
+  }
+
+  pathPart = pathPart.replace(/\.git$/i, "").replace(/\/+$/, "");
+  if (!pathPart) return undefined;
+  const parts = pathPart.split("/").filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : undefined;
+}
+
 
 function normalizeThreadInfo(input: any): ThreadInfo {
   const thread = input && typeof input === "object" ? input : {};
@@ -74,11 +107,47 @@ function normalizeThreadInfo(input: any): ThreadInfo {
           ? thread.turn_status
           : undefined;
   const modelProvider = typeof thread.modelProvider === "string" ? thread.modelProvider : typeof thread.model_provider === "string" ? thread.model_provider : undefined;
+  const cwd =
+    typeof thread.cwd === "string"
+      ? thread.cwd
+      : typeof thread.workspace === "string"
+        ? thread.workspace
+        : typeof thread.workingDirectory === "string"
+          ? thread.workingDirectory
+          : typeof thread.working_directory === "string"
+            ? thread.working_directory
+            : undefined;
+  const path = typeof thread.path === "string" ? thread.path : typeof thread.sessionPath === "string" ? thread.sessionPath : undefined;
+  const gitInfo = thread.gitInfo && typeof thread.gitInfo === "object" ? thread.gitInfo : thread.git_info && typeof thread.git_info === "object" ? thread.git_info : null;
+  const gitOriginUrl =
+    typeof gitInfo?.originUrl === "string"
+      ? gitInfo.originUrl
+      : typeof gitInfo?.origin_url === "string"
+        ? gitInfo.origin_url
+        : typeof thread.originUrl === "string"
+          ? thread.originUrl
+          : typeof thread.origin_url === "string"
+            ? thread.origin_url
+            : undefined;
+  const gitBranch =
+    typeof gitInfo?.branch === "string"
+      ? gitInfo.branch
+      : typeof thread.branch === "string"
+        ? thread.branch
+        : undefined;
+  const project = lastPathSegment(cwd);
+  const repo = repoNameFromOrigin(gitOriginUrl);
 
   return {
     id,
     ...(preview ? { preview } : {}),
     ...(title ? { title, name: title } : {}),
+    ...(cwd ? { cwd } : {}),
+    ...(path ? { path } : {}),
+    ...(project ? { project } : {}),
+    ...(repo ? { repo } : {}),
+    ...(gitBranch ? { gitBranch } : {}),
+    ...(gitOriginUrl ? { gitOriginUrl } : {}),
     ...(createdAt != null ? { createdAt } : {}),
     ...(updatedAt != null ? { updatedAt } : {}),
     ...(lastActivity != null ? { lastActivity } : {}),
