@@ -589,7 +589,9 @@ class MessagesStore {
         null;
 
       if (threadId && Array.isArray(turns)) {
-        this.#touch(threadId);
+        // Do not mark thread/read thread/get responses as fresh activity.
+        // These payloads are often metadata/history fetches and can make many
+        // threads incorrectly appear as "active now" in the thread list.
         // Do not require `existing.length === 0` here.
         // We can receive live `item/*` messages immediately after subscribing, which would
         // make `existing` non-empty and inadvertently block history loading, resulting in
