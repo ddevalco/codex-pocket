@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ModeKind, ModelOption, ReasoningEffort } from "../types";
   import { api } from "../api";
+  import { loadQuickReplies, type QuickReply } from "../quickReplies";
 
 	  interface Props {
     model: string;
@@ -41,6 +42,7 @@
   let input = $state("");
   let modelOpen = $state(false);
   let reasoningOpen = $state(false);
+  let quickReplies = $state<QuickReply[]>([]);
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   type EnterBehavior = "newline" | "send";
@@ -57,7 +59,11 @@
     }
   });
 
-  const canSubmit = $derived(input.trim().length > 0 && !disabled);
+  $effect(() => {
+    quickReplies = loadQuickReplies();
+  });
+
+  const canSubmit = $derived((input.trim().length > 0 || pendingAttachments.length > 0) && !disabled);
 	  let uploadBusy = $state(false);
 	  let uploadError = $state<string | null>(null);
 	  let pendingAttachments = $state<ImageAttachment[]>([]);
@@ -76,10 +82,22 @@
     reasoningOptions.find((r) => r.value === reasoningEffort)?.label || "Medium"
   );
 
+	  function composeInputWithAttachments(baseText: string): string {
+    if (pendingAttachments.length === 0) return baseText.trim();
+    const attachmentMarkdown = pendingAttachments
+      .map((a) => {
+        const alt = (a.filename || "image").replace(/[\r\n\t\u0000]/g, " ").trim();
+        return `![${alt}](${a.viewUrl})`;
+      })
+      .join("\n");
+    const text = baseText.trim();
+    return text ? `${text}\n${attachmentMarkdown}` : attachmentMarkdown;
+  }
+
 	  function handleSubmit(e: Event) {
 	    e.preventDefault();
 	    if (!canSubmit) return;
-	    onSubmit(input.trim(), pendingAttachments);
+	    onSubmit(composeInputWithAttachments(input), pendingAttachments);
 	    input = "";
 	    pendingAttachments = [];
 	  }
@@ -112,57 +130,78 @@
     }
   }
 
+  function sendQuickReply(text: string) {
+    if (disabled) return;
+    const trimmed = text.trim();
+    if (!trimmed && pendingAttachments.length === 0) return;
+    onSubmit(composeInputWithAttachments(trimmed), pendingAttachments);
+    input = "";
+    pendingAttachments = [];
+  }
+
+  function removeAttachment(index: number) {
+    pendingAttachments = pendingAttachments.filter((_, i) => i !== index);
+  }
+
 	  async function handlePickImage(e: Event) {
     const el = e.target as HTMLInputElement;
-    const file = el.files?.[0];
+    const files = Array.from(el.files ?? []);
     el.value = "";
-    if (!file) return;
+    if (!files.length) return;
 
 	    uploadError = null;
 	    uploadBusy = true;
-	    try {
-	      const meta = await api.post<{
-	        token: string;
-	        uploadUrl: string;
-	        viewUrl: string;
-	        localPath: string;
-	        filename: string;
-	        mime: string;
-	      }>("/uploads/new", {
-	        filename: file.name,
-	        mime: file.type || "application/octet-stream",
-	        bytes: file.size,
-	      });
+    const uploaded: ImageAttachment[] = [];
+    let failed = 0;
+    let lastError = "";
+    try {
+      for (const file of files) {
+        try {
+          const meta = await api.post<{
+            token: string;
+            uploadUrl: string;
+            viewUrl: string;
+            localPath: string;
+            filename: string;
+            mime: string;
+          }>("/uploads/new", {
+            filename: file.name,
+            mime: file.type || "application/octet-stream",
+            bytes: file.size,
+          });
 
-      const buf = await file.arrayBuffer();
-      const putPath = `/uploads/${encodeURIComponent(meta.token)}`;
-      const res = await api.putRaw(putPath, buf, file.type || "application/octet-stream");
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        throw new Error(t || `upload failed (${res.status})`);
+          const buf = await file.arrayBuffer();
+          const putPath = `/uploads/${encodeURIComponent(meta.token)}`;
+          const res = await api.putRaw(putPath, buf, file.type || "application/octet-stream");
+          if (!res.ok) {
+            const t = await res.text().catch(() => "");
+            throw new Error(t || `upload failed (${res.status})`);
+          }
+
+          const fallbackName = (file.name || "image").replace(/[\r\n\t\u0000]/g, " ").trim();
+          uploaded.push({
+            kind: "image",
+            filename: meta.filename || file.name || fallbackName || "image",
+            mime: meta.mime || file.type || "application/octet-stream",
+            localPath: meta.localPath,
+            viewUrl: meta.viewUrl,
+          });
+        } catch (err) {
+          failed += 1;
+          lastError = err instanceof Error ? err.message : "Upload failed";
+        }
       }
-
-	      // Insert as markdown so it renders inline in the chat UI.
-	      const alt = (file.name || "image").replace(/[\r\n\t\u0000]/g, " ").trim();
-	      const md = `![${alt}](${meta.viewUrl})`;
-	      input = `${input}${input ? "\n" : ""}${md}`;
-
-	      // Also keep a structured attachment so we can pass pixels to Codex app-server.
-	      pendingAttachments = [
-	        ...pendingAttachments,
-	        {
-	          kind: "image",
-	          filename: meta.filename || file.name || alt || "image",
-	          mime: meta.mime || file.type || "application/octet-stream",
-	          localPath: meta.localPath,
-	          viewUrl: meta.viewUrl,
-	        },
-	      ];
-	    } catch (err) {
-	      uploadError = err instanceof Error ? err.message : "Upload failed";
-	    } finally {
-	      uploadBusy = false;
-	    }
+      if (uploaded.length) {
+        pendingAttachments = [...pendingAttachments, ...uploaded];
+      }
+      if (failed) {
+        uploadError = uploaded.length
+          ? `Uploaded ${uploaded.length}/${files.length} image(s). ${lastError}`
+          : lastError || "Upload failed";
+      }
+    } finally {
+      uploadBusy = false;
+    }
 	  }
 </script>
 
@@ -170,13 +209,47 @@
 
 <form class="prompt-input" onsubmit={handleSubmit}>
   <div class="input-container stack">
-    <textarea
+    {#if quickReplies.length}
+      <div class="quick-replies row" role="group" aria-label="Quick reply shortcuts">
+        {#each quickReplies as reply, i (`${reply.label}:${reply.text}:${i}`)}
+          <button
+            type="button"
+            class="quick-reply-btn"
+            onclick={() => sendQuickReply(reply.text)}
+            disabled={disabled}
+            title={reply.text}
+          >
+            {reply.label}
+          </button>
+        {/each}
+      </div>
+    {/if}
+	    <textarea
       bind:value={input}
       onkeydown={handleKeydown}
       placeholder="What would you like to do?"
       rows="1"
       {disabled}
-    ></textarea>
+	    ></textarea>
+    {#if pendingAttachments.length}
+      <div class="attachment-chips" role="list" aria-label="Selected attachments">
+        {#each pendingAttachments as item, i (`${item.localPath}:${item.filename}:${i}`)}
+          <div class="attachment-chip" role="listitem">
+            <img class="attachment-thumb" src={item.viewUrl} alt={item.filename} loading="lazy" />
+            <span class="attachment-name">{item.filename}</span>
+            <button
+              type="button"
+              class="attachment-remove"
+              onclick={() => removeAttachment(i)}
+              aria-label={`Remove attachment ${item.filename}`}
+              title="Remove attachment"
+            >
+              ×
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
 
     <div class="footer split">
       <div class="tools row">
@@ -186,13 +259,14 @@
 	          We want the user to be able to choose either Camera or Photo Library.
 	        -->
 	        <label class="tool-btn row" title="Attach image">
-	          <input
-	            class="file-input"
-	            type="file"
-	            accept="image/*"
-	            onchange={handlePickImage}
-	            disabled={disabled || uploadBusy}
-	          />
+		          <input
+		            class="file-input"
+		            type="file"
+		            accept="image/*"
+                multiple
+		            onchange={handlePickImage}
+		            disabled={disabled || uploadBusy}
+		          />
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15V8a2 2 0 0 0-2-2h-3l-2-2H10L8 6H5a2 2 0 0 0-2 2v7" />
             <path d="M3 15l4-4 4 4 4-4 6 6" />
@@ -371,6 +445,37 @@
     box-shadow: var(--shadow-focus);
   }
 
+  .quick-replies {
+    --row-gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md) 0 var(--space-md);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .quick-reply-btn {
+    border: 1px solid var(--cli-border);
+    background: var(--cli-bg-elevated);
+    color: var(--cli-text-dim);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .quick-reply-btn:hover:enabled {
+    background: var(--cli-bg-hover);
+    color: var(--cli-text);
+    border-color: color-mix(in srgb, var(--cli-prefix-agent) 35%, var(--cli-border));
+  }
+
+  .quick-reply-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   textarea {
     flex: 1;
     padding: var(--space-md);
@@ -396,6 +501,58 @@
   textarea:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .attachment-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding: 0 var(--space-md) var(--space-sm) var(--space-md);
+  }
+
+  .attachment-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--cli-border);
+    background: var(--cli-bg-elevated);
+    color: var(--cli-text-dim);
+    font-size: var(--text-xs);
+    font-family: var(--font-sans);
+    max-width: 100%;
+  }
+
+  .attachment-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid var(--cli-border);
+    background: var(--cli-bg);
+    flex: 0 0 auto;
+  }
+
+  .attachment-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 260px;
+  }
+
+  .attachment-remove {
+    border: none;
+    background: transparent;
+    color: var(--cli-text-muted);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    line-height: 1;
+    padding: 0;
+  }
+
+  .attachment-remove:hover {
+    color: var(--cli-error);
   }
 
   .footer {

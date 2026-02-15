@@ -2,6 +2,7 @@ import { hostname, homedir } from "node:os";
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { readdir, stat, unlink, mkdir as mkdirAsync } from "node:fs/promises";
 import { dirname, join, basename } from "node:path";
+import { createHash } from "node:crypto";
 import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
 
@@ -50,6 +51,10 @@ const APP_COMMIT = (() => {
 
 let UPLOAD_DIR = (process.env.ZANE_LOCAL_UPLOAD_DIR ?? `${homedir()}/.codex-pocket/uploads`).trim();
 let UPLOAD_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_UPLOAD_RETENTION_DAYS ?? 0); // 0 = keep forever
+const DEFAULT_UPLOAD_PRUNE_INTERVAL_HOURS = 6;
+const MIN_UPLOAD_PRUNE_INTERVAL_HOURS = 1;
+const MAX_UPLOAD_PRUNE_INTERVAL_HOURS = 168;
+let UPLOAD_PRUNE_INTERVAL_HOURS = Number(process.env.ZANE_LOCAL_UPLOAD_PRUNE_INTERVAL_HOURS ?? DEFAULT_UPLOAD_PRUNE_INTERVAL_HOURS);
 const UPLOAD_MAX_BYTES = Number(process.env.ZANE_LOCAL_UPLOAD_MAX_BYTES ?? 25 * 1024 * 1024);
 const UPLOAD_URL_TTL_SEC = Number(process.env.ZANE_LOCAL_UPLOAD_URL_TTL_SEC ?? 7 * 24 * 60 * 60);
 
@@ -64,6 +69,10 @@ const AUTOSTART_ANCHOR = process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
 // Prefer an explicit env override, otherwise fall back to the machine hostname.
 const ANCHOR_ID = (process.env.ZANE_LOCAL_ANCHOR_ID ?? hostname()).trim() || "anchor";
 const PAIR_TTL_SEC = Number(process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
+const PAIR_NEW_RATE_LIMIT_MAX = Number(process.env.ZANE_LOCAL_PAIR_RATE_LIMIT_MAX ?? 6);
+const PAIR_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.ZANE_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC ?? 60);
+const UPLOAD_NEW_RATE_LIMIT_MAX = Number(process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX ?? 30);
+const UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC ?? 60);
 const CLI_BIN =
   process.env.ZANE_LOCAL_CLI_BIN?.trim() ||
   `${homedir()}/.codex-pocket/bin/codex-pocket`;
@@ -72,13 +81,22 @@ const CLI_OUTPUT_LIMIT = Number(process.env.ZANE_LOCAL_CLI_OUTPUT_LIMIT ?? 20000
 const CLI_TIMEOUT_MS = Number(process.env.ZANE_LOCAL_CLI_TIMEOUT_MS ?? 90_000);
 
 const DEFAULT_CONFIG_JSON_PATH = join(homedir(), ".codex-pocket", "config.json");
+const EFFECTIVE_CONFIG_JSON_PATH =
+  CONFIG_JSON_PATH || (existsSync(DEFAULT_CONFIG_JSON_PATH) ? DEFAULT_CONFIG_JSON_PATH : "");
+
+function parseUploadPruneIntervalHours(value: unknown): number | null {
+  const n = typeof value === "string" ? Number(value) : typeof value === "number" ? value : NaN;
+  if (!Number.isFinite(n)) return null;
+  const hours = Math.floor(n);
+  if (hours < MIN_UPLOAD_PRUNE_INTERVAL_HOURS || hours > MAX_UPLOAD_PRUNE_INTERVAL_HOURS) return null;
+  return hours;
+}
 
 function loadConfigJson(): Record<string, unknown> | null {
-  const path = CONFIG_JSON_PATH || (existsSync(DEFAULT_CONFIG_JSON_PATH) ? DEFAULT_CONFIG_JSON_PATH : "");
-  if (!path) return null;
+  if (!EFFECTIVE_CONFIG_JSON_PATH) return null;
   try {
     // Bun.file().textSync() is not available in all Bun versions; use node:fs for sync reads.
-    const text = readFileSync(path, "utf8");
+    const text = readFileSync(EFFECTIVE_CONFIG_JSON_PATH, "utf8");
     return JSON.parse(text) as Record<string, unknown>;
   } catch {
     return null;
@@ -102,6 +120,13 @@ function uploadConfigFromConfigJson(json: Record<string, unknown> | null): void 
   if (Number.isFinite(n) && n >= 0) {
     UPLOAD_RETENTION_DAYS = n;
   }
+  const ph =
+    (json.uploadPruneIntervalHours as number | string | undefined) ??
+    (json.upload_prune_interval_hours as number | string | undefined);
+  const intervalHours = parseUploadPruneIntervalHours(ph);
+  if (intervalHours !== null) {
+    UPLOAD_PRUNE_INTERVAL_HOURS = intervalHours;
+  }
 }
 
 const loadedConfig = loadConfigJson();
@@ -116,6 +141,12 @@ if (!AUTH_TOKEN) {
 }
 
 type Role = "client" | "anchor";
+type WsData = {
+  role: Role;
+  anchorId?: string;
+  authSource?: "legacy" | "session";
+  authScope?: "full" | "read_only";
+};
 
 interface AnchorMeta {
   id: string;
@@ -207,6 +238,49 @@ function requestOrigin(url: URL, req: Request): string {
   const xfHost = (req.headers.get("x-forwarded-host") ?? "").split(",")[0].trim();
   if (xfProto && xfHost) return `${xfProto}://${xfHost}`;
   return `${url.protocol}//${url.host}`;
+}
+
+type RateLimitBucket = {
+  count: number;
+  resetAtMs: number;
+};
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+
+function requestRateLimitKey(req: Request): string {
+  const forwarded = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+  const auth = (req.headers.get("authorization") ?? "").trim();
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  if (forwarded && token) return `${forwarded}|${token.slice(-8)}`;
+  if (forwarded) return forwarded;
+  if (token) return `token:${token.slice(-8)}`;
+  return (req.headers.get("user-agent") ?? "unknown").slice(0, 64);
+}
+
+function enforceRateLimit(scope: string, key: string, max: number, windowSec: number): { ok: true } | { ok: false; retryAfterSec: number } {
+  if (!Number.isFinite(max) || max <= 0 || !Number.isFinite(windowSec) || windowSec <= 0) {
+    return { ok: true };
+  }
+  const now = Date.now();
+  const windowMs = Math.floor(windowSec * 1000);
+  const bucketKey = `${scope}:${key}`;
+  const existing = rateLimitBuckets.get(bucketKey);
+  if (!existing || now >= existing.resetAtMs) {
+    rateLimitBuckets.set(bucketKey, { count: 1, resetAtMs: now + windowMs });
+    return { ok: true };
+  }
+  if (existing.count >= max) {
+    const retryAfterSec = Math.max(1, Math.ceil((existing.resetAtMs - now) / 1000));
+    return { ok: false, retryAfterSec };
+  }
+  existing.count += 1;
+  // Opportunistic cleanup to avoid unbounded growth.
+  if (rateLimitBuckets.size > 2000) {
+    for (const [k, v] of rateLimitBuckets) {
+      if (now >= v.resetAtMs) rateLimitBuckets.delete(k);
+    }
+  }
+  return { ok: true };
 }
 
 function resolveTailscaleCmd(): string | null {
@@ -548,6 +622,24 @@ db.exec(
   "CREATE INDEX IF NOT EXISTS idx_upload_tokens_expires ON upload_tokens(expires_at);"
 );
 
+db.exec(
+  "CREATE TABLE IF NOT EXISTS token_sessions (" +
+    "id TEXT PRIMARY KEY," +
+    "token_hash TEXT NOT NULL UNIQUE," +
+    "label TEXT NOT NULL," +
+    "mode TEXT NOT NULL DEFAULT 'full'," +
+    "created_at INTEGER NOT NULL," +
+    "last_used_at INTEGER NOT NULL," +
+    "revoked_at INTEGER" +
+  ");" +
+  "CREATE INDEX IF NOT EXISTS idx_token_sessions_revoked ON token_sessions(revoked_at);"
+);
+try {
+  db.exec("ALTER TABLE token_sessions ADD COLUMN mode TEXT NOT NULL DEFAULT 'full';");
+} catch {
+  // already migrated
+}
+
 const insertEvent = db.prepare(
   "INSERT INTO events (thread_id, turn_id, direction, role, method, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
 );
@@ -562,8 +654,46 @@ const getUploadToken = db.prepare(
 
 const deleteUploadToken = db.prepare("DELETE FROM upload_tokens WHERE token = ?");
 
+const insertTokenSession = db.prepare(
+  "INSERT INTO token_sessions (id, token_hash, label, mode, created_at, last_used_at, revoked_at) VALUES (?, ?, ?, ?, ?, ?, NULL)"
+);
+
+const getTokenSessionByHash = db.prepare(
+  "SELECT id, label, mode, created_at, last_used_at, revoked_at FROM token_sessions WHERE token_hash = ? LIMIT 1"
+);
+
+const touchTokenSessionLastUsed = db.prepare(
+  "UPDATE token_sessions SET last_used_at = ? WHERE id = ?"
+);
+
+const listTokenSessions = db.prepare(
+  "SELECT id, label, mode, created_at, last_used_at, revoked_at FROM token_sessions ORDER BY created_at DESC"
+);
+
+const revokeTokenSession = db.prepare(
+  "UPDATE token_sessions SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL"
+);
+
+const countTokenSessions = db.prepare(
+  "SELECT COUNT(*) as n FROM token_sessions"
+);
+
+const countActiveTokenSessions = db.prepare(
+  "SELECT COUNT(*) as n FROM token_sessions WHERE revoked_at IS NULL"
+);
+
 function nowSec(): number {
   return Math.floor(Date.now() / 1000);
+}
+
+function getTokenSessionStats(): { total: number; active: number } {
+  try {
+    const total = Number((countTokenSessions.get() as { n?: number } | null)?.n ?? 0);
+    const active = Number((countActiveTokenSessions.get() as { n?: number } | null)?.n ?? 0);
+    return { total, active };
+  } catch {
+    return { total: 0, active: 0 };
+  }
 }
 
 function logAdmin(message: string): void {
@@ -639,6 +769,86 @@ async function pruneUploads(): Promise<void> {
   }
 }
 
+type UploadStats = {
+  fileCount: number;
+  totalBytes: number;
+  oldestAt: string | null;
+  newestAt: string | null;
+  lastPruneAt: string | null;
+  lastPruneMessage: string | null;
+  lastPruneSource: "manual" | "scheduled" | "unknown" | null;
+};
+
+async function getUploadStats(): Promise<UploadStats> {
+  await ensureUploadDir();
+  let fileCount = 0;
+  let totalBytes = 0;
+  let oldestMs = Number.POSITIVE_INFINITY;
+  let newestMs = 0;
+  try {
+    const entries = await readdir(UPLOAD_DIR);
+    for (const name of entries) {
+      const p = join(UPLOAD_DIR, name);
+      let st;
+      try {
+        st = await stat(p);
+      } catch {
+        continue;
+      }
+      if (!st.isFile()) continue;
+      fileCount += 1;
+      totalBytes += st.size;
+      if (st.mtimeMs < oldestMs) oldestMs = st.mtimeMs;
+      if (st.mtimeMs > newestMs) newestMs = st.mtimeMs;
+    }
+  } catch {
+    // treat as empty on read error
+  }
+
+  const row = db
+    .prepare(
+      "SELECT created_at, payload FROM events WHERE thread_id = ? AND method = ? AND payload LIKE ? ORDER BY created_at DESC LIMIT 1"
+    )
+    .get("admin", "admin.log", "%upload retention:%") as null | { created_at?: number; payload?: string };
+
+  let lastPruneMessage: string | null = null;
+  let lastPruneSource: "manual" | "scheduled" | "unknown" | null = null;
+  if (row?.payload) {
+    try {
+      const parsed = JSON.parse(row.payload) as { message?: { message?: string } };
+      const msg = parsed?.message?.message;
+      if (typeof msg === "string" && msg.trim()) {
+        lastPruneMessage = msg.trim();
+        if (lastPruneMessage.includes("manual prune")) {
+          lastPruneSource = "manual";
+        } else if (lastPruneMessage.includes("deleted")) {
+          lastPruneSource = "scheduled";
+        } else {
+          lastPruneSource = "unknown";
+        }
+      }
+    } catch {
+      // ignore parse errors; keep null fields
+    }
+  }
+
+  const toIso = (ms: number): string | null =>
+    Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : null;
+
+  return {
+    fileCount,
+    totalBytes,
+    oldestAt: oldestMs !== Number.POSITIVE_INFINITY ? toIso(oldestMs) : null,
+    newestAt: newestMs > 0 ? toIso(newestMs) : null,
+    lastPruneAt:
+      row && typeof row.created_at === "number" && row.created_at > 0
+        ? new Date(row.created_at * 1000).toISOString()
+        : null,
+    lastPruneMessage,
+    lastPruneSource,
+  };
+}
+
 function pruneExpiredUploadTokens(): void {
   try {
     db.prepare("DELETE FROM upload_tokens WHERE expires_at < ?").run(nowSec());
@@ -647,8 +857,21 @@ function pruneExpiredUploadTokens(): void {
   }
 }
 
+let uploadPruneTimer: ReturnType<typeof setInterval> | null = null;
+
+function scheduleUploadPrune(): void {
+  if (uploadPruneTimer) {
+    clearInterval(uploadPruneTimer);
+    uploadPruneTimer = null;
+  }
+  const hours = parseUploadPruneIntervalHours(UPLOAD_PRUNE_INTERVAL_HOURS) ?? DEFAULT_UPLOAD_PRUNE_INTERVAL_HOURS;
+  UPLOAD_PRUNE_INTERVAL_HOURS = hours;
+  uploadPruneTimer = setInterval(() => void pruneUploads(), hours * 60 * 60 * 1000);
+  uploadPruneTimer.unref?.();
+}
+
 setInterval(pruneOldEvents, 6 * 60 * 60 * 1000).unref?.();
-setInterval(() => void pruneUploads(), 6 * 60 * 60 * 1000).unref?.();
+scheduleUploadPrune();
 setInterval(pruneExpiredUploadTokens, 10 * 60 * 1000).unref?.();
 pruneOldEvents();
 void pruneUploads();
@@ -718,16 +941,75 @@ function randomPairCode(): string {
   return out;
 }
 
-const pairCodes = new Map<string, { token: string; expiresAt: number }>();
+const pairCodes = new Map<string, { token: string; sessionId?: string; expiresAt: number }>();
 
 function prunePairCodes(): void {
   const now = Date.now();
   for (const [code, rec] of pairCodes) {
-    if (now > rec.expiresAt) pairCodes.delete(code);
+    if (now > rec.expiresAt) {
+      pairCodes.delete(code);
+      if (rec.sessionId) {
+        try {
+          revokeTokenSession.run(nowSec(), rec.sessionId);
+        } catch {
+          // ignore
+        }
+      }
+    }
   }
 }
 
 setInterval(prunePairCodes, 60_000).unref?.();
+
+type TokenSessionRow = {
+  id: string;
+  label: string;
+  mode: "full" | "read_only";
+  created_at: number;
+  last_used_at: number;
+  revoked_at: number | null;
+};
+
+function parseTokenSessionMode(mode: unknown): "full" | "read_only" {
+  return mode === "read_only" ? "read_only" : "full";
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function sanitizeSessionLabel(label: string | null | undefined): string {
+  const raw = (label ?? "").trim();
+  if (!raw) return `Device ${new Date().toISOString()}`;
+  return raw.slice(0, 120);
+}
+
+function mintTokenSession(label: string, mode: "full" | "read_only"): { id: string; token: string; row: TokenSessionRow } {
+  const token = randomTokenHex(32);
+  const tokenHash = hashToken(token);
+  const id = randomTokenHex(16);
+  const createdAt = nowSec();
+  const nextLabel = sanitizeSessionLabel(label);
+  const nextMode = parseTokenSessionMode(mode);
+  insertTokenSession.run(id, tokenHash, nextLabel, nextMode, createdAt, createdAt);
+  return {
+    id,
+    token,
+    row: {
+      id,
+      label: nextLabel,
+      mode: nextMode,
+      created_at: createdAt,
+      last_used_at: createdAt,
+      revoked_at: null,
+    },
+  };
+}
+
+type AuthContext =
+  | { ok: true; mode: "legacy" }
+  | { ok: true; mode: "session"; sessionId: string; sessionMode: "full" | "read_only" }
+  | { ok: false };
 
 function getBearer(req: Request): string | null {
   const auth = req.headers.get("authorization") ?? "";
@@ -735,7 +1017,7 @@ function getBearer(req: Request): string | null {
   return auth.slice(7).trim();
 }
 
-function authorised(req: Request): boolean {
+function authContext(req: Request): AuthContext {
   const provided =
     getBearer(req) ??
     (() => {
@@ -745,7 +1027,29 @@ function authorised(req: Request): boolean {
         return null;
       }
     })();
-  return Boolean(provided && timingSafeEqual(provided, AUTH_TOKEN));
+  if (!provided) return { ok: false };
+  if (timingSafeEqual(provided, AUTH_TOKEN)) return { ok: true, mode: "legacy" };
+  try {
+    const row = getTokenSessionByHash.get(hashToken(provided)) as TokenSessionRow | null;
+    if (!row || row.revoked_at) return { ok: false };
+    try {
+      touchTokenSessionLastUsed.run(nowSec(), row.id);
+    } catch {
+      // ignore touch failures
+    }
+    return { ok: true, mode: "session", sessionId: row.id, sessionMode: parseTokenSessionMode(row.mode) };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function authorised(req: Request): boolean {
+  const ctx = authContext(req);
+  if (!ctx.ok) return false;
+  if (ctx.mode !== "session") return true;
+  if (ctx.sessionMode !== "read_only") return true;
+  const method = req.method.toUpperCase();
+  return method === "GET" || method === "HEAD";
 }
 
 function randomTokenHex(bytes = 32): string {
@@ -757,12 +1061,12 @@ function randomTokenHex(bytes = 32): string {
 }
 
 function persistTokenToConfigJson(nextToken: string): void {
-  if (!CONFIG_JSON_PATH) return;
+  if (!EFFECTIVE_CONFIG_JSON_PATH) return;
   try {
-    const text = Bun.file(CONFIG_JSON_PATH).textSync();
+    const text = Bun.file(EFFECTIVE_CONFIG_JSON_PATH).textSync();
     const json = JSON.parse(text) as Record<string, unknown>;
     json.token = nextToken;
-    Bun.write(CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
+    Bun.write(EFFECTIVE_CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
   } catch {
     // ignore
   }
@@ -889,6 +1193,26 @@ function extractTurnId(message: Record<string, unknown>): string | null {
 
 function extractMethod(message: Record<string, unknown>): string | null {
   return typeof (message as any).method === "string" ? ((message as any).method as string) : null;
+}
+
+function isReadOnlySafeRpcMethod(method: string): boolean {
+  const m = method.trim().toLowerCase();
+  if (!m) return false;
+  const explicit = new Set([
+    "thread/list",
+    "thread/read",
+    "thread/get",
+    "thread/messages",
+    "thread/events",
+    "thread/history",
+    "model/list",
+    "models/list",
+    "health",
+    "status",
+  ]);
+  if (explicit.has(m)) return true;
+  if (m.endsWith("/list") || m.endsWith("/get") || m.endsWith("/read") || m.endsWith("/status")) return true;
+  return false;
 }
 
 function logEvent(direction: "client" | "server", role: Role, messageText: string): void {
@@ -1210,7 +1534,7 @@ async function relay(fromRole: Role, msgText: string): Promise<void> {
   for (const ws of all.keys()) send(ws, msgOut);
 }
 
-const server = Bun.serve<{ role: Role }>({
+const server = Bun.serve<WsData>({
   hostname: HOST,
   port: PORT,
 	  async fetch(req, server) {
@@ -1253,6 +1577,7 @@ const server = Bun.serve<{ role: Role }>({
     if (url.pathname === "/admin/status" && method === "GET") {
       if (!authorised(req)) return unauth();
       const res = okJson({
+        tokenSessions: getTokenSessionStats(),
         server: { host: HOST, port: PORT },
         uiDistDir: UI_DIST_DIR,
         anchor: {
@@ -1263,7 +1588,13 @@ const server = Bun.serve<{ role: Role }>({
           log: ANCHOR_LOG_PATH,
         },
         anchorAuth,
-        db: { path: DB_PATH, retentionDays: DB_RETENTION_DAYS, uploadDir: UPLOAD_DIR, uploadRetentionDays: UPLOAD_RETENTION_DAYS },
+        db: {
+          path: DB_PATH,
+          retentionDays: DB_RETENTION_DAYS,
+          uploadDir: UPLOAD_DIR,
+          uploadRetentionDays: UPLOAD_RETENTION_DAYS,
+          uploadPruneIntervalHours: UPLOAD_PRUNE_INTERVAL_HOURS,
+        },
         version: { appCommit: APP_COMMIT },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
@@ -1346,25 +1677,53 @@ const server = Bun.serve<{ role: Role }>({
 
     if (url.pathname === "/admin/uploads/retention" && req.method === "POST") {
       if (!authorised(req)) return unauth();
-      const body = (await req.json().catch(() => null)) as null | { retentionDays?: number };
-      const next = Number(body?.retentionDays ?? NaN);
-      if (!Number.isFinite(next) || next < 0 || next > 3650) {
-        return okJson({ error: "retentionDays must be a number between 0 and 3650" }, { status: 400 });
+      const body = (await req.json().catch(() => null)) as null | { retentionDays?: number; pruneIntervalHours?: number };
+      const hasRetention = typeof body?.retentionDays !== "undefined";
+      const hasPruneInterval = typeof body?.pruneIntervalHours !== "undefined";
+      if (!hasRetention && !hasPruneInterval) {
+        return okJson({ error: "No upload settings provided" }, { status: 400 });
       }
-      UPLOAD_RETENTION_DAYS = next;
-      if (CONFIG_JSON_PATH) {
+      if (hasRetention) {
+        const next = Number(body?.retentionDays ?? NaN);
+        if (!Number.isFinite(next) || next < 0 || next > 3650) {
+          return okJson({ error: "retentionDays must be a number between 0 and 3650" }, { status: 400 });
+        }
+        UPLOAD_RETENTION_DAYS = next;
+      }
+      if (hasPruneInterval) {
+        const intervalHours = parseUploadPruneIntervalHours(body?.pruneIntervalHours);
+        if (intervalHours === null) {
+          return okJson(
+            { error: `pruneIntervalHours must be an integer between ${MIN_UPLOAD_PRUNE_INTERVAL_HOURS} and ${MAX_UPLOAD_PRUNE_INTERVAL_HOURS}` },
+            { status: 400 }
+          );
+        }
+        UPLOAD_PRUNE_INTERVAL_HOURS = intervalHours;
+        scheduleUploadPrune();
+      }
+      if (EFFECTIVE_CONFIG_JSON_PATH) {
         try {
-          const text = Bun.file(CONFIG_JSON_PATH).textSync();
+          const text = Bun.file(EFFECTIVE_CONFIG_JSON_PATH).textSync();
           const json = JSON.parse(text) as Record<string, unknown>;
-          json.uploadRetentionDays = next;
+          json.uploadRetentionDays = UPLOAD_RETENTION_DAYS;
+          json.uploadPruneIntervalHours = UPLOAD_PRUNE_INTERVAL_HOURS;
           json.uploadDir = UPLOAD_DIR;
-          Bun.write(CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
+          Bun.write(EFFECTIVE_CONFIG_JSON_PATH, JSON.stringify(json, null, 2) + "\n");
         } catch {
           // ignore
         }
       }
-      logAdmin(`upload retention set to ${next} day(s)`);
-      return okJson({ ok: true, retentionDays: next });
+      if (hasRetention) {
+        logAdmin(`upload retention set to ${UPLOAD_RETENTION_DAYS} day(s)`);
+      }
+      if (hasPruneInterval) {
+        logAdmin(`upload retention: auto-cleanup interval set to ${UPLOAD_PRUNE_INTERVAL_HOURS} hour(s)`);
+      }
+      return okJson({
+        ok: true,
+        retentionDays: UPLOAD_RETENTION_DAYS,
+        pruneIntervalHours: UPLOAD_PRUNE_INTERVAL_HOURS,
+      });
     }
 
     if (url.pathname === "/admin/uploads/prune" && req.method === "POST") {
@@ -1376,6 +1735,12 @@ const server = Bun.serve<{ role: Role }>({
       const after = nowSec();
       logAdmin(`upload retention: manual prune completed (${after - before}s)`);
       return okJson({ ok: true });
+    }
+
+    if (url.pathname === "/admin/uploads/stats" && req.method === "GET") {
+      if (!authorised(req)) return unauth();
+      const stats = await getUploadStats();
+      return okJson(stats);
     }
 
     if (url.pathname === "/admin/debug/events" && method === "GET") {
@@ -1429,7 +1794,7 @@ const server = Bun.serve<{ role: Role }>({
 	      }
 	    }
 
-		    if (url.pathname === "/admin/token/rotate" && req.method === "POST") {
+	    if (url.pathname === "/admin/token/rotate" && req.method === "POST") {
 	      if (!authorised(req)) return unauth();
 	      const next = randomTokenHex(32);
 
@@ -1446,9 +1811,81 @@ const server = Bun.serve<{ role: Role }>({
 	      return okJson({ ok: true, token: next });
 	    }
 
+    if (url.pathname === "/admin/token/sessions" && method === "GET") {
+      if (!authorised(req)) return unauth();
+      const rows = listTokenSessions.all() as TokenSessionRow[];
+      return okJson({
+        sessions: rows.map((r) => ({
+          id: r.id,
+          label: r.label,
+          mode: parseTokenSessionMode(r.mode),
+          createdAt: r.created_at * 1000,
+          lastUsedAt: r.last_used_at * 1000,
+          revokedAt: typeof r.revoked_at === "number" ? r.revoked_at * 1000 : null,
+        })),
+        legacyTokenEnabled: true,
+      });
+    }
+
+    if (url.pathname === "/admin/token/sessions/new" && req.method === "POST") {
+      if (!authorised(req)) return unauth();
+      const body = (await req.json().catch(() => null)) as null | { label?: string; mode?: string };
+      const label = sanitizeSessionLabel(body?.label);
+      const mode = parseTokenSessionMode(body?.mode);
+      let created: ReturnType<typeof mintTokenSession>;
+      try {
+        created = mintTokenSession(label, mode);
+      } catch {
+        return okJson({ error: "failed to create token session" }, { status: 500 });
+      }
+      logAdmin(`token sessions: created ${created.id} (${JSON.stringify(created.row.label)})`);
+      return okJson({
+        ok: true,
+        token: created.token,
+        session: {
+          id: created.row.id,
+          label: created.row.label,
+          mode: created.row.mode,
+          createdAt: created.row.created_at * 1000,
+          lastUsedAt: created.row.last_used_at * 1000,
+          revokedAt: null,
+        },
+      });
+    }
+
+    if (url.pathname === "/admin/token/sessions/revoke" && req.method === "POST") {
+      if (!authorised(req)) return unauth();
+      const body = (await req.json().catch(() => null)) as null | { id?: string };
+      const id = (body?.id ?? "").trim();
+      if (!id) return okJson({ error: "id is required" }, { status: 400 });
+      let changed = 0;
+      try {
+        const res = revokeTokenSession.run(nowSec(), id) as { changes?: number };
+        changed = Number(res?.changes ?? 0);
+      } catch {
+        return okJson({ error: "failed to revoke token session" }, { status: 500 });
+      }
+      if (changed > 0) {
+        logAdmin(`token sessions: revoked ${id}`);
+      }
+      return okJson({ ok: true, revoked: changed > 0 });
+    }
+
 	    // Uploads (token required)
 		    if (url.pathname === "/uploads/new" && req.method === "POST") {
 		      if (!authorised(req)) return unauth();
+          const rate = enforceRateLimit(
+            "uploads/new",
+            requestRateLimitKey(req),
+            UPLOAD_NEW_RATE_LIMIT_MAX,
+            UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC
+          );
+          if (!rate.ok) {
+            return okJson(
+              { error: "rate limit exceeded", retryAfterSec: rate.retryAfterSec },
+              { status: 429, headers: { "retry-after": String(rate.retryAfterSec) } }
+            );
+          }
 		      const body = (await req.json().catch(() => null)) as null | {
 		        filename?: string;
 		        mime?: string;
@@ -1560,10 +1997,29 @@ const server = Bun.serve<{ role: Role }>({
 
     if (url.pathname === "/admin/pair/new" && req.method === "POST") {
       if (!authorised(req)) return unauth();
+      const rate = enforceRateLimit(
+        "admin/pair/new",
+        requestRateLimitKey(req),
+        PAIR_NEW_RATE_LIMIT_MAX,
+        PAIR_NEW_RATE_LIMIT_WINDOW_SEC
+      );
+      if (!rate.ok) {
+        return okJson(
+          { error: "rate limit exceeded", retryAfterSec: rate.retryAfterSec },
+          { status: 429, headers: { "retry-after": String(rate.retryAfterSec) } }
+        );
+      }
       prunePairCodes();
       const code = randomPairCode();
       const expiresAt = Date.now() + PAIR_TTL_SEC * 1000;
-      pairCodes.set(code, { token: AUTH_TOKEN, expiresAt });
+      let created: ReturnType<typeof mintTokenSession>;
+      try {
+        created = mintTokenSession(`Paired device ${new Date().toISOString()}`, "full");
+      } catch {
+        return okJson({ error: "failed to create pairing token session" }, { status: 500 });
+      }
+      pairCodes.set(code, { token: created.token, sessionId: created.id, expiresAt });
+      logAdmin(`pair: minted token session ${created.id}`);
       const origin = requestOrigin(url, req);
       return okJson({
         code,
@@ -1680,18 +2136,30 @@ const server = Bun.serve<{ role: Role }>({
 
     // Convenience alias for client WS.
     if (url.pathname === "/ws") {
-      if (!authorised(req)) return new Response("Unauthorised", { status: 401 });
-      if (server.upgrade(req, { data: { role: "client" as Role } })) return new Response(null, { status: 101 });
+      const ctx = authContext(req);
+      if (!ctx.ok) return new Response("Unauthorised", { status: 401 });
+      const data: WsData = {
+        role: "client",
+        authSource: ctx.mode,
+        authScope: ctx.mode === "session" && ctx.sessionMode === "read_only" ? "read_only" : "full",
+      };
+      if (server.upgrade(req, { data })) return new Response(null, { status: 101 });
       return new Response("Upgrade required", { status: 426 });
     }
 
     if (url.pathname === "/ws/client" || url.pathname === "/ws/anchor") {
-      if (!authorised(req)) return new Response("Unauthorised", { status: 401 });
+      const ctx = authContext(req);
+      if (!ctx.ok) return new Response("Unauthorised", { status: 401 });
       const role: Role = url.pathname.endsWith("/anchor") ? "anchor" : "client";
       const anchorId =
         role === "anchor" ? (url.searchParams.get("anchorId") || url.searchParams.get("anchor_id")) : null;
-
-      if (server.upgrade(req, { data: { role, ...(anchorId ? { anchorId } : {}) } as any })) {
+      const data: WsData = {
+        role,
+        ...(anchorId ? { anchorId } : {}),
+        authSource: ctx.mode,
+        authScope: ctx.mode === "session" && ctx.sessionMode === "read_only" ? "read_only" : "full",
+      };
+      if (server.upgrade(req, { data })) {
         return new Response(null, { status: 101 });
       }
       return new Response("Upgrade required", { status: 426 });
@@ -1825,6 +2293,27 @@ const server = Bun.serve<{ role: Role }>({
           broadcastToClients({ type: "orbit.anchor-auth", ...anchorAuth });
         }
         return;
+      }
+
+      if (role === "client" && ws.data.authScope === "read_only" && obj) {
+        const method = extractMethod(obj);
+        if (method && !isReadOnlySafeRpcMethod(method)) {
+          const requestId = (obj as any).id;
+          const errorPayload = {
+            code: -32003,
+            message: `Read-only token session cannot call ${method}`,
+          };
+          if (typeof requestId === "string" || typeof requestId === "number" || requestId === null) {
+            send(ws, {
+              jsonrpc: "2.0",
+              id: requestId,
+              error: errorPayload,
+            });
+          } else {
+            send(ws, { type: "orbit.error", error: errorPayload.message });
+          }
+          return;
+        }
       }
 
       await relay(role, text);

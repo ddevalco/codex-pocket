@@ -35,8 +35,13 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 AGENT*.md
 agent*.md
 .agent/
+.agent-local/
 prompts/
 notes/
+docs/*AGENT*.local.md
+docs/HANDOFF.local.md
+docs/NEXT_AGENT_PROMPT.local.md
+docs/AGENT_RULES.local.md
 
 # temp scratch
 .tmp

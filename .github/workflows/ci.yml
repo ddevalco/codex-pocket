@@ -51,6 +51,10 @@ jobs:
           export ZANE_LOCAL_AUTOSTART_ANCHOR='0'
           export ZANE_LOCAL_UPLOAD_DIR='/tmp/codex-pocket-ci-uploads'
           export ZANE_LOCAL_UPLOAD_RETENTION_DAYS='0'
+          export ZANE_LOCAL_PAIR_RATE_LIMIT_MAX='2'
+          export ZANE_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC='120'
+          export ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX='2'
+          export ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC='120'
 
           mkdir -p "$ZANE_LOCAL_UPLOAD_DIR"
 
@@ -102,6 +106,62 @@ jobs:
           print('admin/status ok')
           PY
 
+      - name: Smoke test admin uploads stats
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            "http://127.0.0.1:8790/admin/uploads/stats" > /tmp/admin-uploads-stats.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-uploads-stats.json'))
+          assert isinstance(d.get('fileCount'), int), d
+          assert isinstance(d.get('totalBytes'), int), d
+          assert 'oldestAt' in d, d
+          assert 'newestAt' in d, d
+          assert 'lastPruneAt' in d, d
+          assert 'lastPruneMessage' in d, d
+          assert 'lastPruneSource' in d, d
+          print('admin/uploads/stats ok')
+          PY
+
+      - name: Smoke test admin upload settings update
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"retentionDays":3,"pruneIntervalHours":12}' \
+            "http://127.0.0.1:8790/admin/uploads/retention" > /tmp/admin-uploads-retention.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-uploads-retention.json'))
+          assert d.get('ok') is True, d
+          assert d.get('retentionDays') == 3, d
+          assert d.get('pruneIntervalHours') == 12, d
+          print('admin/uploads/retention update ok')
+          PY
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            "http://127.0.0.1:8790/admin/status" > /tmp/admin-status-after-uploads-update.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-status-after-uploads-update.json'))
+          db=d.get('db') or {}
+          assert db.get('uploadRetentionDays') == 3, d
+          assert db.get('uploadPruneIntervalHours') == 12, d
+          print('admin/status reflects upload settings update')
+          PY
+
       - name: Smoke test admin validate
         shell: bash
         run: |
@@ -119,6 +179,180 @@ jobs:
           assert isinstance(d['ok'], bool), d
           print('admin/validate ok')
           PY
+
+      - name: Smoke test admin repair (safe actions)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"actions":["ensureUploadDir","pruneUploads"]}' \
+            "http://127.0.0.1:8790/admin/repair" > /tmp/admin-repair-safe.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-repair-safe.json'))
+          assert isinstance(d, dict), d
+          assert isinstance(d.get('ok'), bool), d
+          assert isinstance(d.get('applied'), list), d
+          assert isinstance(d.get('errors'), list), d
+          assert isinstance(d.get('checks'), list), d
+          assert not d['errors'], d
+          assert 'ensureUploadDir' in d['applied'], d
+          assert 'pruneUploads' in d['applied'], d
+          print('admin/repair safe actions ok')
+          PY
+
+      - name: Smoke test admin repair (non-Tailscale env)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"actions":["fixTailscaleServe"]}' \
+            "http://127.0.0.1:8790/admin/repair" > /tmp/admin-repair-tailscale.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/admin-repair-tailscale.json'))
+          assert isinstance(d, dict), d
+          assert isinstance(d.get('ok'), bool), d
+          assert isinstance(d.get('applied'), list), d
+          assert isinstance(d.get('errors'), list), d
+          assert isinstance(d.get('checks'), list), d
+          # In CI we typically don't have tailscale; allow either outcome as long as behavior is explicit.
+          if 'fixTailscaleServe' not in d['applied']:
+            assert len(d['errors']) >= 1, d
+          print('admin/repair non-tailscale behavior ok')
+          PY
+
+      - name: Smoke test sensitive endpoint rate limits
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # /admin/pair/new: first two requests should pass, third should be rate-limited.
+          for i in 1 2; do
+            curl -fsS \
+              -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{}' \
+            "http://127.0.0.1:8790/admin/pair/new" >/tmp/pair-${i}.json
+          done
+
+          # Pairing should return a per-device session token (not the legacy shared token).
+          pair_code=$(python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/pair-1.json'))
+          print((d.get('code') or '').strip())
+          PY
+          )
+          test -n "$pair_code"
+          paired_token=$(curl -fsS \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"code\":\"${pair_code}\"}" \
+            "http://127.0.0.1:8790/pair/consume" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("token") or "").strip())')
+          test -n "$paired_token"
+          test "$paired_token" != "ci-token"
+          curl -fsS -H "Authorization: Bearer ${paired_token}" "http://127.0.0.1:8790/admin/status" >/tmp/paired-status.json
+          # Pair codes are one-time use.
+          pair_consume_again_status=$(curl -sS -o /tmp/pair-consume-again.json -w '%{http_code}' \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"code\":\"${pair_code}\"}" \
+            "http://127.0.0.1:8790/pair/consume")
+          test "$pair_consume_again_status" = "400"
+
+          pair_status=$(curl -sS -o /tmp/pair-3.json -w '%{http_code}' \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{}' \
+            "http://127.0.0.1:8790/admin/pair/new")
+          test "$pair_status" = "429"
+
+          # /uploads/new: first two requests should pass, third should be rate-limited.
+          for i in 1 2; do
+            curl -fsS \
+              -H "Authorization: Bearer ci-token" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d '{"filename":"x.png","mime":"image/png","bytes":10}' \
+              "http://127.0.0.1:8790/uploads/new" >/tmp/upload-new-${i}.json
+          done
+          upload_status=$(curl -sS -o /tmp/upload-new-3.json -w '%{http_code}' \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"filename":"x.png","mime":"image/png","bytes":10}' \
+            "http://127.0.0.1:8790/uploads/new")
+          test "$upload_status" = "429"
+
+      - name: Smoke test read-only token session guard
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"label":"ci-ro","mode":"read_only"}' \
+            "http://127.0.0.1:8790/admin/token/sessions/new" > /tmp/ro-session-new.json
+          ro_token=$(python3 -c 'import json; d=json.load(open("/tmp/ro-session-new.json")); print((d.get("token") or "").strip())')
+          ro_session_id=$(python3 -c 'import json; d=json.load(open("/tmp/ro-session-new.json")); print((((d.get("session") or {}).get("id")) or "").strip())')
+          test -n "$ro_token"
+          test -n "$ro_session_id"
+
+          # Read endpoint allowed.
+          curl -fsS -H "Authorization: Bearer ${ro_token}" "http://127.0.0.1:8790/admin/status" >/tmp/ro-status.json
+
+          # Write endpoint denied for read-only.
+          ro_write_status=$(curl -sS -o /tmp/ro-write.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${ro_token}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{}' \
+            "http://127.0.0.1:8790/admin/pair/new")
+          test "$ro_write_status" = "401"
+
+          # Read-only token may connect via ws, but mutating rpc must be denied with explicit error.
+          RO_TOKEN="$ro_token" bun -e '
+            const { WebSocket } = require("ws");
+            const token = process.env.RO_TOKEN;
+            const ws = new WebSocket("ws://127.0.0.1:8790/ws", { headers: { Authorization: `Bearer ${token}` } });
+            let ok = false;
+            ws.on("open", () => ws.send(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "turn/start", params: { threadId: "ci-ro" } })));
+            ws.on("message", (m) => {
+              const s = String(m);
+              if (s.includes("Read-only token session cannot call")) {
+                ok = true;
+                ws.close();
+              }
+            });
+            ws.on("close", () => process.exit(ok ? 0 : 1));
+            setTimeout(() => process.exit(1), 5000);
+          '
+
+          # Revoked session token must stop authenticating immediately.
+          curl -fsS \
+            -H "Authorization: Bearer ci-token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"id\":\"${ro_session_id}\"}" \
+            "http://127.0.0.1:8790/admin/token/sessions/revoke" >/tmp/ro-revoke.json
+          ro_after_revoke_status=$(curl -sS -o /tmp/ro-after-revoke.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${ro_token}" \
+            "http://127.0.0.1:8790/admin/status")
+          test "$ro_after_revoke_status" = "401"
 
       - name: Verify cache headers
         shell: bash

@@ -14,6 +14,10 @@ The workflow is defined in:
 - Verifies:
   - `GET /health` returns OK
   - `GET /admin/validate` returns sane JSON (auth required)
+  - `GET /admin/uploads/stats` returns upload footprint stats (auth required)
+  - `POST /admin/repair` with safe actions (`ensureUploadDir`, `pruneUploads`) returns sane JSON and no errors
+  - `POST /admin/repair` with `fixTailscaleServe` behaves deterministically in non-Tailscale CI environments (explicit apply or explicit error)
+  - Sensitive endpoint rate limits return explicit `429` once CI's low threshold is exceeded (`/admin/pair/new`, `/uploads/new`)
   - WebSocket relay path works (client ↔ anchor protocol surface, simulated)
   - `GET /admin/status` returns sane JSON (auth required)
   - Cache headers:
@@ -35,3 +39,12 @@ an effect created a feedback loop and made the thread list appear empty/unusable
 - Private repos: GitHub provides a monthly free tier of minutes/storage (limits vary by plan).
 
 If the repo stays public, you generally don’t need to think about cost.
+
+## Release Hygiene Note
+
+CI checkouts are always clean, so dirty-tree protection is most useful on local maintainer machines.
+Before creating tags/releases locally, run:
+
+```bash
+./scripts/ci/check-clean-tree.sh
+```

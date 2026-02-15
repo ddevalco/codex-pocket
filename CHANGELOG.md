@@ -24,21 +24,49 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - UI/Admin/CLI: detect upstream Codex app-server auth invalidation and surface a clear recovery warning.
 - Admin: add a limited remote CLI runner for safe `codex-pocket` commands (with output capture).
 - UI: Admin page refreshed with a structured, settings-style layout and clearer hierarchy.
+- Docs/UX: added `docs/ADMIN_REDESIGN_PROPOSAL.md` and aligned backlog/project planning for phased Admin + Settings UI redesign work.
+- Docs: added `docs/NATIVE_IOS_ROADMAP.md` with phased native-client milestones, constraints, and decision gates.
+- Docs/Repo: added `CONTRIBUTING.md` with an explicit ff-only sync policy, PR/testing expectations, and a local pre-release clean-tree check script (`scripts/ci/check-clean-tree.sh`).
+- UX: added one-tap composer quick-reply shortcuts (default `Proceed`/`Elaborate`) plus a `/settings` editor to customize and persist preset labels/text per device.
+- Settings redesign follow-up: `/settings` now uses a responsive two-column card grid on desktop (single-column mobile) with core controls prioritized above secondary account/about details.
+- Admin/Settings redesign pass: refreshed `/admin` and `/settings` visual surfaces with calmer system-console styling (improved card hierarchy, spacing, button/input treatments, and responsive two-column admin operations layout) with no behavioral/API changes.
+- Thread export/share: added `.html` export format in thread view and thread-list quick actions (alongside existing Markdown/JSON exports).
+- Security: added in-process rate limits for sensitive token-minting endpoints (`/admin/pair/new`, `/uploads/new`) with explicit `429` responses and CI smoke coverage.
+- Attachments: composer now supports multi-image selection and shows removable attachment chips; image markdown is generated automatically on send so users no longer need to edit attachment markdown manually.
+- Admin uploads: added storage visibility in `/admin` (file count, bytes used, oldest/newest timestamps, and last prune activity) backed by a new authenticated `/admin/uploads/stats` endpoint.
+- Thread export/share: added PDF export action (print-to-PDF via browser print dialog) in thread view and thread-list quick actions, using existing HTML export content.
+- Docs/Backlog: cleaned stale completed P1 items from active backlog sections (admin redesign parent + thread indicator polish) to keep roadmap actionable.
+- Admin uploads reporting: `/admin/uploads/stats` now includes last prune detail/source (manual/scheduled/unknown), surfaced in Admin Uploads UI.
+- Attachments: composer attachment chips now render small image thumbnails for faster visual verification before sending.
+- Admin uploads: auto-cleanup cadence is now configurable (1-168 hours) and visible in `/admin`, persisted with retention settings.
+- Security/Admin: phase-1 per-device token sessions added on the backend (`/admin/token/sessions*`) with create/list/revoke APIs and legacy-token auth compatibility.
+- Admin: added token session management UI in `/admin` (create/list/revoke session tokens) with one-time token display/copy and active/revoked status.
+- Security: token sessions now support `read_only` mode; read-only sessions are blocked from write HTTP actions and WebSocket upgrades.
+- Pairing/Security: `/admin/pair/new` now mints a unique token session per pairing code instead of reusing the legacy shared token.
+- Docs: updated README/Admin/Security/Protocol docs to reflect token-session auth, read-only mode, and per-device pairing tokens.
+- Security: read-only token sessions can now connect to WebSocket for live reads, while mutating client RPC methods are denied with explicit errors.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
 - UX: thread list ordering now preserves upstream activity timestamps (updatedAt/lastActivity) and uses a deterministic tie-breaker (less reorder-on-refresh).
 - Thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt fallback).
+- Admin/Settings redesign phase 1: added shared settings-surface primitives (`SectionCard`, `StatusChip`, `DangerZone`) and migrated `/settings` to use them without behavior changes.
+- Admin/Settings redesign phase 2: `/admin` now uses shared card primitives with a settings-style grid shell and status chips while preserving existing admin actions/flows.
+- Admin/Settings redesign phase 3: admin interactions now include disruptive-action confirmations, unified action result chips with timestamps, and progressive disclosure for advanced CLI/log/debug sections.
+- Admin/Settings redesign phase 4: accessibility pass adds stronger keyboard focus styles (including advanced disclosure summaries), explicit labels for critical controls, and screen-reader announcements for action results/errors.
+- Admin UI polish: reorganized `/admin` into a cleaner top-to-bottom flow (core + pairing, uploads, then stacked advanced tools) and refreshed control styling for a more modern, consistent look.
 
 ### CLI / Update
 - CLI: `start` now falls back to background mode if the launchd plist is missing (keeps update/restart usable even if the agent file is deleted).
 - CLI: improved owned-process detection by also checking process CWD (helps kill stale listeners from older installs where the command line is just `bun run src/index.ts`).
 - `codex-pocket update` stop/restart now more aggressively cleans up *owned* stale listeners and orphaned anchors before rebuilding/restarting.
+- CLI/update stale-listener cleanup now has a bounded `SIGKILL` fallback for **owned** listeners that ignore `SIGTERM` (reduces post-update restart flakiness without killing unrelated processes).
 - `ensure`/`smoke-test` now retry `/admin/validate` a few times to avoid false failures immediately after restart.
 - Start/stop/restart now kill stale listeners using the configured ports (not hard-coded 8790).
 - `codex-pocket update` now always prints a final `summary` and exits non-zero if `ensure` or `smoke-test` fail (next: `codex-pocket diagnose`).
 - Config parsing is now validated early to avoid Python stack traces when config.json is empty/corrupt.
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.
+- Update-flow regression script now simulates a stale Pocket-owned listener on the configured port and asserts cleanup behavior (plus a default-port guard when available) to catch hardcoded-port regressions.
 - Fixed `ensure`/`smoke-test` validation parsing so `/admin/validate` results are read correctly (no more false "empty response" failures).
 - Installer now writes `~/.codex-pocket/bin/codex-pocket` as a small wrapper that delegates to `~/.codex-pocket/app/bin/codex-pocket` to avoid stale CLI copies after updates.
 
@@ -49,6 +77,10 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 ### CI
 - Added GitHub Actions workflow to build the UI and run a local-orbit smoke test (health, admin status, cache headers, events endpoint).
 - CI now also smoke-tests the WebSocket relay path (client ↔ anchor) to catch blank-thread regressions.
+- CI now smoke-tests `/admin/repair` safe actions and non-Tailscale `fixTailscaleServe` behavior to harden self-heal path coverage across environments.
+- CI now smoke-tests `/admin/uploads/retention` updates (retention + auto-cleanup interval) and verifies `/admin/status` reflects saved upload settings.
+- CI now smoke-tests token-session security behavior (pairing returns per-device token, read-only session write/WS mutating guards).
+- CI now also verifies pair codes are one-time consumable and revoked session tokens immediately lose auth.
 
 ## 2026-02-08
 
