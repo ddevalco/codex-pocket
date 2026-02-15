@@ -195,11 +195,6 @@ jobs:
           python3 - <<'PY'
           import json
           d=json.load(open('/tmp/admin-repair.json'))
-            "http://127.0.0.1:8790/admin/repair" > /tmp/admin-repair-safe.json
-
-          python3 - <<'PY'
-          import json
-          d=json.load(open('/tmp/admin-repair-safe.json'))
           assert isinstance(d, dict), d
           assert isinstance(d.get('ok'), bool), d
           assert isinstance(d.get('applied'), list), d
@@ -209,9 +204,6 @@ jobs:
           assert 'ensureUploadDir' in d['applied'], d
           assert 'pruneUploads' in d['applied'], d
           print('admin/repair ok')
-          PY
-
-          print('admin/repair safe actions ok')
           PY
 
       - name: Smoke test admin repair (non-Tailscale env)

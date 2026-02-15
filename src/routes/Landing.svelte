@@ -7,15 +7,14 @@
 
   let showAuthModal = $state(false);
   let authMode = $state<"login" | "register">("login");
-  let username = $state("");
-  let newUsername = $state("");
+  let loginInput = $state("");
 
   const needsSetup = $derived(auth.status === "needs_setup");
   const isSignedIn = $derived(auth.status === "signed_in");
 
   $effect(() => {
     if (needsSetup) {
-      authMode = "register";
+      authMode = "login";
       showAuthModal = true;
     }
   });
@@ -59,8 +58,7 @@
       </p>
       {#if !isSignedIn}
         <div class="hero-actions row">
-          <button class="primary-btn" type="button" onclick={() => openModal("login")}>Sign in</button>
-          <button class="ghost-btn" type="button" onclick={() => openModal("register")}>Create account</button>
+          <button class="primary-btn" type="button" onclick={() => openModal("login")}>Use access token</button>
         </div>
       {/if}
     </div>
@@ -90,7 +88,7 @@
     <div class="modal-overlay" role="presentation" onclick={closeModal}></div>
     <div class="auth-modal" role="dialog" aria-modal="true">
       <div class="modal-header">
-        <span>{authMode === "login" ? "Sign in" : "Create account"}</span>
+        <span>{authMode === "login" ? "Enter access token" : "Need an access token"}</span>
         <button class="modal-close" type="button" onclick={closeModal}>×</button>
       </div>
       <div class="modal-body stack">
@@ -102,19 +100,19 @@
           <input
             type="text"
             class="auth-input"
-            placeholder="Username"
-            bind:value={username}
+            placeholder="Access token"
+            bind:value={loginInput}
             onkeydown={(e) => {
-              if (e.key === "Enter" && username.trim()) auth.signIn(username.trim());
+              if (e.key === "Enter" && loginInput.trim()) auth.signIn(loginInput.trim());
             }}
           />
           <button
             class="primary-btn"
             type="button"
-            onclick={() => auth.signIn(username.trim())}
-            disabled={auth.busy || !username.trim()}
+            onclick={() => auth.signIn(loginInput.trim())}
+            disabled={auth.busy || !loginInput.trim()}
           >
-            {auth.busy ? "Working..." : "Sign in with passkey"}
+            {auth.busy ? "Working..." : "Sign in with token"}
           </button>
           <button
             class="link-btn"
@@ -124,26 +122,10 @@
               auth.error = null;
             }}
           >
-            Create new account
+            I need a token
           </button>
         {:else}
-          <input
-            type="text"
-            class="auth-input"
-            placeholder="Username"
-            bind:value={newUsername}
-            onkeydown={(e) => {
-              if (e.key === "Enter" && newUsername.trim()) auth.register(newUsername.trim());
-            }}
-          />
-          <button
-            class="primary-btn"
-            type="button"
-            onclick={() => auth.register(newUsername.trim())}
-            disabled={auth.busy || !newUsername.trim()}
-          >
-            {auth.busy ? "Working..." : "Create passkey"}
-          </button>
+          <p class="auth-help">Use <code>codex-pocket token</code> on your Mac, or pair from <code>/admin</code> by scanning the QR on your mobile device.</p>
           <button
             class="link-btn"
             type="button"
@@ -318,6 +300,12 @@
     background: var(--cli-error-bg);
     color: var(--cli-error);
     font-size: var(--text-sm);
+  }
+
+  .auth-help {
+    margin: 0;
+    color: var(--cli-text-dim);
+    line-height: 1.5;
   }
 
   .link-btn {

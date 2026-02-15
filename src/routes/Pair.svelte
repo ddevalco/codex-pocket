@@ -3,9 +3,6 @@
   import { config } from "../lib/config.svelte";
   import { navigate } from "../router";
 
-  const AUTH_BASE_URL = (import.meta.env.AUTH_URL ?? "").replace(/\/$/, "");
-  const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1" || AUTH_BASE_URL.length === 0;
-
   let status = $state<"loading" | "ok" | "error">("loading");
   let error = $state<string | null>(null);
 
@@ -20,12 +17,6 @@
   }
 
   async function run() {
-    if (!LOCAL_MODE) {
-      status = "error";
-      error = "Pairing is only available in local mode.";
-      return;
-    }
-
     const code = getCode();
     if (!code) {
       status = "error";
