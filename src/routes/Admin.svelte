@@ -687,98 +687,95 @@
             </div>
           </div>
           <div class="section-body stack">
-  <div class="content stack">
-    <div class="overview-grid">
-      <div class="panel panel-core">
-      <SectionCard title="Admin" subtitle="System status and core operations">
-        {#if statusError}
-          <p class="hint hint-error" role="alert">{statusError}</p>
-        {/if}
-        <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
-          {#if lastAction}
-            {lastAction.label} at {formatActionTime(lastAction.at)}
-          {/if}
-        </p>
-        {#if lastAction}
-          <div class="row" aria-hidden="true">
-            <StatusChip tone={lastAction.tone}>
-              {lastAction.label} at {formatActionTime(lastAction.at)}
-            </StatusChip>
-          </div>
-        {/if}
-
-        {#if !status}
-          <p class="hint">Loading...</p>
-        {:else}
-          <div class="status-pills">
-            <span class="pill ok">Server online</span>
-            <span class={`pill ${status.anchor.running ? "ok" : "warn"}`}>Anchor {status.anchor.running ? "running" : "stopped"}</span>
-            <span class={`pill ${status.anchorAuth?.status === "invalid" ? "bad" : status.anchorAuth?.status === "ok" ? "ok" : "muted"}`}>
-              Auth {status.anchorAuth?.status ?? "unknown"}
-            </span>
-          <div class="row">
-            <StatusChip tone={status.anchor.running ? "success" : "warning"}>
-              Anchor {status.anchor.running ? "running" : "stopped"}
-            </StatusChip>
-            <StatusChip tone={status.anchorAuth?.status === "invalid" ? "error" : status.anchorAuth?.status === "ok" ? "success" : "neutral"}>
-              Auth {status.anchorAuth?.status || "unknown"}
-            </StatusChip>
-          </div>
-          <div class="kv">
-            <div class="k">Server</div>
-            <div class="v">{status.server.host}:{status.server.port}</div>
-
-            <div class="k">UI dist</div>
-            <div class="v"><code>{status.uiDistDir}</code></div>
-
-            <div class="k">UI build</div>
-            <div class="v"><code>{UI_COMMIT || "unknown"}</code>{#if UI_BUILT_AT} <span class="dim">({UI_BUILT_AT})</span>{/if}</div>
-
-            <div class="k">Server build</div>
-            <div class="v"><code>{status.version?.appCommit || "unknown"}</code></div>
-
-            <div class="k">Anchor</div>
-            <div class="v">{status.anchor.running ? "running" : "stopped"}</div>
-
-            <div class="k">Anchor cwd</div>
-            <div class="v"><code>{status.anchor.cwd}</code></div>
-
-            <div class="k">Anchor addr</div>
-            <div class="v">{status.anchor.host}:{status.anchor.port}</div>
-
-            <div class="k">Anchor log</div>
-            <div class="v"><code>{status.anchor.log}</code></div>
-
-            <div class="k">Anchor auth</div>
-            <div class="v">
-              {#if status.anchorAuth?.status === "invalid"}
-                <span class="auth-bad">invalid</span>
-                {#if status.anchorAuth.code} <span class="dim">({status.anchorAuth.code})</span>{/if}
-                {#if status.anchorAuth.at} <span class="dim">at {status.anchorAuth.at}</span>{/if}
-                {#if status.anchorAuth.message}
-                  <div class="dim">{status.anchorAuth.message}</div>
-                {/if}
-                <div class="hint hint-error">Re-login in Codex desktop, then run `codex-pocket restart`.</div>
-              {:else if status.anchorAuth?.status === "ok"}
-                <span class="auth-ok">ok</span>
-                {#if status.anchorAuth.at} <span class="dim">since {status.anchorAuth.at}</span>{/if}
-              {:else}
-                <span class="dim">unknown</span>
+            {#if statusError}
+              <p class="hint hint-error" role="alert">{statusError}</p>
+            {/if}
+            <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+              {#if lastAction}
+                {lastAction.label} at {formatActionTime(lastAction.at)}
               {/if}
-            </div>
+            </p>
+            {#if lastAction}
+              <div class="row" aria-hidden="true">
+                <StatusChip tone={lastAction.tone}>
+                  {lastAction.label} at {formatActionTime(lastAction.at)}
+                </StatusChip>
+              </div>
+            {/if}
 
-            <div class="k">DB</div>
-            <div class="v"><code>{status.db.path}</code> (retention {status.db.retentionDays}d)</div>
+            {#if !status}
+              <p class="hint">Loading...</p>
+            {:else}
+              <div class="status-pills">
+                <span class="pill ok">Server online</span>
+                <span class={`pill ${status.anchor.running ? "ok" : "warn"}`}>Anchor {status.anchor.running ? "running" : "stopped"}</span>
+                <span class={`pill ${status.anchorAuth?.status === "invalid" ? "bad" : status.anchorAuth?.status === "ok" ? "ok" : "muted"}`}>
+                  Auth {status.anchorAuth?.status ?? "unknown"}
+                </span>
+              </div>
+              <div class="row">
+                <StatusChip tone={status.anchor.running ? "success" : "warning"}>
+                  Anchor {status.anchor.running ? "running" : "stopped"}
+                </StatusChip>
+                <StatusChip tone={status.anchorAuth?.status === "invalid" ? "error" : status.anchorAuth?.status === "ok" ? "success" : "neutral"}>
+                  Auth {status.anchorAuth?.status || "unknown"}
+                </StatusChip>
+              </div>
+              <div class="kv">
+                <div class="k">Server</div>
+                <div class="v">{status.server.host}:{status.server.port}</div>
 
-            <div class="k">Uploads</div>
-            <div class="v">{status.db.uploadDir ? `dir: ${status.db.uploadDir}` : "(not configured)"}</div>
+                <div class="k">UI dist</div>
+                <div class="v"><code>{status.uiDistDir}</code></div>
 
-            <div class="k">Upload retention</div>
-            <div class="v">{(status.db.uploadRetentionDays ?? uploadRetentionDays)} day(s) ({(status.db.uploadRetentionDays ?? uploadRetentionDays) === 0 ? "keep forever" : "auto-clean"})</div>
-            <div class="k">Auto cleanup cadence</div>
-            <div class="v">every {(status.db.uploadPruneIntervalHours ?? uploadPruneIntervalHours)} hour(s)</div>
-          </div>
-        {/if}
+                <div class="k">UI build</div>
+                <div class="v"><code>{UI_COMMIT || "unknown"}</code>{#if UI_BUILT_AT} <span class="dim">({UI_BUILT_AT})</span>{/if}</div>
+
+                <div class="k">Server build</div>
+                <div class="v"><code>{status.version?.appCommit || "unknown"}</code></div>
+
+                <div class="k">Anchor</div>
+                <div class="v">{status.anchor.running ? "running" : "stopped"}</div>
+
+                <div class="k">Anchor cwd</div>
+                <div class="v"><code>{status.anchor.cwd}</code></div>
+
+                <div class="k">Anchor addr</div>
+                <div class="v">{status.anchor.host}:{status.anchor.port}</div>
+
+                <div class="k">Anchor log</div>
+                <div class="v"><code>{status.anchor.log}</code></div>
+
+                <div class="k">Anchor auth</div>
+                <div class="v">
+                  {#if status.anchorAuth?.status === "invalid"}
+                    <span class="auth-bad">invalid</span>
+                    {#if status.anchorAuth.code} <span class="dim">({status.anchorAuth.code})</span>{/if}
+                    {#if status.anchorAuth.at} <span class="dim">at {status.anchorAuth.at}</span>{/if}
+                    {#if status.anchorAuth.message}
+                      <div class="dim">{status.anchorAuth.message}</div>
+                    {/if}
+                    <div class="hint hint-error">Re-login in Codex desktop, then run `codex-pocket restart`.</div>
+                  {:else if status.anchorAuth?.status === "ok"}
+                    <span class="auth-ok">ok</span>
+                    {#if status.anchorAuth.at} <span class="dim">since {status.anchorAuth.at}</span>{/if}
+                  {:else}
+                    <span class="dim">unknown</span>
+                  {/if}
+                </div>
+
+                <div class="k">DB</div>
+                <div class="v"><code>{status.db.path}</code> (retention {status.db.retentionDays}d)</div>
+
+                <div class="k">Uploads</div>
+                <div class="v">{status.db.uploadDir ? `dir: ${status.db.uploadDir}` : "(not configured)"}</div>
+
+                <div class="k">Upload retention</div>
+                <div class="v">{(status.db.uploadRetentionDays ?? uploadRetentionDays)} day(s) ({(status.db.uploadRetentionDays ?? uploadRetentionDays) === 0 ? "keep forever" : "auto-clean"})</div>
+                <div class="k">Auto cleanup cadence</div>
+                <div class="v">every {(status.db.uploadPruneIntervalHours ?? uploadPruneIntervalHours)} hour(s)</div>
+              </div>
+            {/if}
           </div>
         </div>
 
@@ -787,47 +784,31 @@
             <div>
               <span class="section-title">Controls</span>
               <div class="section-subtitle">Validate, repair, and manage the service.</div>
-
-        <div class="row buttons">
-          <button type="button" onclick={runValidate} disabled={!auth.token || validating}>
-            {validating ? "Validating..." : "Validate"}
-          </button>
-          <button type="button" onclick={runRepair} disabled={!auth.token || repairing}>
-            {repairing ? "Repairing..." : "Repair"}
-          </button>
-          <button
-            class="danger"
-            type="button"
-            onclick={stopAnchor}
-            disabled={busy || !status.anchor.running}
-            aria-label="Stop anchor service (disruptive action)"
-          >
-            Stop anchor
-          </button>
-          <button type="button" onclick={loadLogs} disabled={busy}>Refresh logs</button>
-        </div>
-
-        {#if validateResp?.checks}
-          <div class="validate stack">
-            <div class="hint {validateResp.ok ? "hint-ok" : "hint-error"}" role="status" aria-live="polite" aria-atomic="true">
-              {validateResp.ok ? "Validate: OK" : "Validate: issues detected"}
             </div>
           </div>
           <div class="section-body stack">
-            <div class="toolbar">
-              <button class="btn" type="button" onclick={runValidate} disabled={!auth.token || validating}>
+            <div class="row buttons">
+              <button type="button" onclick={runValidate} disabled={!auth.token || validating}>
                 {validating ? "Validating..." : "Validate"}
               </button>
-              <button class="btn" type="button" onclick={runRepair} disabled={!auth.token || repairing}>
+              <button type="button" onclick={runRepair} disabled={!auth.token || repairing}>
                 {repairing ? "Repairing..." : "Repair"}
               </button>
-              <button class="btn danger" type="button" onclick={stopAnchor} disabled={busy || !status?.anchor.running}>Stop anchor</button>
-              <button class="btn" type="button" onclick={loadLogs} disabled={busy}>Refresh logs</button>
+              <button
+                class="danger"
+                type="button"
+                onclick={stopAnchor}
+                disabled={busy || !status?.anchor.running}
+                aria-label="Stop anchor service (disruptive action)"
+              >
+                Stop anchor
+              </button>
+              <button type="button" onclick={loadLogs} disabled={busy}>Refresh logs</button>
             </div>
 
             {#if validateResp?.checks}
               <div class="validate stack">
-                <div class="hint {validateResp.ok ? "hint-ok" : "hint-error"}">
+                <div class="hint {validateResp.ok ? "hint-ok" : "hint-error"}" role="status" aria-live="polite" aria-atomic="true">
                   {validateResp.ok ? "Validate: OK" : "Validate: issues detected"}
                 </div>
                 <div class="checks">
@@ -855,6 +836,25 @@
           </div>
           <div class="section-body stack">
             <p class="hint">Uploads are stored locally on your Mac. Default retention is permanent.</p>
+
+            {#if uploadStats}
+              <div class="kv">
+                <div class="k">Stored files</div>
+                <div class="v">{uploadStats.fileCount}</div>
+                <div class="k">Storage used</div>
+                <div class="v">{formatBytes(uploadStats.totalBytes)}</div>
+                <div class="k">Oldest file</div>
+                <div class="v">{uploadStats.oldestAt ? new Date(uploadStats.oldestAt).toLocaleString() : "n/a"}</div>
+                <div class="k">Newest file</div>
+                <div class="v">{uploadStats.newestAt ? new Date(uploadStats.newestAt).toLocaleString() : "n/a"}</div>
+                <div class="k">Last prune activity</div>
+                <div class="v">{uploadStats.lastPruneAt ? new Date(uploadStats.lastPruneAt).toLocaleString() : "n/a"}</div>
+                <div class="k">Last prune source</div>
+                <div class="v">{uploadStats.lastPruneSource || "n/a"}</div>
+                <div class="k">Last prune detail</div>
+                <div class="v">{uploadStats.lastPruneMessage || "n/a"}</div>
+              </div>
+            {/if}
 
             <div class="field stack">
               <label for="upload-retention">upload retention (days)</label>
@@ -901,6 +901,7 @@
               <p><code>{rotatedToken}</code></p>
             {/if}
             <pre class="logs">{debugEvents || "(no events yet)"}</pre>
+            <pre class="logs">{opsLog || "(no ops logs yet)"}</pre>
           </div>
         </div>
       </div>
@@ -990,120 +991,9 @@
                 <p class="hint hint-error">QR did not render. Open the Link above on your iPhone.</p>
               {/if}
             {/if}
-        {/if}
-        {/if}
-      </SectionCard>
-      </div>
-      <div class="panel panel-pair">
-      <SectionCard title="Pair iPhone" subtitle="Generate a short-lived code and scan on iPhone">
-        <p class="hint">Generate a short-lived pairing code, then scan the QR with your iPhone.</p>
-        {#if pairError}
-          <p class="hint hint-error" role="alert">{pairError}</p>
-        {/if}
-        <div class="row buttons">
-          <button class="primary" type="button" onclick={newPair} disabled={!auth.token}>Regenerate pairing code</button>
-        </div>
-        {#if !auth.token}
-          <p class="hint hint-error">Sign in first (token required) to create pairing codes.</p>
-        {/if}
-        {#if pair}
-          <div class="kv" style="margin-top: var(--space-md);">
-            <div class="k">Code</div>
-            <div class="v"><code>{pair.code}</code></div>
-            <div class="k">Expires</div>
-            <div class="v">{new Date(pair.expiresAt).toLocaleString()}</div>
-            <div class="k">Link</div>
-            <div class="v"><a href={pair.pairUrl}>{pair.pairUrl}</a></div>
-          </div>
-          {#if pairQrObjectUrl}
-            <div class="qr"><img alt="Pairing QR code" src={pairQrObjectUrl} /></div>
-          {:else}
-            <p class="hint hint-error">QR did not render. Open the Link above on your iPhone.</p>
-          {/if}
-        {/if}
-      </SectionCard>
-      </div>
-    </div>
-
-    <div class="panel panel-full">
-      <SectionCard title="Uploads">
-        <p class="hint">Uploads are stored locally on your Mac. Default retention is permanent.</p>
-        {#if uploadStats}
-          <div class="kv">
-            <div class="k">Stored files</div>
-            <div class="v">{uploadStats.fileCount}</div>
-            <div class="k">Storage used</div>
-            <div class="v">{formatBytes(uploadStats.totalBytes)}</div>
-            <div class="k">Oldest file</div>
-            <div class="v">{uploadStats.oldestAt ? new Date(uploadStats.oldestAt).toLocaleString() : "n/a"}</div>
-            <div class="k">Newest file</div>
-            <div class="v">{uploadStats.newestAt ? new Date(uploadStats.newestAt).toLocaleString() : "n/a"}</div>
-            <div class="k">Last prune activity</div>
-            <div class="v">{uploadStats.lastPruneAt ? new Date(uploadStats.lastPruneAt).toLocaleString() : "n/a"}</div>
-            <div class="k">Last prune source</div>
-            <div class="v">{uploadStats.lastPruneSource || "n/a"}</div>
-            <div class="k">Last prune detail</div>
-            <div class="v">{uploadStats.lastPruneMessage || "n/a"}</div>
-          </div>
-        {/if}
-
-        <div class="field stack">
-          <label for="upload-retention">upload retention (days)</label>
-          <input
-            id="upload-retention"
-            type="number"
-            min="0"
-            max="3650"
-            aria-describedby="upload-retention-help"
-            bind:value={uploadRetentionDays}
-          />
-          <p class="hint" id="upload-retention-help">0 = keep uploads forever. Cleanup runs periodically on the Mac (and you can run it manually).</p>
-          <label for="upload-prune-interval">auto cleanup interval (hours)</label>
-          <input
-            id="upload-prune-interval"
-            type="number"
-            min="1"
-            max="168"
-            aria-describedby="upload-prune-interval-help"
-            bind:value={uploadPruneIntervalHours}
-          />
-          <p class="hint" id="upload-prune-interval-help">Valid range is 1 to 168 hours (weekly max).</p>
-          <div class="row buttons">
-            <button type="button" onclick={saveUploadRetention} disabled={!auth.token || savingUploadRetention}>
-              {savingUploadRetention ? "Saving..." : "Save"}
-            </button>
-            <button type="button" onclick={pruneUploadsNow} disabled={!auth.token || pruningUploads}>
-              {pruningUploads ? "Pruning..." : "Run cleanup now"}
-            </button>
-          </div>
-        </div>
-
-        <div class="section stack">
-          <div class="section-header">
-            <div>
-              <span class="section-title">Anchor logs</span>
-              <div class="section-subtitle">Tail of the anchor process.</div>
-            </div>
-          </div>
-          <div class="section-body">
-            <pre class="logs">{logs || "(no logs yet)"}</pre>
-          </div>
-        </div>
-
-        <div class="section stack">
-          <div class="section-header">
-            <div>
-              <span class="section-title">Ops log</span>
-              <div class="section-subtitle">Server maintenance + installer actions.</div>
-            </div>
-          </div>
-          <div class="section-body">
-            <pre class="logs">{opsLog || "(no ops logs yet)"}</pre>
           </div>
         </div>
       </div>
-        <pre class="logs">{opsLog || "(no ops logs yet)"}</pre>
-      </SectionCard>
     </div>
 
     <div class="advanced-stack">
@@ -1275,8 +1165,6 @@
 <style>
   .admin {
     min-height: 100vh;
-    background: radial-gradient(1200px 800px at 10% -10%, rgba(255, 255, 255, 0.06), transparent 60%),
-      radial-gradient(900px 600px at 90% -20%, rgba(255, 255, 255, 0.04), transparent 55%),
     background:
       radial-gradient(1200px 520px at 8% -18%, color-mix(in srgb, var(--cli-prefix-agent) 14%, transparent), transparent 70%),
       radial-gradient(800px 420px at 92% -30%, color-mix(in srgb, var(--cli-prefix-web) 11%, transparent), transparent 74%),
@@ -1351,6 +1239,7 @@
   .kv {
     display: grid;
     grid-template-columns: 140px 1fr;
+  }
 
   @media (min-width: 1040px) {
     .overview-grid {
@@ -1603,6 +1492,7 @@
   .pill.muted {
     border-color: rgba(255, 255, 255, 0.1);
     color: var(--cli-text-dim);
+  }
 
   .danger {
     border-color: color-mix(in srgb, var(--cli-error) 55%, var(--cli-border));
