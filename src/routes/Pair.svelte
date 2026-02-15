@@ -3,7 +3,8 @@
   import { config } from "../lib/config.svelte";
   import { navigate } from "../router";
 
-  const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1";
+  const AUTH_BASE_URL = (import.meta.env.AUTH_URL ?? "").replace(/\/$/, "");
+  const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1" || AUTH_BASE_URL.length === 0;
 
   let status = $state<"loading" | "ok" | "error">("loading");
   let error = $state<string | null>(null);
