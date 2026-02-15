@@ -5,6 +5,38 @@ The `codex-pocket` CLI manages the service and talks to the local Admin API.
 Binary location after install:
 - `~/.codex-pocket/bin/codex-pocket` (wrapper that delegates to the repo copy in `~/.codex-pocket/app/bin/codex-pocket`)
 
+## Running the CLI
+
+Preferred (installed copy):
+
+```bash
+codex-pocket summary
+```
+
+If your shell says `command not found`, either:
+
+- call it directly: `~/.codex-pocket/bin/codex-pocket summary`, or
+- add it to PATH (`~/.zshrc` on macOS zsh):
+
+```bash
+echo 'export PATH="$HOME/.codex-pocket/bin:$PATH"' >> ~/.zshrc
+exec zsh
+```
+
+Repo-local development usage:
+
+```bash
+./bin/codex-pocket summary
+```
+
+Inside the `bin/` directory, use `./codex-pocket` (shells do not run `.` by default).
+
+Custom home installs (`CODEX_POCKET_HOME`) use:
+
+```bash
+$CODEX_POCKET_HOME/bin/codex-pocket summary
+```
+
 ## Most-Used Commands
 
 - `codex-pocket summary`

@@ -58,6 +58,14 @@ We track the canonical backlog in GitHub Projects:
 
 ## Common First-Run Issues
 
+- **`codex-pocket: command not found`**
+  - The CLI is installed at `~/.codex-pocket/bin/codex-pocket`.
+  - Quick run: `~/.codex-pocket/bin/codex-pocket summary`
+  - Add to PATH (zsh):
+    - `echo 'export PATH="$HOME/.codex-pocket/bin:$PATH"' >> ~/.zshrc`
+    - `exec zsh`
+  - From this repo, run `./bin/codex-pocket ...` (if you `cd bin`, use `./codex-pocket`, not `codex-pocket`).
+
 - **"Serve is not enabled on your tailnet"**
   - Tailscale may require you to explicitly enable Serve in your tailnet admin settings.
   - Run `tailscale serve --bg http://127.0.0.1:8790` and follow the link Tailscale prints to enable Serve.
