@@ -121,6 +121,7 @@ This repo includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that b
 - Pairing: `/admin` mints a short-lived one-time pairing code (shown as QR).
   - Consuming the code on iPhone returns a unique per-device session token.
   - Session tokens can be revoked individually in `/admin`.
+  - QR pairing is token-session auth (not WebAuthn passkey auth).
 
 ## Why Tailscale?
 

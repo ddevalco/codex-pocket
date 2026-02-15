@@ -8,15 +8,13 @@
   let showAuthModal = $state(false);
   let authMode = $state<"login" | "register">("login");
   let loginInput = $state("");
-  let registerInput = $state("");
 
   const needsSetup = $derived(auth.status === "needs_setup");
   const isSignedIn = $derived(auth.status === "signed_in");
-  const isLocalMode = $derived(auth.localMode);
 
   $effect(() => {
     if (needsSetup) {
-      authMode = "register";
+      authMode = "login";
       showAuthModal = true;
     }
   });
@@ -60,10 +58,7 @@
       </p>
       {#if !isSignedIn}
         <div class="hero-actions row">
-          <button class="primary-btn" type="button" onclick={() => openModal("login")}>{isLocalMode ? "Use access token" : "Sign in"}</button>
-          {#if !isLocalMode}
-            <button class="ghost-btn" type="button" onclick={() => openModal("register")}>Create account</button>
-          {/if}
+          <button class="primary-btn" type="button" onclick={() => openModal("login")}>Use access token</button>
         </div>
       {/if}
     </div>
@@ -93,7 +88,7 @@
     <div class="modal-overlay" role="presentation" onclick={closeModal}></div>
     <div class="auth-modal" role="dialog" aria-modal="true">
       <div class="modal-header">
-        <span>{authMode === "login" ? (isLocalMode ? "Enter access token" : "Sign in") : "Create account"}</span>
+        <span>{authMode === "login" ? "Enter access token" : "Need an access token"}</span>
         <button class="modal-close" type="button" onclick={closeModal}>×</button>
       </div>
       <div class="modal-body stack">
@@ -105,7 +100,7 @@
           <input
             type="text"
             class="auth-input"
-            placeholder={isLocalMode ? "Access token" : "Username"}
+            placeholder="Access token"
             bind:value={loginInput}
             onkeydown={(e) => {
               if (e.key === "Enter" && loginInput.trim()) auth.signIn(loginInput.trim());
@@ -117,42 +112,20 @@
             onclick={() => auth.signIn(loginInput.trim())}
             disabled={auth.busy || !loginInput.trim()}
           >
-            {auth.busy ? "Working..." : isLocalMode ? "Sign in with token" : "Sign in with passkey"}
+            {auth.busy ? "Working..." : "Sign in with token"}
           </button>
-          {#if !isLocalMode}
-            <button
-              class="link-btn"
-              type="button"
-              onclick={() => {
-                authMode = "register";
-                auth.error = null;
-              }}
-            >
-              Create new account
-            </button>
-          {/if}
+          <button
+            class="link-btn"
+            type="button"
+            onclick={() => {
+              authMode = "register";
+              auth.error = null;
+            }}
+          >
+            I need a token
+          </button>
         {:else}
-          {#if isLocalMode}
-            <p class="auth-help">Account creation is disabled in local mode. Use your access token to sign in.</p>
-          {:else}
-            <input
-              type="text"
-              class="auth-input"
-              placeholder="Username"
-              bind:value={registerInput}
-              onkeydown={(e) => {
-                if (e.key === "Enter" && registerInput.trim()) auth.register(registerInput.trim());
-              }}
-            />
-            <button
-              class="primary-btn"
-              type="button"
-              onclick={() => auth.register(registerInput.trim())}
-              disabled={auth.busy || !registerInput.trim()}
-            >
-              {auth.busy ? "Working..." : "Create passkey"}
-            </button>
-          {/if}
+          <p class="auth-help">Use <code>codex-pocket token</code> on your Mac, or pair from <code>/admin</code> by scanning the QR on your mobile device.</p>
           <button
             class="link-btn"
             type="button"
