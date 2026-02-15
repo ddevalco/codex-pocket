@@ -72,7 +72,8 @@
     quickReplySaveNote = "Saved.";
   }
   import { anchors } from "../lib/anchors.svelte";
-  const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1";
+  const AUTH_BASE_URL = (import.meta.env.AUTH_URL ?? "").replace(/\/$/, "");
+  const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1" || AUTH_BASE_URL.length === 0;
 
   const UI_COMMIT = String(import.meta.env.VITE_CODEX_POCKET_COMMIT ?? "");
   const UI_BUILT_AT = String(import.meta.env.VITE_CODEX_POCKET_BUILT_AT ?? "");

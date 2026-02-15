@@ -8,7 +8,9 @@ const STORE_KEY = "__zane_auth_store__";
 const STORAGE_KEY = "zane_auth_token";
 const REFRESH_STORAGE_KEY = "zane_refresh_token";
 const AUTH_BASE_URL = (import.meta.env.AUTH_URL ?? "").replace(/\/$/, "");
-const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1";
+// In Codex Pocket local installs, AUTH_URL is intentionally unset.
+// Treat that as local mode even if VITE_ZANE_LOCAL was not passed to Vite.
+const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1" || AUTH_BASE_URL.length === 0;
 
 type AuthStatus = "loading" | "signed_out" | "signed_in" | "needs_setup";
 
