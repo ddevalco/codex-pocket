@@ -11,6 +11,31 @@ This project is designed to be local-first and tailnet-only. When something goes
 
 ## Common Issues
 
+### `codex-pocket: command not found`
+
+This means your shell PATH does not include the install bin directory yet.
+
+Immediate workaround:
+
+```bash
+~/.codex-pocket/bin/codex-pocket summary
+```
+
+Permanent fix (zsh/macOS):
+
+```bash
+echo 'export PATH="$HOME/.codex-pocket/bin:$PATH"' >> ~/.zshrc
+exec zsh
+```
+
+If you are running from the git repo, use:
+
+```bash
+./bin/codex-pocket summary
+```
+
+If you `cd bin`, run `./codex-pocket`, not `codex-pocket`.
+
 ### Admin Page Asks For Access Token
 
 Get the current token:

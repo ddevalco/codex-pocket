@@ -6,6 +6,13 @@
 curl -fsSL https://raw.githubusercontent.com/ddevalco/codex-pocket/main/scripts/install-local.sh | bash
 ```
 
+Use a custom install location (optional):
+
+```bash
+CODEX_POCKET_HOME="$HOME/my-pocket" \
+	curl -fsSL https://raw.githubusercontent.com/ddevalco/codex-pocket/main/scripts/install-local.sh | bash
+```
+
 The installer:
 - checks dependencies (git, bun, tailscale)
 - offers to run `tailscale up` if needed
@@ -25,6 +32,33 @@ Notes:
 - Tailnet access: `https://<your-mac-magicdns-host>/`
 - Admin: `/admin`
 - CLI: `~/.codex-pocket/bin/codex-pocket` (a thin wrapper that delegates to `~/.codex-pocket/app/bin/codex-pocket`)
+
+### Make `codex-pocket` available in your shell
+
+If `codex-pocket` prints `command not found`, your shell PATH does not include the install bin directory yet.
+
+zsh (default on macOS):
+
+```bash
+echo 'export PATH="$HOME/.codex-pocket/bin:$PATH"' >> ~/.zshrc
+exec zsh
+```
+
+bash:
+
+```bash
+echo 'export PATH="$HOME/.codex-pocket/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Quick alternatives (no shell config):
+
+```bash
+~/.codex-pocket/bin/codex-pocket summary
+./bin/codex-pocket summary   # from repo root
+```
+
+Note: shells do not execute from the current directory by name. Inside `bin/`, run `./codex-pocket`, not `codex-pocket`.
 
 ## Tailscale Setup (Mac + iPhone)
 

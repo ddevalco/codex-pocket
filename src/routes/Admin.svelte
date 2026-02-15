@@ -910,57 +910,6 @@
         <div class="section stack">
           <div class="section-header">
             <div>
-              <span class="section-title">Remote CLI</span>
-              <div class="section-subtitle">Run a limited set of safe commands.</div>
-            </div>
-          </div>
-          <div class="section-body stack">
-            <div class="row buttons">
-              <label class="field">
-                <span>Command</span>
-                <select bind:value={cliSelected} disabled={cliRunning || cliCommands.length === 0}>
-                  {#each cliCommands as cmd (cmd.id)}
-                    <option value={cmd.id}>
-                      {cmd.label}{cmd.risky ? " (disruptive)" : ""}
-                    </option>
-                  {/each}
-                </select>
-              </label>
-              <button class="btn" type="button" onclick={runCliCommand} disabled={!auth.token || cliRunning || !cliSelected}>
-                {cliRunning ? "Running..." : "Run"}
-              </button>
-            </div>
-            {#if cliSelected}
-              {#each cliCommands as cmd (cmd.id)}
-                {#if cmd.id === cliSelected}
-                  <div class="hint">{cmd.description}</div>
-                  {#if cmd.risky}
-                    <div class="hint hint-error">This command may disconnect the admin session.</div>
-                  {/if}
-                {/if}
-              {/each}
-            {/if}
-            {#if cliError}
-              <p class="hint hint-error">{cliError}</p>
-            {/if}
-            {#if cliOutput}
-              <pre class="cli-output">{cliOutput}</pre>
-            {/if}
-            {#if cliPairUrl}
-              <div class="kv" style="margin-top: var(--space-md);">
-                <div class="k">Pair link</div>
-                <div class="v"><a href={cliPairUrl}>{cliPairUrl}</a></div>
-              </div>
-              {#if cliPairQrObjectUrl}
-                <div class="qr"><img alt="Pairing QR code" src={cliPairQrObjectUrl} /></div>
-              {/if}
-            {/if}
-          </div>
-        </div>
-
-        <div class="section stack">
-          <div class="section-header">
-            <div>
               <span class="section-title">Pair iPhone</span>
               <div class="section-subtitle">Scan to connect a new device.</div>
             </div>
