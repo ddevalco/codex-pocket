@@ -10,6 +10,12 @@ export interface ThreadInfo {
   preview?: string;
   title?: string;
   name?: string;
+  cwd?: string;
+  path?: string;
+  project?: string;
+  repo?: string;
+  gitBranch?: string;
+  gitOriginUrl?: string;
   createdAt?: number;
   updatedAt?: number;
   lastActivity?: number;
