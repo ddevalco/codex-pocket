@@ -381,6 +381,13 @@ is_our_pid() {
   local pid="$1"
   local cmd
   cmd="$(ps -p "$pid" -o command= 2>/dev/null || true)"
+  local app_dir_real=""
+  app_dir_real="$(
+    python3 - "$APP_DIR" <<'PY' 2>/dev/null || true
+import os,sys
+print(os.path.realpath(sys.argv[1]))
+PY
+  )"
 
   pid_cwd_endswith() {
     # lsof output varies a bit across platforms; on macOS it includes a "cwd" line.
@@ -409,6 +416,11 @@ is_our_pid() {
   pid_cwd_endswith "$APP_DIR/app" && return 0
   pid_cwd_endswith "$APP_DIR/app/services/local-orbit" && return 0
   pid_cwd_endswith "$APP_DIR/app/services/anchor" && return 0
+  if [[ -n "${app_dir_real:-}" && "$app_dir_real" != "$APP_DIR" ]]; then
+    pid_cwd_endswith "$app_dir_real/app" && return 0
+    pid_cwd_endswith "$app_dir_real/app/services/local-orbit" && return 0
+    pid_cwd_endswith "$app_dir_real/app/services/anchor" && return 0
+  fi
 
   return 1
 }
@@ -438,6 +450,33 @@ kill_owned_listeners() {
   done
 
   # Give the OS a moment to release ports.
+  sleep 0.1
+}
+
+force_kill_owned_listeners() {
+  # Escalation path: if TERM did not clear owned listeners, SIGKILL only our processes.
+  # Never kill unrelated listeners.
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local port
+  port="$(config_port 2>/dev/null || echo 8790)"
+  local aport
+  aport="$(anchor_port 2>/dev/null || echo 8788)"
+
+  for p in "$port" "$aport"; do
+    local lpids
+    lpids="$(lsof -nP -t -iTCP:"$p" -sTCP:LISTEN 2>/dev/null || true)"
+    [[ -z "${lpids:-}" ]] && continue
+
+    for pid in $lpids; do
+      if is_our_pid "$pid"; then
+        kill -9 "$pid" >/dev/null 2>&1 || true
+      fi
+    done
+  done
+
   sleep 0.1
 }
 
@@ -686,6 +725,7 @@ cmd_start() {
   # Ensure we don't pile up duplicate instances on restart/update.
   kill_anchor_orphans >/dev/null 2>&1 || true
   kill_owned_listeners >/dev/null 2>&1 || true
+  force_kill_owned_listeners >/dev/null 2>&1 || true
   wait_ports_free >/dev/null 2>&1 || true
   local conflicts
   conflicts="$(port_conflicts || true)"
@@ -810,6 +850,7 @@ cmd_stop() {
   pkill -f "$APP_DIR/app/services/anchor/src/index.ts" 2>/dev/null || true
   kill_anchor_orphans >/dev/null 2>&1 || true
   kill_owned_listeners >/dev/null 2>&1 || true
+  force_kill_owned_listeners >/dev/null 2>&1 || true
   wait_ports_free >/dev/null 2>&1 || true
 
   # Final safety net: kill anything still listening on our configured ports.
@@ -1173,6 +1214,13 @@ is_our_pid() {
   local pid="$1"
   local cmd
   cmd="$(ps -p "$pid" -o command= 2>/dev/null || true)"
+  local app_dir_real
+  app_dir_real="$(
+    python3 - "$APP_DIR" <<'PY' 2>/dev/null || true
+import os,sys
+print(os.path.realpath(sys.argv[1]))
+PY
+  )"
   if [[ -n "${cmd:-}" ]] && echo "$cmd" | grep -Fq "$APP_DIR/app/services/local-orbit/src/index.ts"; then
     return 0
   fi
@@ -1186,6 +1234,11 @@ is_our_pid() {
     lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${APP_DIR}/app$" && return 0
     lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${APP_DIR}/app/services/local-orbit$" && return 0
     lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${APP_DIR}/app/services/anchor$" && return 0
+    if [[ -n "${app_dir_real:-}" && "$app_dir_real" != "$APP_DIR" ]]; then
+      lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${app_dir_real}/app$" && return 0
+      lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${app_dir_real}/app/services/local-orbit$" && return 0
+      lsof -p "$pid" 2>/dev/null | grep -q " cwd .* ${app_dir_real}/app/services/anchor$" && return 0
+    fi
   fi
   return 1
 }
@@ -1230,6 +1283,30 @@ kill_owned_listeners() {
   sleep 0.1
 }
 
+force_kill_owned_listeners() {
+  # Escalation path: if TERM did not clear owned listeners, SIGKILL only our processes.
+  # Do NOT kill unrelated processes.
+  command -v lsof >/dev/null 2>&1 || return 0
+
+  local port
+  port="$(cfg_port 2>/dev/null || echo 8790)"
+  local aport
+  aport="$(cfg_anchor_port 2>/dev/null || echo 8788)"
+
+  for p in "$port" "$aport"; do
+    local lpids
+    lpids="$(lsof -nP -t -iTCP:"$p" -sTCP:LISTEN 2>/dev/null || true)"
+    [[ -z "${lpids:-}" ]] && continue
+    local pid
+    for pid in $lpids; do
+      is_our_pid "$pid" || continue
+      kill -9 "$pid" >/dev/null 2>&1 || true
+    done
+  done
+
+  sleep 0.1
+}
+
 wait_ports_free() {
   command -v lsof >/dev/null 2>&1 || return 0
   local port aport i
@@ -1253,6 +1330,7 @@ stop_service() {
 
   kill_anchor_orphans >/dev/null 2>&1 || true
   kill_owned_listeners >/dev/null 2>&1 || true
+  force_kill_owned_listeners >/dev/null 2>&1 || true
   wait_ports_free >/dev/null 2>&1 || true
 }
 

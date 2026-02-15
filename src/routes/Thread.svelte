@@ -155,6 +155,63 @@
         return out.join("\n").trim() + "\n";
     }
 
+    function escapeHtml(text: string): string {
+        return text
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+
+    function threadToHtml(): string {
+        const id = threadId;
+        if (!id) return "";
+        const title = threadTitle || id.slice(0, 8);
+        const msgs = messages.getThreadMessages(id);
+        const body = msgs
+            .map((m) => {
+                const role =
+                    m.role === "tool"
+                        ? m.kind
+                            ? `Tool (${m.kind})`
+                            : "Tool"
+                        : m.role === "assistant"
+                            ? "Assistant"
+                            : m.role === "user"
+                                ? "User"
+                                : "Approval";
+                const text = escapeHtml((m.text ?? "").trim()).replaceAll("\n", "<br />");
+                const content = m.role === "tool" ? `<pre>${text}</pre>` : `<p>${text}</p>`;
+                return `<section><h2>${escapeHtml(role)}</h2>${content}</section>`;
+            })
+            .join("\n");
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 860px; margin: 32px auto; padding: 0 16px; line-height: 1.55; }
+    h1 { margin: 0 0 4px; font-size: 1.5rem; }
+    .meta { margin: 0 0 24px; color: #6b7280; font-size: .9rem; }
+    section { border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    h2 { margin: 0 0 8px; font-size: 1rem; text-transform: uppercase; letter-spacing: .04em; color: #4b5563; }
+    p, pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+    pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: rgba(0,0,0,.05); padding: 10px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <p class="meta">Thread: ${escapeHtml(id)}</p>
+  ${body || "<p>No messages.</p>"}
+</body>
+</html>
+`;
+    }
+
     async function copyThread() {
         try {
             const md = threadToMarkdown();
@@ -222,6 +279,50 @@
         downloadThreadJson();
     }
 
+    async function shareThreadHtml() {
+        const id = threadId;
+        if (!id) return;
+        const html = threadToHtml();
+        if (!html) return;
+        const title = threadTitle || id.slice(0, 8);
+        try {
+            const nav = navigator as any;
+            if (nav?.share) {
+                try {
+                    const f = new File([html], `${title}.html`, { type: "text/html" });
+                    if (nav.canShare?.({ files: [f] })) {
+                        await nav.share({ title: `Codex Pocket: ${title}`, files: [f] });
+                        return;
+                    }
+                } catch {
+                    // fall back to text share
+                }
+                await nav.share({ title: `Codex Pocket: ${title}`, text: html });
+                return;
+            }
+        } catch {
+            // fall back to download
+        }
+        downloadThreadHtml();
+    }
+
+    function printThreadPdf() {
+        const html = threadToHtml();
+        if (!html) return;
+        const printDoc = html.replace(
+            "</body>",
+            "<script>window.addEventListener('load', () => { setTimeout(() => { window.focus(); window.print(); }, 80); });<\\/script></body>"
+        );
+        const w = window.open("", "_blank");
+        if (!w) {
+            downloadThreadHtml();
+            return;
+        }
+        w.document.open();
+        w.document.write(printDoc);
+        w.document.close();
+    }
+
     function downloadThread() {
         const id = threadId;
         if (!id) return;
@@ -273,6 +374,21 @@
         const a = document.createElement("a");
         a.href = url;
         a.download = `${title}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    function downloadThreadHtml() {
+        const id = threadId;
+        if (!id) return;
+        const html = threadToHtml();
+        if (!html) return;
+        const title = (threadTitle || id.slice(0, 8)).replace(/[^a-z0-9\- _]+/gi, "").trim() || id.slice(0, 8);
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${title}.html`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 2000);
     }
@@ -539,11 +655,44 @@
                             role="menuitem"
                             onclick={() => {
                                 closeMoreMenu();
+                                downloadThreadHtml();
+                            }}
+                            title="Download thread as .html"
+                        >
+                            export html
+                        </button>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onclick={() => {
+                                closeMoreMenu();
+                                printThreadPdf();
+                            }}
+                            title="Print / save as PDF"
+                        >
+                            export pdf
+                        </button>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onclick={() => {
+                                closeMoreMenu();
                                 shareThreadJson();
                             }}
                             title="Share thread as .json"
                         >
                             share json
+                        </button>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onclick={() => {
+                                closeMoreMenu();
+                                shareThreadHtml();
+                            }}
+                            title="Share thread as .html"
+                        >
+                            share html
                         </button>
                     </div>
                 {/if}

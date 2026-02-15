@@ -41,10 +41,24 @@ APORT="$(alloc_port)"
 if [[ "$APORT" == "$PORT" ]]; then
   APORT=$((PORT + 1))
 fi
+DEFAULT_GUARD_PORT=8790
 TOKEN="test-token-$(date +%s)"
+OWNED_STALE_PID=""
+OWNED_STUBBORN_PID=""
+DEFAULT_GUARD_PID=""
 
 cleanup() {
   if command -v lsof >/dev/null 2>&1; then
+    if [[ -n "${OWNED_STALE_PID:-}" ]]; then
+      kill "$OWNED_STALE_PID" 2>/dev/null || true
+    fi
+    if [[ -n "${DEFAULT_GUARD_PID:-}" ]]; then
+      kill "$DEFAULT_GUARD_PID" 2>/dev/null || true
+    fi
+    if [[ -n "${OWNED_STUBBORN_PID:-}" ]]; then
+      kill "$OWNED_STUBBORN_PID" 2>/dev/null || true
+    fi
+
     local pids
     pids="$(lsof -nP -t -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true)"
     if [[ -n "${pids:-}" ]]; then
@@ -132,12 +146,102 @@ JSON
 
 echo "Running update in isolated test home: $APP_HOME"
 
+wait_listen() {
+  local port="$1"
+  local i
+  for i in $(seq 1 40); do
+    if lsof -nP -t -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.1
+  done
+  return 1
+}
+
+pid_listening_on() {
+  local port="$1"
+  lsof -nP -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | head -n 1 || true
+}
+
+start_default_guard_listener() {
+  # Optional guard: when available, ensure update logic does not kill listeners on the default
+  # 8790 unless that port is actually configured.
+  if lsof -nP -t -iTCP:"$DEFAULT_GUARD_PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+    echo "Note: skipping default-port guard listener; $DEFAULT_GUARD_PORT already in use."
+    return 0
+  fi
+  (
+    cd "$TMP"
+    python3 -m http.server "$DEFAULT_GUARD_PORT" >/dev/null 2>&1 &
+    echo $! > "$TMP/default-guard.pid"
+  )
+  DEFAULT_GUARD_PID="$(cat "$TMP/default-guard.pid")"
+  wait_listen "$DEFAULT_GUARD_PORT"
+}
+
+start_owned_stale_listener() {
+  # Simulate a stale Pocket-owned process holding the configured local-orbit port.
+  (
+    cd "$APP_HOME/app"
+    python3 -m http.server "$PORT" >/dev/null 2>&1 &
+    echo $! > "$TMP/owned-stale.pid"
+  )
+  OWNED_STALE_PID="$(cat "$TMP/owned-stale.pid")"
+  wait_listen "$PORT"
+}
+
+start_owned_stubborn_listener() {
+  # Simulate an owned listener that ignores SIGTERM (requires SIGKILL cleanup path).
+  (
+    cd "$APP_HOME/app"
+    python3 - "$APORT" >/dev/null 2>&1 <<'PY' &
+import http.server, signal, socketserver, sys
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+port = int(sys.argv[1])
+with socketserver.TCPServer(("127.0.0.1", port), http.server.SimpleHTTPRequestHandler) as httpd:
+  httpd.serve_forever()
+PY
+    echo $! > "$TMP/owned-stubborn.pid"
+  )
+  OWNED_STUBBORN_PID="$(cat "$TMP/owned-stubborn.pid")"
+  wait_listen "$APORT"
+}
+
+if command -v lsof >/dev/null 2>&1; then
+  start_default_guard_listener
+  start_owned_stale_listener
+  start_owned_stubborn_listener
+else
+  echo "Note: lsof missing; skipping stale-listener simulation checks."
+fi
+
 env \
   HOME="$FAKE_HOME" \
   CODEX_POCKET_HOME="$APP_HOME" \
   PATH="$PATH" \
   TMPDIR="$TMPDIR" \
   "$APP_HOME/bin/codex-pocket" update
+
+# Verify the stale owned listener is gone (update stop/start cleanup should remove it).
+if command -v lsof >/dev/null 2>&1; then
+  if [[ -n "${OWNED_STALE_PID:-}" ]] && ps -p "$OWNED_STALE_PID" >/dev/null 2>&1; then
+    current_pid="$(pid_listening_on "$PORT")"
+    if [[ -n "${current_pid:-}" && "$current_pid" == "$OWNED_STALE_PID" ]]; then
+      echo "FAIL: stale owned listener survived update on configured port $PORT" >&2
+      exit 1
+    fi
+  fi
+  if [[ -n "${OWNED_STUBBORN_PID:-}" ]] && ps -p "$OWNED_STUBBORN_PID" >/dev/null 2>&1; then
+    echo "FAIL: TERM-ignoring owned listener survived update on configured anchor port $APORT" >&2
+    exit 1
+  fi
+
+  # If we could allocate the default-port guard, it must survive update because configured port is not 8790.
+  if [[ -n "${DEFAULT_GUARD_PID:-}" ]] && ! ps -p "$DEFAULT_GUARD_PID" >/dev/null 2>&1; then
+    echo "FAIL: default-port guard listener on $DEFAULT_GUARD_PORT was killed unexpectedly" >&2
+    exit 1
+  fi
+fi
 
 # Validate service comes up.
 curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null

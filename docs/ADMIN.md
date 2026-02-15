@@ -11,7 +11,15 @@ Open `/admin` in the browser.
 ## Pair iPhone
 - On first sign-in, `/admin` auto-generates a short-lived pairing QR.
 - Use "Regenerate pairing code" to mint a fresh QR (codes are one-time and expire).
-- Scan from iPhone to sign in without manually typing the token.
+- Scan from iPhone to sign in without manually typing a token.
+- Pairing now mints a unique per-device token session for that device.
+
+## Token sessions
+- `/admin` includes token session management:
+  - create a labeled token session,
+  - choose `full` or `read-only`,
+  - list active/revoked sessions,
+  - revoke a single session without rotating everything.
 
 ## Thread titles (Codex Desktop sync)
 Codex Pocket keeps thread titles in sync with the Codex desktop app by reading:
@@ -43,4 +51,4 @@ Notes:
 
 ## Debug tools
 - "Debug" shows the last stored events (redacted). This helps diagnose issues where threads appear but transcripts are blank.
-- "Rotate access token" rotates the bearer token and disconnects all devices. After rotating, you must sign in again on Mac/iPhone.
+- "Rotate access token" rotates the legacy bootstrap token. Session-token devices remain valid unless revoked.

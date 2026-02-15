@@ -6,10 +6,22 @@
   import { socket } from "../lib/socket.svelte";
   import AppHeader from "../lib/components/AppHeader.svelte";
   import NotificationSettings from "../lib/components/NotificationSettings.svelte";
+  import SectionCard from "../lib/components/system/SectionCard.svelte";
+  import StatusChip from "../lib/components/system/StatusChip.svelte";
+  import DangerZone from "../lib/components/system/DangerZone.svelte";
+  import {
+    DEFAULT_QUICK_REPLIES,
+    MAX_QUICK_REPLIES,
+    loadQuickReplies,
+    saveQuickReplies,
+    type QuickReply,
+  } from "../lib/quickReplies";
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   type EnterBehavior = "newline" | "send";
   let enterBehavior = $state<EnterBehavior>("newline");
+  let quickReplies = $state<QuickReply[]>([]);
+  let quickReplySaveNote = $state<string>("");
 
   $effect(() => {
     try {
@@ -18,6 +30,7 @@
     } catch {
       // ignore
     }
+    quickReplies = loadQuickReplies();
   });
 
   function setEnterBehavior(v: EnterBehavior) {
@@ -27,6 +40,36 @@
     } catch {
       // ignore
     }
+  }
+
+  function updateQuickReply(index: number, key: "label" | "text", value: string) {
+    quickReplySaveNote = "";
+    quickReplies = quickReplies.map((item, i) => {
+      if (i !== index) return item;
+      return { ...item, [key]: value };
+    });
+  }
+
+  function addQuickReply() {
+    if (quickReplies.length >= MAX_QUICK_REPLIES) return;
+    quickReplySaveNote = "";
+    quickReplies = [
+      ...quickReplies,
+      { label: `Reply ${quickReplies.length + 1}`, text: "" },
+    ];
+  }
+
+  function removeQuickReply(index: number) {
+    quickReplySaveNote = "";
+    quickReplies = quickReplies.filter((_, i) => i !== index);
+    if (quickReplies.length === 0) {
+      quickReplies = [...DEFAULT_QUICK_REPLIES];
+    }
+  }
+
+  function saveQuickReplyConfig() {
+    quickReplies = saveQuickReplies(quickReplies);
+    quickReplySaveNote = "Saved.";
   }
   import { anchors } from "../lib/anchors.svelte";
   const LOCAL_MODE = import.meta.env.VITE_ZANE_LOCAL === "1";
@@ -91,18 +134,20 @@
 <div class="settings stack">
   <AppHeader status={socket.status}>
     {#snippet actions()}
-      <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
+      <button
+        type="button"
+        onclick={() => theme.cycle()}
+        title="Theme: {theme.current}"
+        aria-label={`Cycle theme (current: ${theme.current})`}
+      >
         {themeIcons[theme.current]}
       </button>
     {/snippet}
   </AppHeader>
 
-  <div class="content stack">
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Connection</span>
-      </div>
-      <div class="section-body stack">
+  <div class="content">
+    <div class="panel panel-wide">
+      <SectionCard title="Connection">
         <div class="field stack">
           <label for="orbit-url">orbit url</label>
           <input
@@ -110,14 +155,20 @@
             type="text"
             bind:value={config.url}
             placeholder="wss://orbit.example.com/ws/client"
+            aria-describedby="orbit-url-help"
             disabled={orbitLocked}
           />
         </div>
-        {#if LOCAL_MODE}
-          <p class="hint">
-            Local mode: Orbit URL is derived automatically from the site you opened.
-          </p>
-        {/if}
+        <p class="hint" id="orbit-url-help">
+          {LOCAL_MODE
+            ? "Local mode: Orbit URL is derived automatically from the site you opened."
+            : "Use your orbit websocket URL. Disconnect first to edit while connected."}
+        </p>
+        <div class="row">
+          <StatusChip tone={socket.status === "connected" ? "success" : socket.status === "error" ? "error" : "neutral"}>
+            {socket.status}
+          </StatusChip>
+        </div>
         <div class="connect-actions row">
           <button
             class="connect-btn"
@@ -142,14 +193,11 @@
             ? "Auto-connect paused. Click Connect to resume."
             : "Connection is automatic on app load. Disconnect to pause and to change the URL."}
         </p>
-      </div>
+      </SectionCard>
     </div>
 
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Devices</span>
-      </div>
-      <div class="section-body stack">
+    <div class="panel">
+      <SectionCard title="Devices">
         {#if !isSocketConnected}
           <p class="hint">
             Connect to load devices.
@@ -162,7 +210,7 @@
           <ul class="anchor-list">
             {#each anchorList as anchor (anchor.id)}
               <li class="anchor-item">
-                <span class="anchor-status" title="Connected">●</span>
+                <span class="anchor-status" title="Connected" aria-hidden="true">●</span>
                 <div class="anchor-info">
                   <span class="anchor-hostname">{anchor.hostname}</span>
                   <span class="anchor-meta">{platformLabels[anchor.platform] ?? anchor.platform} · since {formatSince(anchor.connectedAt)}</span>
@@ -171,33 +219,84 @@
             {/each}
           </ul>
         {/if}
-      </div>
+      </SectionCard>
     </div>
 
-    <NotificationSettings />
+    <div class="panel">
+      <NotificationSettings />
+    </div>
 
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Composer</span>
-      </div>
-      <div class="section-body stack">
+    <div class="panel">
+      <SectionCard title="Composer">
         <div class="field stack">
           <label for="enter-behavior">enter key</label>
-          <select id="enter-behavior" bind:value={enterBehavior} onchange={(e) => setEnterBehavior((e.target as HTMLSelectElement).value as EnterBehavior)}>
+          <select
+            id="enter-behavior"
+            aria-describedby="enter-behavior-help"
+            bind:value={enterBehavior}
+            onchange={(e) => setEnterBehavior((e.target as HTMLSelectElement).value as EnterBehavior)}
+          >
             <option value="newline">Enter inserts newline (Cmd/Ctrl+Enter sends)</option>
             <option value="send">Enter sends (Shift+Enter newline)</option>
           </select>
         </div>
-        <p class="hint">Default is newline on all devices. This is stored per-device in your browser.</p>
-      </div>
+        <p class="hint" id="enter-behavior-help">Default is newline on all devices. This is stored per-device in your browser.</p>
+      </SectionCard>
     </div>
 
-    
-    <div class="section stack">
-      <div class="section-header">
-        <span class="section-title">About</span>
-      </div>
-      <div class="section-body stack">
+    <div class="panel panel-wide">
+      <SectionCard title="Quick Replies">
+        <div class="stack quick-reply-settings">
+          {#each quickReplies as reply, i (`${i}-${reply.label}-${reply.text}`)}
+            <div class="quick-reply-row">
+              <div class="field stack">
+                <label for={`quick-reply-label-${i}`}>label</label>
+                <input
+                  id={`quick-reply-label-${i}`}
+                  type="text"
+                  maxlength="24"
+                  value={reply.label}
+                  oninput={(e) => updateQuickReply(i, "label", (e.target as HTMLInputElement).value)}
+                  placeholder="Proceed"
+                />
+              </div>
+              <div class="field stack">
+                <label for={`quick-reply-text-${i}`}>text</label>
+                <input
+                  id={`quick-reply-text-${i}`}
+                  type="text"
+                  maxlength="280"
+                  value={reply.text}
+                  oninput={(e) => updateQuickReply(i, "text", (e.target as HTMLInputElement).value)}
+                  placeholder="Proceed."
+                />
+              </div>
+              <button
+                type="button"
+                class="plain-btn"
+                onclick={() => removeQuickReply(i)}
+                aria-label={`Remove quick reply ${reply.label || i + 1}`}
+              >
+                Remove
+              </button>
+            </div>
+          {/each}
+          <div class="row">
+            <button type="button" class="plain-btn" onclick={addQuickReply} disabled={quickReplies.length >= MAX_QUICK_REPLIES}>
+              Add preset
+            </button>
+            <button type="button" class="connect-btn" onclick={saveQuickReplyConfig}>Save presets</button>
+            {#if quickReplySaveNote}
+              <span class="hint">{quickReplySaveNote}</span>
+            {/if}
+          </div>
+          <p class="hint">Shown in the thread composer as one-tap shortcuts. Stored per-device in your browser.</p>
+        </div>
+      </SectionCard>
+    </div>
+
+    <div class="panel">
+      <SectionCard title="About">
         <p class="hint">
           UI build: <span class="mono">{UI_COMMIT || "unknown"}</span>
           {#if UI_BUILT_AT}
@@ -207,15 +306,15 @@
         <p class="hint">
           Server: <span class="mono">{appCommit || "unknown"}</span>
         </p>
-      </div>
+      </SectionCard>
     </div>
-<div class="section stack">
-      <div class="section-header">
-        <span class="section-title">Account</span>
-      </div>
-      <div class="section-body stack">
-        <button class="sign-out-btn" type="button" onclick={() => auth.signOut()}>Sign out</button>
-      </div>
+
+    <div class="panel">
+      <SectionCard title="Account">
+        <DangerZone>
+          <button class="sign-out-btn" type="button" onclick={() => auth.signOut()} aria-label="Sign out and clear local auth token">Sign out</button>
+        </DangerZone>
+      </SectionCard>
     </div>
   </div>
 </div>
@@ -224,43 +323,59 @@
   .settings {
     --stack-gap: 0;
     min-height: 100vh;
-    background: var(--cli-bg);
+    background:
+      radial-gradient(920px 460px at 0% -20%, color-mix(in srgb, var(--cli-prefix-agent) 12%, transparent), transparent 72%),
+      radial-gradient(780px 360px at 100% -30%, color-mix(in srgb, var(--cli-prefix-web) 10%, transparent), transparent 74%),
+      var(--cli-bg);
     color: var(--cli-text);
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: var(--text-sm);
   }
 
   .content {
-    --stack-gap: var(--space-lg);
-    padding: var(--space-md);
-    max-width: var(--app-max-width);
+    padding: var(--space-lg) var(--space-md) var(--space-xl);
+    max-width: 1220px;
     margin: 0 auto;
     width: 100%;
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: 1fr;
   }
 
-  .section {
-    --stack-gap: 0;
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
+  @media (min-width: 1040px) {
+    .content {
+      grid-template-columns: 1.35fr 1fr;
+      align-items: start;
+    }
   }
 
-  .section-header {
-    padding: var(--space-sm) var(--space-md);
-    background: var(--cli-bg-elevated);
-    border-bottom: 1px solid var(--cli-border);
+  .panel {
+    min-width: 0;
   }
 
-  .section-title {
-    font-size: var(--text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--cli-text-dim);
+  .panel-wide {
+    grid-column: 1 / -1;
   }
 
-  .section-body {
-    --stack-gap: var(--space-md);
-    padding: var(--space-md);
+  .settings :global(.section) {
+    border-radius: 12px;
+    border-color: color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in srgb, var(--cli-bg-elevated) 86%, var(--cli-bg));
+    box-shadow: 0 15px 34px -30px rgba(0, 0, 0, 0.88);
+  }
+
+  .settings :global(.section-header) {
+    padding: var(--space-md) var(--space-md) var(--space-sm);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--cli-bg-elevated) 76%, var(--cli-bg)),
+      color-mix(in srgb, var(--cli-bg) 90%, transparent)
+    );
+  }
+
+  .settings :global(.section-title) {
+    font-size: 0.69rem;
+    letter-spacing: 0.1em;
   }
 
   .field {
@@ -275,9 +390,9 @@
 
   .field input {
     padding: var(--space-sm);
-    background: var(--cli-bg);
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 8px;
     color: var(--cli-text);
     font-family: var(--font-mono);
   }
@@ -285,10 +400,10 @@
   .field select {
     width: 100%;
     padding: var(--space-sm);
-    background: var(--cli-bg);
+    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
     color: var(--cli-text);
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 8px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
   }
@@ -302,6 +417,7 @@
   .field input:focus {
     outline: none;
     border-color: var(--cli-prefix-agent);
+    box-shadow: var(--shadow-focus);
   }
 
   .field input:disabled {
@@ -315,25 +431,67 @@
   }
 
   .connect-btn {
-    padding: var(--space-xs) var(--space-sm);
-    background: transparent;
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.72rem;
+    background: color-mix(in srgb, var(--cli-bg-elevated) 86%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 7px;
     color: var(--cli-text);
     font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: 0.74rem;
     cursor: pointer;
     transition: all var(--transition-fast);
   }
 
-  .connect-btn:hover:enabled {
+  .plain-btn {
+    padding: 0.45rem 0.72rem;
+    background: color-mix(in srgb, var(--cli-bg-elevated) 86%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 7px;
+    color: var(--cli-text-dim);
+    font-family: var(--font-sans);
+    font-size: 0.74rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .plain-btn:hover:enabled {
     background: var(--cli-bg-hover);
-    border-color: var(--cli-text-muted);
+    color: var(--cli-text);
+  }
+
+  .connect-btn:hover:enabled {
+    background: color-mix(in srgb, var(--cli-bg-hover) 60%, var(--cli-bg-elevated));
+    border-color: color-mix(in srgb, var(--cli-prefix-agent) 38%, var(--cli-border));
   }
 
   .connect-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  .connect-btn:focus-visible,
+  .plain-btn:focus-visible,
+  .sign-out-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
+  }
+
+  .quick-reply-settings {
+    --stack-gap: var(--space-sm);
+  }
+
+  .quick-reply-row {
+    display: grid;
+    grid-template-columns: 160px 1fr auto;
+    gap: var(--space-sm);
+    align-items: end;
+  }
+
+  @media (max-width: 760px) {
+    .quick-reply-row {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
   }
 
   .anchor-list {
@@ -378,7 +536,7 @@
   .hint {
     color: var(--cli-text-muted);
     font-size: var(--text-xs);
-    line-height: 1.5;
+    line-height: 1.55;
     margin: 0;
   }
 
@@ -392,20 +550,27 @@
 
   .sign-out-btn {
     align-self: flex-start;
-    padding: var(--space-xs) var(--space-sm);
-    background: transparent;
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-sm);
-    color: var(--cli-error, #ef4444);
+    padding: 0.45rem 0.72rem;
+    background: color-mix(in srgb, var(--cli-error) 10%, var(--cli-bg-elevated));
+    border: 1px solid color-mix(in srgb, var(--cli-error) 55%, var(--cli-border));
+    border-radius: 7px;
+    color: color-mix(in srgb, var(--cli-error) 76%, var(--cli-text));
     font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: 0.74rem;
     cursor: pointer;
     transition: all var(--transition-fast);
   }
 
   .sign-out-btn:hover {
-    background: var(--cli-error-bg);
-    border-color: var(--cli-error, #ef4444);
+    background: color-mix(in srgb, var(--cli-error) 16%, var(--cli-bg-elevated));
+    border-color: color-mix(in srgb, var(--cli-error) 68%, var(--cli-border));
+  }
+
+  @media (max-width: 660px) {
+    .content {
+      padding: var(--space-md) var(--space-sm) var(--space-lg);
+      gap: var(--space-md);
+    }
   }
   .mono { font-family: var(--font-mono); }
   .dim { color: var(--cli-text-dim); }
