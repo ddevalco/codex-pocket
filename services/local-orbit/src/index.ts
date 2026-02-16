@@ -194,6 +194,34 @@ type AnchorAuthState = {
   message?: string;
 };
 
+type ReliabilityCounterKey =
+  | "wsClientConnected"
+  | "wsClientDisconnected"
+  | "wsAnchorConnected"
+  | "wsAnchorDisconnected"
+  | "anchorAuthInvalid"
+  | "readOnlyDenied"
+  | "rateLimited"
+  | "anchorStartFailed"
+  | "anchorStopFailed";
+
+type ReliabilityEventKind =
+  | "ws_client_connected"
+  | "ws_client_disconnected"
+  | "ws_anchor_connected"
+  | "ws_anchor_disconnected"
+  | "anchor_auth_invalid"
+  | "read_only_denied"
+  | "rate_limited"
+  | "anchor_start_failed"
+  | "anchor_stop_failed";
+
+type ReliabilityEvent = {
+  ts: string;
+  kind: ReliabilityEventKind;
+  detail?: string;
+};
+
 type DiagnoseCheck = {
   id: string;
   ok: boolean;
@@ -276,6 +304,37 @@ type RateLimitBucket = {
 };
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
+
+const reliabilityStartedAt = new Date().toISOString();
+const reliabilityCounters: Record<ReliabilityCounterKey, number> = {
+  wsClientConnected: 0,
+  wsClientDisconnected: 0,
+  wsAnchorConnected: 0,
+  wsAnchorDisconnected: 0,
+  anchorAuthInvalid: 0,
+  readOnlyDenied: 0,
+  rateLimited: 0,
+  anchorStartFailed: 0,
+  anchorStopFailed: 0,
+};
+const reliabilityTimeline: ReliabilityEvent[] = [];
+const MAX_RELIABILITY_EVENTS = 80;
+
+function reliabilityRecord(counter: ReliabilityCounterKey, kind: ReliabilityEventKind, detail?: string): void {
+  reliabilityCounters[counter] += 1;
+  reliabilityTimeline.unshift({ ts: new Date().toISOString(), kind, ...(detail ? { detail } : {}) });
+  if (reliabilityTimeline.length > MAX_RELIABILITY_EVENTS) {
+    reliabilityTimeline.length = MAX_RELIABILITY_EVENTS;
+  }
+}
+
+function reliabilitySnapshot() {
+  return {
+    startedAt: reliabilityStartedAt,
+    counters: { ...reliabilityCounters },
+    recent: reliabilityTimeline.slice(0, 20),
+  };
+}
 
 function requestRateLimitKey(req: Request): string {
   const forwarded = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
@@ -1631,6 +1690,7 @@ const server = Bun.serve<WsData>({
           path: DB_PATH,
           retentionDays: DB_RETENTION_DAYS,
         },
+        reliability: reliabilitySnapshot(),
         version: { appCommit: APP_COMMIT },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
@@ -1658,6 +1718,7 @@ const server = Bun.serve<WsData>({
           uploadRetentionDays: UPLOAD_RETENTION_DAYS,
           uploadPruneIntervalHours: UPLOAD_PRUNE_INTERVAL_HOURS,
         },
+        reliability: reliabilitySnapshot(),
         version: { appCommit: APP_COMMIT },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
@@ -1944,6 +2005,7 @@ const server = Bun.serve<WsData>({
             UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC
           );
           if (!rate.ok) {
+            reliabilityRecord("rateLimited", "rate_limited", "uploads/new");
             return okJson(
               { error: "rate limit exceeded", retryAfterSec: rate.retryAfterSec },
               { status: 429, headers: { "retry-after": String(rate.retryAfterSec) } }
@@ -2067,6 +2129,7 @@ const server = Bun.serve<WsData>({
         PAIR_NEW_RATE_LIMIT_WINDOW_SEC
       );
       if (!rate.ok) {
+        reliabilityRecord("rateLimited", "rate_limited", "admin/pair/new");
         return okJson(
           { error: "rate limit exceeded", retryAfterSec: rate.retryAfterSec },
           { status: 429, headers: { "retry-after": String(rate.retryAfterSec) } }
@@ -2127,12 +2190,14 @@ const server = Bun.serve<WsData>({
     if (url.pathname === "/admin/anchor/start" && req.method === "POST") {
       if (!authorised(req)) return unauth();
       const res = startAnchor();
+      if (!res.ok) reliabilityRecord("anchorStartFailed", "anchor_start_failed", res.error ?? "unknown");
       return okJson(res, { status: res.ok ? 200 : 500 });
     }
 
     if (url.pathname === "/admin/anchor/stop" && req.method === "POST") {
       if (!authorised(req)) return unauth();
       const res = stopAnchor();
+      if (!res.ok) reliabilityRecord("anchorStopFailed", "anchor_stop_failed", res.error ?? "unknown");
       return okJson(res, { status: res.ok ? 200 : 500 });
     }
 
@@ -2274,10 +2339,12 @@ const server = Bun.serve<WsData>({
       });
 
       if (role === "client") {
+        reliabilityRecord("wsClientConnected", "ws_client_connected");
         send(ws, { type: "orbit.anchor-auth", ...anchorAuth });
       }
 
       if (role === "anchor") {
+        reliabilityRecord("wsAnchorConnected", "ws_anchor_connected");
         const stableId = typeof (ws.data as any)?.anchorId === "string" ? ((ws.data as any).anchorId as string) : "";
         const meta: AnchorMeta = {
           // Stable id (preferred) so reconnects don't create duplicate devices.
@@ -2353,6 +2420,10 @@ const server = Bun.serve<WsData>({
             code: typeof obj.code === "string" ? obj.code : anchorAuth.code,
             message: typeof obj.message === "string" ? obj.message : anchorAuth.message,
           };
+          if (status === "invalid") {
+            const detail = typeof obj.code === "string" ? obj.code : (typeof obj.message === "string" ? obj.message.slice(0, 80) : "invalid");
+            reliabilityRecord("anchorAuthInvalid", "anchor_auth_invalid", detail);
+          }
           broadcastToClients({ type: "orbit.anchor-auth", ...anchorAuth });
         }
         return;
@@ -2361,6 +2432,7 @@ const server = Bun.serve<WsData>({
       if (role === "client" && ws.data.authScope === "read_only" && obj) {
         const method = extractMethod(obj);
         if (method && !isReadOnlySafeRpcMethod(method)) {
+          reliabilityRecord("readOnlyDenied", "read_only_denied", method);
           const requestId = (obj as any).id;
           const errorPayload = {
             code: -32003,
@@ -2384,9 +2456,13 @@ const server = Bun.serve<WsData>({
     close(ws) {
       const role = ws.data.role;
       unsubscribeAll(role, ws);
-      if (role === "client") clientSockets.delete(ws);
+      if (role === "client") {
+        clientSockets.delete(ws);
+        reliabilityRecord("wsClientDisconnected", "ws_client_disconnected");
+      }
       else {
         anchorSockets.delete(ws);
+        reliabilityRecord("wsAnchorDisconnected", "ws_anchor_disconnected");
         const meta = anchorMeta.get(ws);
         if (meta) {
           anchorMeta.delete(ws);
@@ -2409,6 +2485,7 @@ console.log(`[local-orbit] ws anchor: ws://${HOST}:${server.port}/ws/anchor`);
 if (AUTOSTART_ANCHOR) {
   const res = startAnchor();
   if (!res.ok) {
+    reliabilityRecord("anchorStartFailed", "anchor_start_failed", res.error ?? "unknown");
     console.warn(`[local-orbit] failed to autostart anchor: ${res.error ?? "unknown error"}`);
   }
 }

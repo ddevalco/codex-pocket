@@ -23,6 +23,21 @@
       uploadRetentionDays?: number;
       uploadPruneIntervalHours?: number;
     };
+    reliability?: {
+      startedAt: string;
+      counters: {
+        wsClientConnected: number;
+        wsClientDisconnected: number;
+        wsAnchorConnected: number;
+        wsAnchorDisconnected: number;
+        anchorAuthInvalid: number;
+        readOnlyDenied: number;
+        rateLimited: number;
+        anchorStartFailed: number;
+        anchorStopFailed: number;
+      };
+      recent: Array<{ ts: string; kind: string; detail?: string }>;
+    };
     version?: { appCommit?: string };
   };
   type UploadStats = {
@@ -774,7 +789,33 @@
                 <div class="v">{(status.db.uploadRetentionDays ?? uploadRetentionDays)} day(s) ({(status.db.uploadRetentionDays ?? uploadRetentionDays) === 0 ? "keep forever" : "auto-clean"})</div>
                 <div class="k">Auto cleanup cadence</div>
                 <div class="v">every {(status.db.uploadPruneIntervalHours ?? uploadPruneIntervalHours)} hour(s)</div>
+
+                <div class="k">Reliability since</div>
+                <div class="v">{status.reliability?.startedAt ? new Date(status.reliability.startedAt).toLocaleString() : "n/a"}</div>
+                <div class="k">WS clients</div>
+                <div class="v">
+                  +{status.reliability?.counters.wsClientConnected ?? 0} / -{status.reliability?.counters.wsClientDisconnected ?? 0}
+                </div>
+                <div class="k">WS anchors</div>
+                <div class="v">
+                  +{status.reliability?.counters.wsAnchorConnected ?? 0} / -{status.reliability?.counters.wsAnchorDisconnected ?? 0}
+                </div>
+                <div class="k">Auth invalid</div>
+                <div class="v">{status.reliability?.counters.anchorAuthInvalid ?? 0}</div>
+                <div class="k">Read-only denies</div>
+                <div class="v">{status.reliability?.counters.readOnlyDenied ?? 0}</div>
+                <div class="k">Rate limits</div>
+                <div class="v">{status.reliability?.counters.rateLimited ?? 0}</div>
+                <div class="k">Anchor start/stop failures</div>
+                <div class="v">{status.reliability?.counters.anchorStartFailed ?? 0} / {status.reliability?.counters.anchorStopFailed ?? 0}</div>
               </div>
+
+              {#if status.reliability?.recent?.length}
+                <div class="field stack">
+                  <div class="hint">Recent reliability events</div>
+                  <pre class="logs">{status.reliability.recent.map((evt) => `${evt.ts}  ${evt.kind}${evt.detail ? `  (${evt.detail})` : ""}`).join("\n")}</pre>
+                </div>
+              {/if}
             {/if}
           </div>
         </div>
