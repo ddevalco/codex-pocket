@@ -16,12 +16,23 @@
     saveQuickReplies,
     type QuickReply,
   } from "../lib/quickReplies";
+  import {
+    MAX_AGENT_PRESETS,
+    exportAgentPresetsJson,
+    importAgentPresetsJson,
+    loadAgentPresets,
+    saveAgentPresets,
+    type AgentPreset,
+  } from "../lib/presets";
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   type EnterBehavior = "newline" | "send";
   let enterBehavior = $state<EnterBehavior>("newline");
   let quickReplies = $state<QuickReply[]>([]);
   let quickReplySaveNote = $state<string>("");
+  let agentPresets = $state<AgentPreset[]>([]);
+  let presetSaveNote = $state<string>("");
+  let presetImportInput: HTMLInputElement | null = null;
 
   $effect(() => {
     try {
@@ -31,7 +42,13 @@
       // ignore
     }
     quickReplies = loadQuickReplies();
+    agentPresets = loadAgentPresets();
   });
+
+  function newPresetId(): string {
+    const randomPart = Math.random().toString(36).slice(2, 10);
+    return `preset_${Date.now().toString(36)}_${randomPart}`;
+  }
 
   function setEnterBehavior(v: EnterBehavior) {
     enterBehavior = v;
@@ -70,6 +87,86 @@
   function saveQuickReplyConfig() {
     quickReplies = saveQuickReplies(quickReplies);
     quickReplySaveNote = "Saved.";
+  }
+
+  function updateAgentPreset(index: number, key: keyof AgentPreset, value: string) {
+    presetSaveNote = "";
+    agentPresets = agentPresets.map((preset, i) => {
+      if (i !== index) return preset;
+      if (key === "mode") {
+        const nextMode = value === "plan" ? "plan" : "code";
+        return { ...preset, mode: nextMode };
+      }
+      if (key === "reasoningEffort") {
+        const nextReasoning = value === "low" || value === "high" ? value : "medium";
+        return { ...preset, reasoningEffort: nextReasoning };
+      }
+      return { ...preset, [key]: value };
+    });
+  }
+
+  function addAgentPreset() {
+    if (agentPresets.length >= MAX_AGENT_PRESETS) return;
+    presetSaveNote = "";
+    agentPresets = [
+      ...agentPresets,
+      {
+        id: newPresetId(),
+        name: `Preset ${agentPresets.length + 1}`,
+        mode: "code",
+        model: "",
+        reasoningEffort: "medium",
+        developerInstructions: "",
+        starterPrompt: "",
+      },
+    ];
+  }
+
+  function removeAgentPreset(index: number) {
+    presetSaveNote = "";
+    agentPresets = agentPresets.filter((_, i) => i !== index);
+  }
+
+  function saveAgentPresetConfig() {
+    agentPresets = saveAgentPresets(agentPresets);
+    presetSaveNote = "Saved.";
+  }
+
+  function exportAgentPresetConfig() {
+    try {
+      const text = exportAgentPresetsJson(agentPresets);
+      const blob = new Blob([text], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "codex-pocket-presets.json";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } catch {
+      presetSaveNote = "Export failed.";
+      return;
+    }
+    presetSaveNote = "Exported.";
+  }
+
+  async function handlePresetImport(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    presetSaveNote = "";
+    try {
+      const text = await file.text();
+      const imported = importAgentPresetsJson(text);
+      if (!imported.length) {
+        presetSaveNote = "No valid presets found.";
+        return;
+      }
+      agentPresets = saveAgentPresets(imported);
+      presetSaveNote = `Imported ${agentPresets.length} preset(s).`;
+    } catch {
+      presetSaveNote = "Import failed.";
+    }
   }
   import { anchors } from "../lib/anchors.svelte";
   const LOCAL_MODE = true;
@@ -295,6 +392,114 @@
       </SectionCard>
     </div>
 
+    <div class="panel panel-wide">
+      <SectionCard title="Presets">
+        <div class="stack preset-settings">
+          <input
+            bind:this={presetImportInput}
+            type="file"
+            accept="application/json"
+            class="file-input-hidden"
+            onchange={handlePresetImport}
+          />
+          {#if agentPresets.length === 0}
+            <p class="hint">No presets yet. Add one to reuse mode/model/instructions and starter prompts.</p>
+          {/if}
+          {#each agentPresets as preset, i (preset.id)}
+            <div class="preset-row">
+              <div class="field stack">
+                <label for={`preset-name-${i}`}>name</label>
+                <input
+                  id={`preset-name-${i}`}
+                  type="text"
+                  maxlength="64"
+                  value={preset.name}
+                  oninput={(e) => updateAgentPreset(i, "name", (e.target as HTMLInputElement).value)}
+                  placeholder="Plan review"
+                />
+              </div>
+              <div class="field stack">
+                <label for={`preset-mode-${i}`}>mode</label>
+                <select
+                  id={`preset-mode-${i}`}
+                  value={preset.mode}
+                  onchange={(e) => updateAgentPreset(i, "mode", (e.target as HTMLSelectElement).value)}
+                >
+                  <option value="code">Code</option>
+                  <option value="plan">Plan</option>
+                </select>
+              </div>
+              <div class="field stack">
+                <label for={`preset-model-${i}`}>model</label>
+                <input
+                  id={`preset-model-${i}`}
+                  type="text"
+                  maxlength="120"
+                  value={preset.model}
+                  oninput={(e) => updateAgentPreset(i, "model", (e.target as HTMLInputElement).value)}
+                  placeholder="gpt-5"
+                />
+              </div>
+              <div class="field stack">
+                <label for={`preset-reasoning-${i}`}>reasoning</label>
+                <select
+                  id={`preset-reasoning-${i}`}
+                  value={preset.reasoningEffort}
+                  onchange={(e) => updateAgentPreset(i, "reasoningEffort", (e.target as HTMLSelectElement).value)}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div class="field stack">
+                <label for={`preset-dev-${i}`}>developer instructions</label>
+                <textarea
+                  id={`preset-dev-${i}`}
+                  rows="2"
+                  maxlength="4000"
+                  value={preset.developerInstructions}
+                  oninput={(e) => updateAgentPreset(i, "developerInstructions", (e.target as HTMLTextAreaElement).value)}
+                  placeholder="Prioritize small safe diffs and explain tradeoffs."
+                ></textarea>
+              </div>
+              <div class="field stack">
+                <label for={`preset-starter-${i}`}>starter prompt</label>
+                <textarea
+                  id={`preset-starter-${i}`}
+                  rows="2"
+                  maxlength="4000"
+                  value={preset.starterPrompt}
+                  oninput={(e) => updateAgentPreset(i, "starterPrompt", (e.target as HTMLTextAreaElement).value)}
+                  placeholder="Review open PR feedback and apply requested changes."
+                ></textarea>
+              </div>
+              <button
+                type="button"
+                class="plain-btn"
+                onclick={() => removeAgentPreset(i)}
+                aria-label={`Remove preset ${preset.name || i + 1}`}
+              >
+                Remove
+              </button>
+            </div>
+          {/each}
+          <div class="row">
+            <button type="button" class="plain-btn" onclick={addAgentPreset} disabled={agentPresets.length >= MAX_AGENT_PRESETS}>
+              Add preset
+            </button>
+            <button type="button" class="connect-btn" onclick={saveAgentPresetConfig}>Save presets</button>
+            <button type="button" class="plain-btn" onclick={exportAgentPresetConfig} disabled={agentPresets.length === 0}>Export JSON</button>
+            <button type="button" class="plain-btn" onclick={() => presetImportInput?.click()}>Import JSON</button>
+            {#if presetSaveNote}
+              <span class="hint">{presetSaveNote}</span>
+            {/if}
+          </div>
+          <p class="hint">Apply these from the thread composer to set mode, model, reasoning, developer instructions, and optional starter prompt in one action.</p>
+        </div>
+      </SectionCard>
+    </div>
+
     <div class="panel">
       <SectionCard title="About">
         <p class="hint">
@@ -397,6 +602,18 @@
     font-family: var(--font-mono);
   }
 
+  .field textarea {
+    width: 100%;
+    padding: var(--space-sm);
+    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 8px;
+    color: var(--cli-text);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    resize: vertical;
+  }
+
   .field select {
     width: 100%;
     padding: var(--space-sm);
@@ -415,6 +632,12 @@
   }
 
   .field input:focus {
+    outline: none;
+    border-color: var(--cli-prefix-agent);
+    box-shadow: var(--shadow-focus);
+  }
+
+  .field textarea:focus {
     outline: none;
     border-color: var(--cli-prefix-agent);
     box-shadow: var(--shadow-focus);
@@ -480,9 +703,20 @@
     --stack-gap: var(--space-sm);
   }
 
+  .preset-settings {
+    --stack-gap: var(--space-sm);
+  }
+
   .quick-reply-row {
     display: grid;
     grid-template-columns: 160px 1fr auto;
+    gap: var(--space-sm);
+    align-items: end;
+  }
+
+  .preset-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 170px) 110px 1fr 130px 1fr 1fr auto;
     gap: var(--space-sm);
     align-items: end;
   }
@@ -492,6 +726,15 @@
       grid-template-columns: 1fr;
       align-items: stretch;
     }
+
+    .preset-row {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+  }
+
+  .file-input-hidden {
+    display: none;
   }
 
   .anchor-list {

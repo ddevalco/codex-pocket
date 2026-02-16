@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: ThreadSettings = {
   reasoningEffort: "medium",
   sandbox: "workspace-write",
   mode: "code",
+  developerInstructions: "",
 };
 
 function lastPathSegment(input: string | undefined): string | undefined {
@@ -188,7 +189,8 @@ class ThreadsStore {
       current.model === next.model &&
       current.reasoningEffort === next.reasoningEffort &&
       current.sandbox === next.sandbox &&
-      current.mode === next.mode
+      current.mode === next.mode &&
+      current.developerInstructions === next.developerInstructions
     ) {
       return;
     }
@@ -300,15 +302,19 @@ class ThreadsStore {
     mode: ModeKind,
     model: string,
     reasoningEffort?: ReasoningEffort,
+    developerInstructions?: string,
   ): CollaborationMode {
     const preset = this.#collaborationPresets.find((p) => p.mode === mode);
+    const normalizedDeveloperInstructions = (developerInstructions ?? "").trim();
     return {
       mode,
       settings: {
         model,
         ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
-        ...(preset?.developer_instructions
-          ? { developer_instructions: preset.developer_instructions }
+        ...(normalizedDeveloperInstructions
+          ? { developer_instructions: normalizedDeveloperInstructions }
+          : preset?.developer_instructions
+            ? { developer_instructions: preset.developer_instructions }
           : {}),
       },
     };

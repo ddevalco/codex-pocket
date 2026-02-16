@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ModeKind, ModelOption, ReasoningEffort } from "../types";
+  import type { AgentPreset } from "../presets";
   import { api } from "../api";
   import { loadQuickReplies, type QuickReply } from "../quickReplies";
 
@@ -7,6 +8,7 @@
     model: string;
     reasoningEffort: ReasoningEffort;
     mode?: ModeKind;
+    presets?: AgentPreset[];
     modelOptions?: ModelOption[];
     modelsLoading?: boolean;
     disabled?: boolean;
@@ -15,6 +17,7 @@
 	    onModelChange: (model: string) => void;
 	    onReasoningChange: (effort: ReasoningEffort) => void;
 	    onModeChange?: (mode: ModeKind) => void;
+      onApplyPreset?: (preset: AgentPreset) => void;
 	  }
 
 	  type ImageAttachment = {
@@ -29,6 +32,7 @@
     model,
     reasoningEffort,
     mode = "code",
+    presets = [],
     modelOptions = [],
     modelsLoading = false,
     disabled = false,
@@ -37,11 +41,13 @@
     onModelChange,
     onReasoningChange,
     onModeChange,
+    onApplyPreset,
   }: Props = $props();
 
   let input = $state("");
   let modelOpen = $state(false);
   let reasoningOpen = $state(false);
+  let presetOpen = $state(false);
   let quickReplies = $state<QuickReply[]>([]);
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
@@ -119,6 +125,7 @@
   }
 
   function closeAllDropdowns() {
+    presetOpen = false;
     modelOpen = false;
     reasoningOpen = false;
   }
@@ -137,6 +144,20 @@
     onSubmit(composeInputWithAttachments(trimmed), pendingAttachments);
     input = "";
     pendingAttachments = [];
+  }
+
+  function applyPreset(preset: AgentPreset) {
+    if (disabled) return;
+    onModelChange(preset.model);
+    onReasoningChange(preset.reasoningEffort);
+    if (onModeChange) {
+      onModeChange(preset.mode);
+    }
+    onApplyPreset?.(preset);
+    if (preset.starterPrompt.trim()) {
+      input = preset.starterPrompt;
+    }
+    presetOpen = false;
   }
 
   function removeAttachment(index: number) {
@@ -273,6 +294,47 @@
           </svg>
           <span class="collapsible-label">{uploadBusy ? "Uploading..." : "Image"}</span>
         </label>
+
+        {#if presets.length}
+          <div class="dropdown" class:open={presetOpen}>
+            <button
+              type="button"
+              class="tool-btn row"
+              onclick={(e) => {
+                e.stopPropagation();
+                presetOpen = !presetOpen;
+                modelOpen = false;
+                reasoningOpen = false;
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 6h10" />
+                <path d="M8 12h10" />
+                <path d="M8 18h10" />
+                <path d="M4 6h.01" />
+                <path d="M4 12h.01" />
+                <path d="M4 18h.01" />
+              </svg>
+              <span class="collapsible-label">Preset</span>
+              <svg class="chevron collapsible-label" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+            {#if presetOpen}
+              <div class="dropdown-menu">
+                {#each presets as preset}
+                  <button
+                    type="button"
+                    class="dropdown-item"
+                    onclick={() => applyPreset(preset)}
+                  >
+                    {preset.name}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
 
         <!-- Model Selector -->
         <div class="dropdown" class:open={modelOpen}>
