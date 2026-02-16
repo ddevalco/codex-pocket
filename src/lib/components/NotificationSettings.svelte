@@ -46,6 +46,20 @@
         Push notifications are not available{isIos && !isStandalone ? " — install as a Home Screen app first" : ""}.
       </p>
     {/if}
+
+    <div class="setting-row">
+      <span class="setting-label">Away mode alerts (blocked turns)</span>
+      <button
+        type="button"
+        class="setting-btn"
+        onclick={() => notifications.setBlockedTurnEnabled(!notifications.blockedTurnEnabled)}
+      >
+        {notifications.blockedTurnEnabled ? "Disable" : "Enable"}
+      </button>
+    </div>
+    <p class="hint">
+      When enabled, you get a local notification while away if a thread is blocked waiting on approval or user input.
+    </p>
   </div>
 </div>
 
