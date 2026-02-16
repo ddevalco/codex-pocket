@@ -512,7 +512,7 @@
             );
         }
 
-        const result = socket.send({
+        const result = socket.sendReliable({
             method: "turn/start",
             id: Date.now(),
             params,
