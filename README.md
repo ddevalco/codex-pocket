@@ -56,6 +56,22 @@ We track the canonical backlog in GitHub Projects:
 
 - https://github.com/users/ddevalco/projects/2
 
+### Issues (Canonical)
+
+All bugs, features, and reliability work are tracked as GitHub Issues:
+
+- https://github.com/ddevalco/codex-pocket/issues
+
+Workflow rules:
+
+- Open an issue before starting work.
+- Link every PR to an issue (`Fixes #...` or `Refs #...`).
+- Keep issue status in sync with Project 2.
+
+Prioritized engineering recommendations are maintained in:
+
+- [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATIONS.md)
+
 ## Common First-Run Issues
 
 - **`codex-pocket: command not found`**
