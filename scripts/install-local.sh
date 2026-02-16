@@ -380,6 +380,8 @@ cat > "$PLIST" <<PLISTXML
     <string>${APP_DIR}/app/services/anchor</string>
     <key>ZANE_LOCAL_ANCHOR_LOG</key>
     <string>${ANCHOR_LOG}</string>
+    <key>ZANE_LOCAL_ANCHOR_CMD</key>
+    <string>${BUN_BIN}</string>
     <key>ANCHOR_HOST</key>
     <string>127.0.0.1</string>
   <key>ANCHOR_PORT</key>
@@ -560,6 +562,8 @@ cat > "$PLIST" <<PLISTXML
     <string>${APP_DIR}/app/services/anchor</string>
     <key>ZANE_LOCAL_ANCHOR_LOG</key>
     <string>${ANCHOR_LOG}</string>
+    <key>ZANE_LOCAL_ANCHOR_CMD</key>
+    <string>${BUN_BIN}</string>
     <key>ANCHOR_HOST</key>
     <string>127.0.0.1</string>
     <key>ANCHOR_PORT</key>

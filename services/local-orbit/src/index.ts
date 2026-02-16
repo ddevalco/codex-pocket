@@ -59,7 +59,37 @@ const UPLOAD_MAX_BYTES = Number(process.env.ZANE_LOCAL_UPLOAD_MAX_BYTES ?? 25 * 
 const UPLOAD_URL_TTL_SEC = Number(process.env.ZANE_LOCAL_UPLOAD_URL_TTL_SEC ?? 7 * 24 * 60 * 60);
 
 const ANCHOR_CWD = process.env.ZANE_LOCAL_ANCHOR_CWD ?? `${process.cwd()}/services/anchor`;
-const ANCHOR_CMD = process.env.ZANE_LOCAL_ANCHOR_CMD?.trim() || "bun";
+function resolveAnchorCmd(): string {
+  const configured = process.env.ZANE_LOCAL_ANCHOR_CMD?.trim();
+  if (configured) return configured;
+
+  const candidates: Array<string | null | undefined> = [
+    process.execPath,
+    (() => {
+      try {
+        const w = (Bun as any).which;
+        return typeof w === "function" ? (w("bun") as string | null | undefined) : undefined;
+      } catch {
+        return undefined;
+      }
+    })(),
+    `${homedir()}/.bun/bin/bun`,
+    "/opt/homebrew/bin/bun",
+    "/usr/local/bin/bun",
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== "string") continue;
+    const trimmed = candidate.trim();
+    if (!trimmed) continue;
+    if (trimmed === "bun") return trimmed;
+    if (existsSync(trimmed)) return trimmed;
+  }
+
+  return "bun";
+}
+
+const ANCHOR_CMD = resolveAnchorCmd();
 const ANCHOR_ARGS = (process.env.ZANE_LOCAL_ANCHOR_ARGS?.trim() || "run src/index.ts").split(/\s+/);
 const ANCHOR_LOG_PATH = process.env.ZANE_LOCAL_ANCHOR_LOG ?? `${homedir()}/.codex-pocket/anchor.log`;
 const ANCHOR_HOST = process.env.ANCHOR_HOST ?? "127.0.0.1";
