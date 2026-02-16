@@ -66,13 +66,15 @@ Issues are canonical for work items:
 - CLI/update: stale owned listeners now use bounded SIGKILL fallback cleanup (including symlink-safe ownership detection) to reduce restart flakiness.
 - CI: added edge guards for one-time pair-code consumption and immediate auth denial after token-session revocation.
 - Docs: added a phased native iOS roadmap (`docs/NATIVE_IOS_ROADMAP.md`) with constraints, milestones, and decision gates.
+- Reliability: durable outbox + idempotency for mutating RPCs (P1, #105) completed via PR #111.
+- Observability: run timeline + failure reason counters in admin status (P1, #106) completed via PR #112.
+- Away mode: blocked-turn push alerts for approvals/user-input (P2, #107) completed via PR #113.
+- Orchestration UX: prompt/agent presets with import/export + dropdown apply (P2, #108) completed via PR #114.
+- Multi-agent workflows: helper-agent actions with reusable profiles (P3, #109) completed via PR #115.
 
 ## Active Items
 
-- Reliability: durable outbox + idempotency for mutating RPCs (P1, #105)
-- Observability: run timeline + failure reason counters in admin status (P1, #106)
-- Away mode: blocked-turn push alerts for approvals/user-input (P2, #107)
-- Orchestration UX: prompt/agent presets with import/export + dropdown apply (P2, #108)
-- Multi-agent workflows: first-class helper-agent actions and preset profiles (P3, #109)
+- No open roadmap items from `docs/RECOMMENDATIONS.md`.
+- Next items should be created as new issues and added to GitHub Project 2 before implementation.
 
 Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATIONS.md)
