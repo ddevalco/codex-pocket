@@ -209,6 +209,19 @@
     return Array.from(groups.entries(), ([label, threads]) => ({ label, threads }));
   });
 
+  let collapsedGroups = $state<Record<string, boolean>>({});
+
+  function isGroupCollapsed(label: string): boolean {
+    return collapsedGroups[label] === true;
+  }
+
+  function toggleGroup(label: string) {
+    collapsedGroups = {
+      ...collapsedGroups,
+      [label]: !collapsedGroups[label],
+    };
+  }
+
   function threadContextTitle(
     thread: { cwd?: string; path?: string },
     label: string,
@@ -591,92 +604,104 @@
         {/if}
         {#each groupedVisibleThreads as group (group.label)}
           <div class="thread-group stack">
-            <div class="thread-group-title">{group.label}</div>
-            <ul class="thread-list">
-              {#each group.threads as thread (thread.id)}
-                {@const repoLabel = threadRepoLabel(thread)}
-                {@const projectLabel = threadProjectLabel(thread)}
-                <li class="thread-item row">
-                  <a
-                    class="thread-link row"
-                    href="/thread/{thread.id}"
-                    onclick={(e) => {
-                      e.preventDefault();
-                      threads.open(thread.id);
-                      navigate("/thread/:id", { params: { id: thread.id } });
-                    }}
-                  >
-                    <span class="thread-icon">›</span>
-                    <span
-                      class="thread-indicator"
-                      class:thread-indicator-idle={threadIndicator(thread) === "idle"}
-                      class:thread-indicator-working={threadIndicator(thread) === "working"}
-                      class:thread-indicator-blocked={threadIndicator(thread) === "blocked"}
-                      title={indicatorTitle(threadIndicator(thread))}
-                      aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread))}
-                    >●</span>
-                    <span class="thread-main stack">
-                      <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
-                      {#if repoLabel || projectLabel}
-                        <span
-                          class="thread-context row"
-                          title={threadContextTitle(
-                            thread,
-                            repoLabel && projectLabel ? `${repoLabel}/${projectLabel}` : repoLabel || projectLabel || ""
-                          )}
-                        >
-                          {#if repoLabel}
-                            <span class="thread-repo-pill">{repoLabel}</span>
-                          {/if}
-                          {#if projectLabel}
-                            <span class="thread-project">{projectLabel}</span>
-                          {/if}
-                        </span>
-                      {/if}
-                      <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
-                    </span>
-                  </a>
-                  <button
-                    class="export-btn"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
-                    }}
-                    title="Share/export thread as Markdown"
-                  >⇪</button>
-                  <button
-                    class="export-btn"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
-                    }}
-                    title="Share/export thread as JSON"
-                  >⎘</button>
-                  <button
-                    class="export-btn"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
-                    }}
-                    title="Share/export thread as HTML"
-                  >⌘</button>
-                  <button
-                    class="export-btn"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
-                    }}
-                    title="Print/export thread as PDF"
-                  >PDF</button>
-                  <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>
-                  <button
-                    class="archive-btn"
-                    onclick={() => threads.archive(thread.id)}
-                    title="Archive thread"
-                  >×</button>
-                </li>
-              {/each}
-            </ul>
+            <button
+              class="thread-group-toggle row"
+              type="button"
+              onclick={() => toggleGroup(group.label)}
+              aria-expanded={!isGroupCollapsed(group.label)}
+              title={isGroupCollapsed(group.label) ? "Expand group" : "Collapse group"}
+            >
+              <span class="thread-group-caret" aria-hidden="true">{isGroupCollapsed(group.label) ? "▸" : "▾"}</span>
+              <span class="thread-group-title">{group.label}</span>
+              <span class="thread-group-count">{group.threads.length}</span>
+            </button>
+            {#if !isGroupCollapsed(group.label)}
+              <ul class="thread-list">
+                {#each group.threads as thread (thread.id)}
+                  {@const repoLabel = threadRepoLabel(thread)}
+                  {@const projectLabel = threadProjectLabel(thread)}
+                  <li class="thread-item row">
+                    <a
+                      class="thread-link row"
+                      href="/thread/{thread.id}"
+                      onclick={(e) => {
+                        e.preventDefault();
+                        threads.open(thread.id);
+                        navigate("/thread/:id", { params: { id: thread.id } });
+                      }}
+                    >
+                      <span class="thread-icon">›</span>
+                      <span
+                        class="thread-indicator"
+                        class:thread-indicator-idle={threadIndicator(thread) === "idle"}
+                        class:thread-indicator-working={threadIndicator(thread) === "working"}
+                        class:thread-indicator-blocked={threadIndicator(thread) === "blocked"}
+                        title={indicatorTitle(threadIndicator(thread))}
+                        aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread))}
+                      >●</span>
+                      <span class="thread-main stack">
+                        <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
+                        {#if repoLabel || projectLabel}
+                          <span
+                            class="thread-context row"
+                            title={threadContextTitle(
+                              thread,
+                              repoLabel && projectLabel ? `${repoLabel}/${projectLabel}` : repoLabel || projectLabel || ""
+                            )}
+                          >
+                            {#if repoLabel}
+                              <span class="thread-repo-pill">{repoLabel}</span>
+                            {/if}
+                            {#if projectLabel}
+                              <span class="thread-project-pill">{projectLabel}</span>
+                            {/if}
+                          </span>
+                        {/if}
+                        <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
+                      </span>
+                    </a>
+                    <button
+                      class="export-btn"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
+                      }}
+                      title="Share/export thread as Markdown"
+                    >⇪</button>
+                    <button
+                      class="export-btn"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
+                      }}
+                      title="Share/export thread as JSON"
+                    >⎘</button>
+                    <button
+                      class="export-btn"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
+                      }}
+                      title="Share/export thread as HTML"
+                    >⌘</button>
+                    <button
+                      class="export-btn"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
+                      }}
+                      title="Print/export thread as PDF"
+                    >PDF</button>
+                    <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>
+                    <button
+                      class="archive-btn"
+                      onclick={() => threads.archive(thread.id)}
+                      title="Archive thread"
+                    >×</button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
           </div>
         {/each}
       {/if}
@@ -1097,9 +1122,36 @@
     margin-top: var(--space-sm);
   }
 
-  .thread-group-title {
+  .thread-group-toggle {
+    width: 100%;
+    --row-gap: var(--space-xs);
+    align-items: center;
     padding: 0 var(--space-md);
+    background: transparent;
+    border: none;
     color: var(--cli-text-dim);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: left;
+  }
+
+  .thread-group-toggle:hover {
+    color: var(--cli-text);
+  }
+
+  .thread-group-caret {
+    width: 12px;
+    color: var(--cli-text-muted);
+  }
+
+  .thread-group-title {
+    font-size: var(--text-xs);
+  }
+
+  .thread-group-count {
+    margin-left: auto;
+    color: var(--cli-text-muted);
     font-size: var(--text-xs);
   }
 
@@ -1180,13 +1232,19 @@
     line-height: 1.35;
   }
 
-  .thread-project {
-    min-width: 0;
+  .thread-project-pill {
+    display: inline-block;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--cli-text-dim);
-    font-size: var(--text-xs);
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--cli-prefix-web) 40%, transparent);
+    background: color-mix(in oklab, var(--cli-prefix-web) 14%, transparent);
+    color: var(--cli-text);
+    font-size: 11px;
+    line-height: 1.35;
   }
 
   .thread-meta {
