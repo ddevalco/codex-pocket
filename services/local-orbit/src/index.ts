@@ -1224,6 +1224,36 @@ function extractMethod(message: Record<string, unknown>): string | null {
   return typeof (message as any).method === "string" ? ((message as any).method as string) : null;
 }
 
+const CLIENT_REQUEST_ID_TTL_MS = 10 * 60 * 1000;
+const clientRequestIdSeenUntil = new Map<string, number>();
+
+function extractClientRequestId(message: Record<string, unknown>): string | null {
+  const raw = (message as any).clientRequestId;
+  if (typeof raw !== "string") return null;
+  const id = raw.trim();
+  return id || null;
+}
+
+function shouldDropDuplicateClientRequest(message: Record<string, unknown>): boolean {
+  const id = extractClientRequestId(message);
+  if (!id) return false;
+
+  const now = Date.now();
+  if (clientRequestIdSeenUntil.size > 2000) {
+    for (const [k, expiresAt] of clientRequestIdSeenUntil) {
+      if (expiresAt <= now) clientRequestIdSeenUntil.delete(k);
+    }
+  }
+
+  const existing = clientRequestIdSeenUntil.get(id);
+  if (existing && existing > now) {
+    return true;
+  }
+
+  clientRequestIdSeenUntil.set(id, now + CLIENT_REQUEST_ID_TTL_MS);
+  return false;
+}
+
 function isReadOnlySafeRpcMethod(method: string): boolean {
   const m = method.trim().toLowerCase();
   if (!m) return false;
@@ -1508,6 +1538,10 @@ async function relay(fromRole: Role, msgText: string): Promise<void> {
     if (msg.type === "orbit.subscribe" && typeof msg.threadId === "string") {
       // handled in ws message handler (needs ws + role)
     }
+    return;
+  }
+
+  if (fromRole === "client" && shouldDropDuplicateClientRequest(msg)) {
     return;
   }
 

@@ -3,6 +3,22 @@ const HEARTBEAT_INTERVAL = 30_000;
 const HEARTBEAT_TIMEOUT = 10_000;
 const RECONNECT_DELAY = 2_000;
 const CLIENT_ID_KEY = "__zane_client_id__";
+const OUTBOX_STORAGE_KEY = "__zane_reliable_outbox__";
+const MAX_OUTBOX_ITEMS = 200;
+
+interface OutboxItem {
+  id: string;
+  message: RpcMessage;
+  createdAt: number;
+}
+
+interface ReliableRpcMessage extends RpcMessage {
+  clientRequestId?: string;
+}
+
+interface SendOptions {
+  reliable?: boolean;
+}
 
 function getClientId(): string | null {
   if (typeof window === "undefined") return null;
@@ -21,6 +37,7 @@ function getClientId(): string | null {
 export interface SendResult {
   success: boolean;
   error?: string;
+  queued?: boolean;
 }
 
 export interface ListDirsResult {
@@ -46,6 +63,12 @@ class SocketStore {
   #subscribedThreads = new Set<string>();
   #rpcIdCounter = 0;
   #pendingRpc = new Map<number | string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
+  #outbox = $state<OutboxItem[]>([]);
+  #flushingOutbox = false;
+
+  constructor() {
+    this.#loadOutbox();
+  }
 
   get url() {
     return this.#url;
@@ -99,6 +122,7 @@ class SocketStore {
       this.error = null;
       this.#startHeartbeat();
       this.#resubscribeThreads();
+      this.#flushOutbox();
       for (const handler of this.#connectHandlers) {
         handler();
       }
@@ -185,17 +209,17 @@ class SocketStore {
     this.error = null;
   }
 
-  send(message: RpcMessage): SendResult {
-    if (!this.#socket || this.#socket.readyState !== WebSocket.OPEN) {
-      return { success: false, error: "Not connected" };
+  send(message: RpcMessage, options?: SendOptions): SendResult {
+    if (options?.reliable) {
+      const reliable = this.#withClientRequestId(message);
+      return this.#sendReliable(reliable);
     }
 
-    try {
-      this.#socket.send(JSON.stringify(message));
-      return { success: true };
-    } catch (e) {
-      return { success: false, error: e instanceof Error ? e.message : "Send failed" };
-    }
+    return this.#sendImmediate(message);
+  }
+
+  sendReliable(message: RpcMessage): SendResult {
+    return this.send(message, { reliable: true });
   }
 
   onMessage(handler: (msg: RpcMessage) => void) {
@@ -260,6 +284,99 @@ class SocketStore {
       return { success: true };
     } catch (e) {
       return { success: false, error: e instanceof Error ? e.message : "Send failed" };
+    }
+  }
+
+  #sendImmediate(message: RpcMessage): SendResult {
+    if (!this.#socket || this.#socket.readyState !== WebSocket.OPEN) {
+      return { success: false, error: "Not connected" };
+    }
+
+    try {
+      this.#socket.send(JSON.stringify(message));
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : "Send failed" };
+    }
+  }
+
+  #withClientRequestId(message: RpcMessage): ReliableRpcMessage {
+    const existing = (message as ReliableRpcMessage).clientRequestId;
+    if (typeof existing === "string" && existing.trim()) {
+      return message as ReliableRpcMessage;
+    }
+
+    const fallback = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const clientRequestId = typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : fallback;
+    return { ...(message as Record<string, unknown>), clientRequestId } as ReliableRpcMessage;
+  }
+
+  #sendReliable(message: ReliableRpcMessage): SendResult {
+    const immediate = this.#sendImmediate(message);
+    if (immediate.success) return immediate;
+
+    const queued = this.#enqueueOutbox(message);
+    if (!queued) {
+      return { success: false, error: immediate.error ?? "Failed to queue reliable message" };
+    }
+    return { success: true, queued: true };
+  }
+
+  #enqueueOutbox(message: ReliableRpcMessage): boolean {
+    const id = message.clientRequestId;
+    if (!id || !id.trim()) return false;
+
+    if (this.#outbox.some((item) => item.id === id)) return true;
+
+    const next = [...this.#outbox, { id, message, createdAt: Date.now() }];
+    this.#outbox = next.slice(-MAX_OUTBOX_ITEMS);
+    this.#persistOutbox();
+    return true;
+  }
+
+  #flushOutbox() {
+    if (this.#flushingOutbox) return;
+    if (!this.#socket || this.#socket.readyState !== WebSocket.OPEN) return;
+    if (this.#outbox.length === 0) return;
+
+    this.#flushingOutbox = true;
+    try {
+      while (this.#outbox.length > 0) {
+        const head = this.#outbox[0];
+        const result = this.#sendImmediate(head.message);
+        if (!result.success) break;
+        this.#outbox = this.#outbox.slice(1);
+      }
+      this.#persistOutbox();
+    } finally {
+      this.#flushingOutbox = false;
+    }
+  }
+
+  #loadOutbox() {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(OUTBOX_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as OutboxItem[];
+      if (!Array.isArray(parsed)) return;
+      const sanitized = parsed.filter((item) => {
+        const id = item && typeof item.id === "string" ? item.id.trim() : "";
+        const msg = item && typeof item.message === "object" ? item.message : null;
+        return Boolean(id && msg);
+      });
+      this.#outbox = sanitized.slice(-MAX_OUTBOX_ITEMS);
+    } catch {
+      this.#outbox = [];
+    }
+  }
+
+  #persistOutbox() {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(OUTBOX_STORAGE_KEY, JSON.stringify(this.#outbox));
+    } catch {
+      // ignore storage failures
     }
   }
 

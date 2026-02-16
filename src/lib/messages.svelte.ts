@@ -153,7 +153,7 @@ class MessagesStore {
       return { success: true };
     }
 
-    const result = socket.send({
+    const result = socket.sendReliable({
       method: "turn/interrupt",
       id: Date.now(),
       params: { threadId, turnId },
@@ -283,7 +283,7 @@ class MessagesStore {
 
     // Send JSON-RPC response with decision enum per Codex protocol (lowercase!)
     const decision = forSession ? "acceptForSession" : "accept";
-    socket.send({
+    socket.sendReliable({
       id: approval.rpcId,
       result: { decision, ...(collaborationMode ? { collaborationMode } : {}) },
     });
@@ -298,7 +298,7 @@ class MessagesStore {
     this.#updateApprovalInMessages(approvalId, "declined");
 
     // Decline = deny but let agent continue
-    socket.send({
+    socket.sendReliable({
       id: approval.rpcId,
       result: { decision: "decline", ...(collaborationMode ? { collaborationMode } : {}) },
     });
@@ -313,7 +313,7 @@ class MessagesStore {
     this.#updateApprovalInMessages(approvalId, "cancelled");
 
     // Cancel = deny and interrupt turn
-    socket.send({
+    socket.sendReliable({
       id: approval.rpcId,
       result: { decision: "cancel" },
     });
@@ -336,7 +336,7 @@ class MessagesStore {
       formattedAnswers[questionId] = { answers: selected };
     }
 
-    socket.send({
+    socket.sendReliable({
       id: msg.userInputRequest.rpcId,
       result: { answers: formattedAnswers, ...(collaborationMode ? { collaborationMode } : {}) },
     });

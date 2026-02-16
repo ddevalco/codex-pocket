@@ -318,7 +318,7 @@ class ThreadsStore {
     const id = this.#nextId++;
     this.#pendingRequests.set(id, "archive");
     socket.unsubscribeThread(threadId);
-    socket.send({
+    socket.sendReliable({
       method: "thread/archive",
       id,
       params: { threadId },
@@ -442,7 +442,7 @@ class ThreadsStore {
       navigate("/thread/:id", { params: { id: thread.id } });
     }
     if (this.#pendingStartInput) {
-      socket.send({
+      socket.sendReliable({
         method: "turn/start",
         id: this.#nextId++,
         params: {
@@ -499,7 +499,7 @@ class ThreadsStore {
     this.#pendingCollaborationMode = options?.collaborationMode ?? null;
     this.#pendingStartCallback = options?.onThreadStarted ?? null;
     this.#suppressNextNavigation = options?.suppressNavigation ?? false;
-    socket.send({
+    socket.sendReliable({
       method: "thread/start",
       id,
       params: {
