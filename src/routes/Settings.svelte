@@ -24,6 +24,12 @@
     saveAgentPresets,
     type AgentPreset,
   } from "../lib/presets";
+  import {
+    MAX_HELPER_PROFILES,
+    loadHelperProfiles,
+    saveHelperProfiles,
+    type HelperProfile,
+  } from "../lib/helperProfiles";
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   type EnterBehavior = "newline" | "send";
@@ -33,6 +39,8 @@
   let agentPresets = $state<AgentPreset[]>([]);
   let presetSaveNote = $state<string>("");
   let presetImportInput: HTMLInputElement | null = null;
+  let helperProfiles = $state<HelperProfile[]>([]);
+  let helperProfileSaveNote = $state<string>("");
 
   $effect(() => {
     try {
@@ -43,6 +51,7 @@
     }
     quickReplies = loadQuickReplies();
     agentPresets = loadAgentPresets();
+    helperProfiles = loadHelperProfiles();
   });
 
   function newPresetId(): string {
@@ -130,6 +139,50 @@
   function saveAgentPresetConfig() {
     agentPresets = saveAgentPresets(agentPresets);
     presetSaveNote = "Saved.";
+
+    const validPresetIds = new Set(agentPresets.map((preset) => preset.id));
+    const filteredProfiles = helperProfiles.filter((profile) => validPresetIds.has(profile.presetId));
+    if (filteredProfiles.length !== helperProfiles.length) {
+      helperProfiles = saveHelperProfiles(filteredProfiles);
+      helperProfileSaveNote = "Updated helper profiles for current presets.";
+    }
+  }
+
+  function newHelperProfileId(): string {
+    const randomPart = Math.random().toString(36).slice(2, 10);
+    return `helper_${Date.now().toString(36)}_${randomPart}`;
+  }
+
+  function updateHelperProfile(index: number, key: keyof HelperProfile, value: string) {
+    helperProfileSaveNote = "";
+    helperProfiles = helperProfiles.map((profile, i) => {
+      if (i !== index) return profile;
+      return { ...profile, [key]: value };
+    });
+  }
+
+  function addHelperProfile() {
+    if (helperProfiles.length >= MAX_HELPER_PROFILES || agentPresets.length === 0) return;
+    helperProfileSaveNote = "";
+    helperProfiles = [
+      ...helperProfiles,
+      {
+        id: newHelperProfileId(),
+        name: `Helper ${helperProfiles.length + 1}`,
+        presetId: agentPresets[0].id,
+        prompt: "Investigate the issue and report back with recommended fix options.",
+      },
+    ];
+  }
+
+  function removeHelperProfile(index: number) {
+    helperProfileSaveNote = "";
+    helperProfiles = helperProfiles.filter((_, i) => i !== index);
+  }
+
+  function saveHelperProfileConfig() {
+    helperProfiles = saveHelperProfiles(helperProfiles);
+    helperProfileSaveNote = "Saved.";
   }
 
   function exportAgentPresetConfig() {
@@ -500,6 +553,83 @@
       </SectionCard>
     </div>
 
+    <div class="panel panel-wide">
+      <SectionCard title="Helper Profiles">
+        <div class="stack preset-settings">
+          {#if agentPresets.length === 0}
+            <p class="hint">Create at least one preset first. Helper profiles reuse preset mode/model/instructions.</p>
+          {:else if helperProfiles.length === 0}
+            <p class="hint">No helper profiles yet. Add one to launch helper agents from thread UI in one tap.</p>
+          {/if}
+
+          {#each helperProfiles as profile, i (profile.id)}
+            <div class="helper-row">
+              <div class="field stack">
+                <label for={`helper-name-${i}`}>name</label>
+                <input
+                  id={`helper-name-${i}`}
+                  type="text"
+                  maxlength="64"
+                  value={profile.name}
+                  oninput={(e) => updateHelperProfile(i, "name", (e.target as HTMLInputElement).value)}
+                  placeholder="Code reviewer"
+                />
+              </div>
+              <div class="field stack">
+                <label for={`helper-preset-${i}`}>preset</label>
+                <select
+                  id={`helper-preset-${i}`}
+                  value={profile.presetId}
+                  onchange={(e) => updateHelperProfile(i, "presetId", (e.target as HTMLSelectElement).value)}
+                >
+                  {#each agentPresets as preset (preset.id)}
+                    <option value={preset.id}>{preset.name}</option>
+                  {/each}
+                </select>
+              </div>
+              <div class="field stack">
+                <label for={`helper-prompt-${i}`}>helper objective</label>
+                <textarea
+                  id={`helper-prompt-${i}`}
+                  rows="2"
+                  maxlength="4000"
+                  value={profile.prompt}
+                  oninput={(e) => updateHelperProfile(i, "prompt", (e.target as HTMLTextAreaElement).value)}
+                  placeholder="Review current implementation and list concrete follow-up patches."
+                ></textarea>
+              </div>
+              <button
+                type="button"
+                class="plain-btn"
+                onclick={() => removeHelperProfile(i)}
+                aria-label={`Remove helper profile ${profile.name || i + 1}`}
+              >
+                Remove
+              </button>
+            </div>
+          {/each}
+
+          <div class="row">
+            <button
+              type="button"
+              class="plain-btn"
+              onclick={addHelperProfile}
+              disabled={agentPresets.length === 0 || helperProfiles.length >= MAX_HELPER_PROFILES}
+            >
+              Add helper
+            </button>
+            <button type="button" class="connect-btn" onclick={saveHelperProfileConfig} disabled={agentPresets.length === 0}>
+              Save helpers
+            </button>
+            {#if helperProfileSaveNote}
+              <span class="hint">{helperProfileSaveNote}</span>
+            {/if}
+          </div>
+          <p class="hint">Thread view uses these profiles to launch helper agents without manual prompt crafting.</p>
+        </div>
+      </SectionCard>
+    </div>
+
     <div class="panel">
       <SectionCard title="About">
         <p class="hint">
@@ -721,6 +851,13 @@
     align-items: end;
   }
 
+  .helper-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 190px) minmax(160px, 220px) 1fr auto;
+    gap: var(--space-sm);
+    align-items: end;
+  }
+
   @media (max-width: 760px) {
     .quick-reply-row {
       grid-template-columns: 1fr;
@@ -728,6 +865,11 @@
     }
 
     .preset-row {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    .helper-row {
       grid-template-columns: 1fr;
       align-items: stretch;
     }

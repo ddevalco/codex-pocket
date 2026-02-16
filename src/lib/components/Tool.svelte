@@ -188,6 +188,17 @@
 
   // Status based on exit code or content
   const status = $derived.by(() => {
+    if (message.kind === "collab") {
+      const match = message.text.match(/Status:\s*([^\n]+)/i);
+      const value = (match?.[1] || "").trim().toLowerCase();
+      if (value.includes("fail") || value.includes("error") || value.includes("cancel")) {
+        return "error";
+      }
+      if (value.includes("progress") || value.includes("running") || value.includes("pending")) {
+        return "running";
+      }
+      return "success";
+    }
     if (message.kind === "command" && message.metadata?.exitCode !== undefined) {
       return message.metadata.exitCode === 0 ? "success" : "error";
     }
@@ -198,8 +209,14 @@
     switch (status) {
       case "success":
         return { icon: "check", label: "Done", color: "var(--cli-success)" };
+      case "running":
+        return { icon: "dot", label: "Running", color: "var(--cli-prefix-agent)" };
       case "error":
-        return { icon: "x", label: `Exit ${message.metadata?.exitCode}`, color: "var(--cli-error)" };
+        return {
+          icon: "x",
+          label: message.kind === "collab" ? "Failed" : `Exit ${message.metadata?.exitCode}`,
+          color: "var(--cli-error)",
+        };
       default:
         return { icon: "check", label: "Done", color: "var(--cli-success)" };
     }
@@ -274,6 +291,10 @@
       {#if statusConfig.icon === "check"}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      {:else if statusConfig.icon === "dot"}
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <circle cx="12" cy="12" r="4"/>
         </svg>
       {:else if statusConfig.icon === "x"}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">

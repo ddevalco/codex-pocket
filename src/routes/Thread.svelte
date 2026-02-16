@@ -7,6 +7,7 @@
     import { models } from "../lib/models.svelte";
     import { theme } from "../lib/theme.svelte";
     import { loadAgentPresets, type AgentPreset } from "../lib/presets";
+    import { loadHelperProfiles, type HelperProfile } from "../lib/helperProfiles";
     import AppHeader from "../lib/components/AppHeader.svelte";
     import MessageBlock from "../lib/components/MessageBlock.svelte";
     import ApprovalPrompt from "../lib/components/ApprovalPrompt.svelte";
@@ -19,6 +20,8 @@
     const themeIcons = { system: "◐", light: "○", dark: "●" } as const;
 
     let moreMenuOpen = $state(false);
+    let helperMenuOpen = $state(false);
+    let helperLaunchNote = $state<string | null>(null);
 
     let model = $state("");
     let reasoningEffort = $state<ReasoningEffort>("medium");
@@ -26,6 +29,7 @@
     let mode = $state<ModeKind>("code");
     let developerInstructions = $state("");
     let agentPresets = $state<AgentPreset[]>(loadAgentPresets());
+    let helperProfiles = $state<HelperProfile[]>(loadHelperProfiles());
     let modeUserOverride = false;
     let trackedPlanId: string | null = null;
     let container: HTMLDivElement | undefined;
@@ -581,11 +585,94 @@
         moreMenuOpen = false;
     }
 
+    function closeHelperMenu() {
+        helperMenuOpen = false;
+    }
+
+    function launchHelper(profile: HelperProfile) {
+        const id = threadId;
+        if (!id || socket.status !== "connected") return;
+
+        agentPresets = loadAgentPresets();
+        helperProfiles = loadHelperProfiles();
+        const preset = agentPresets.find((p) => p.id === profile.presetId);
+        if (!preset) {
+            helperLaunchNote = "Preset missing. Update helper profile in Settings.";
+            setTimeout(() => {
+                helperLaunchNote = null;
+            }, 2500);
+            return;
+        }
+
+        const objective = profile.prompt.trim() || preset.starterPrompt.trim();
+        if (!objective) {
+            helperLaunchNote = "Helper profile has no objective prompt.";
+            setTimeout(() => {
+                helperLaunchNote = null;
+            }, 2500);
+            return;
+        }
+        if (!preset.model.trim()) {
+            helperLaunchNote = "Preset model is required for helper launch.";
+            setTimeout(() => {
+                helperLaunchNote = null;
+            }, 2500);
+            return;
+        }
+
+        const contextLabel = (threadTitle || id.slice(0, 8)).trim();
+        const helperPrompt = [
+            "Start a helper agent for this task and route results back to this thread.",
+            `Profile: ${profile.name}`,
+            `Parent thread: ${contextLabel} (${id})`,
+            "",
+            "Objective:",
+            objective,
+        ].join("\n");
+
+        const result = socket.sendReliable({
+            method: "turn/start",
+            id: Date.now(),
+            params: {
+                threadId: id,
+                input: [{ type: "text", text: helperPrompt }],
+                collaborationMode: threads.resolveCollaborationMode(
+                    preset.mode,
+                    preset.model.trim(),
+                    preset.reasoningEffort,
+                    preset.developerInstructions,
+                ),
+            },
+        });
+
+        if (result.success) {
+            helperLaunchNote = `Launched helper: ${profile.name}`;
+            setTimeout(() => {
+                helperLaunchNote = null;
+            }, 2500);
+        } else {
+            helperLaunchNote = result.error || "Failed to launch helper.";
+            setTimeout(() => {
+                helperLaunchNote = null;
+            }, 3000);
+        }
+        closeHelperMenu();
+    }
+
     $effect(() => {
         if (!moreMenuOpen) return;
         const onWindowPointerDown = () => {
             // Close on any outside click/tap. Menu container stops propagation.
             closeMoreMenu();
+        };
+        window.addEventListener("pointerdown", onWindowPointerDown);
+        return () => window.removeEventListener("pointerdown", onWindowPointerDown);
+    });
+
+    $effect(() => {
+        if (!helperMenuOpen) return;
+        const onWindowPointerDown = () => {
+            closeHelperMenu();
         };
         window.addEventListener("pointerdown", onWindowPointerDown);
         return () => window.removeEventListener("pointerdown", onWindowPointerDown);
@@ -602,6 +689,42 @@
     >
         {#snippet actions()}
             <a href={`/thread/${threadId}/review`}>review</a>
+            <div class="more-menu" onpointerdown={(e) => e.stopPropagation()}>
+                <button
+                    type="button"
+                    class="more-btn"
+                    aria-haspopup="menu"
+                    aria-expanded={helperMenuOpen}
+                    aria-label="Launch helper"
+                    title="Launch helper"
+                    onclick={() => {
+                        agentPresets = loadAgentPresets();
+                        helperProfiles = loadHelperProfiles();
+                        helperMenuOpen = !helperMenuOpen;
+                        moreMenuOpen = false;
+                    }}
+                >
+                    helpers
+                </button>
+                {#if helperMenuOpen}
+                    <div class="more-popover" role="menu" aria-label="Helper profiles">
+                        {#if helperProfiles.length === 0}
+                            <a href="/settings">Create helper profiles in Settings</a>
+                        {:else}
+                            {#each helperProfiles as profile (profile.id)}
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    onclick={() => launchHelper(profile)}
+                                    title={profile.prompt}
+                                >
+                                    {profile.name}
+                                </button>
+                            {/each}
+                        {/if}
+                    </div>
+                {/if}
+            </div>
             <button type="button" onclick={copyThread} title="Copy thread as Markdown">copy</button>
             <button type="button" onclick={shareThread} title="Share thread">share</button>
             <a href="/settings">Settings</a>
@@ -780,6 +903,13 @@
                 {/if}
             </div>
         {/if}
+
+        {#if helperLaunchNote}
+            <div class="helper-note row">
+                <span class="helper-icon row">i</span>
+                <span class="helper-text">{helperLaunchNote}</span>
+            </div>
+        {/if}
     </div>
 
     <PromptInput
@@ -872,6 +1002,35 @@
     .error-hint {
         color: var(--cli-text-muted);
         font-size: var(--text-xs);
+    }
+
+    .helper-note {
+        --row-gap: var(--space-sm);
+        margin: var(--space-sm) var(--space-md);
+        padding: var(--space-sm) var(--space-md);
+        background: color-mix(in srgb, var(--cli-bg-elevated) 88%, var(--cli-bg));
+        border: 1px solid var(--cli-border);
+        border-radius: var(--radius-md);
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+    }
+
+    .helper-icon {
+        justify-content: center;
+        width: 1.25rem;
+        height: 1.25rem;
+        background: color-mix(in srgb, var(--cli-prefix-agent) 84%, var(--cli-bg));
+        color: var(--cli-bg);
+        border-radius: 50%;
+        font-size: var(--text-xs);
+        font-weight: bold;
+        flex-shrink: 0;
+        --row-gap: 0;
+    }
+
+    .helper-text {
+        color: var(--cli-text);
+        flex: 1;
     }
 
     .retry-btn {
