@@ -39,6 +39,17 @@ export interface ThreadSettings {
   reasoningEffort: ReasoningEffort;
   sandbox: SandboxMode;
   mode: ModeKind;
+  developerInstructions: string;
+}
+
+export interface AgentPreset {
+  id: string;
+  name: string;
+  mode: ModeKind;
+  model: string;
+  reasoningEffort: ReasoningEffort;
+  developerInstructions: string;
+  starterPrompt: string;
 }
 
 export type MessageRole = "user" | "assistant" | "tool" | "approval";

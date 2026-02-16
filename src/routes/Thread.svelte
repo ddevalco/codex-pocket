@@ -6,6 +6,7 @@
     import { messages } from "../lib/messages.svelte";
     import { models } from "../lib/models.svelte";
     import { theme } from "../lib/theme.svelte";
+    import { loadAgentPresets, type AgentPreset } from "../lib/presets";
     import AppHeader from "../lib/components/AppHeader.svelte";
     import MessageBlock from "../lib/components/MessageBlock.svelte";
     import ApprovalPrompt from "../lib/components/ApprovalPrompt.svelte";
@@ -23,6 +24,8 @@
     let reasoningEffort = $state<ReasoningEffort>("medium");
     let sandbox = $state<SandboxMode>("workspace-write");
     let mode = $state<ModeKind>("code");
+    let developerInstructions = $state("");
+    let agentPresets = $state<AgentPreset[]>(loadAgentPresets());
     let modeUserOverride = false;
     let trackedPlanId: string | null = null;
     let container: HTMLDivElement | undefined;
@@ -437,6 +440,7 @@
         model = settings.model;
         reasoningEffort = settings.reasoningEffort;
         sandbox = settings.sandbox;
+        developerInstructions = settings.developerInstructions;
         if (!modeUserOverride) {
             mode = settings.mode;
         }
@@ -444,7 +448,7 @@
 
     $effect(() => {
         if (!threadId) return;
-        threads.updateSettings(threadId, { model, reasoningEffort, sandbox, mode });
+        threads.updateSettings(threadId, { model, reasoningEffort, sandbox, mode, developerInstructions });
     });
 
     $effect(() => {
@@ -509,6 +513,7 @@
                 mode,
                 model.trim(),
                 reasoningEffort,
+                developerInstructions,
             );
         }
 
@@ -714,11 +719,11 @@
                         onApprove={(forSession) => messages.approve(
                             message.approval!.id,
                             forSession,
-                            model.trim() ? threads.resolveCollaborationMode(mode, model.trim(), reasoningEffort) : undefined,
+                            model.trim() ? threads.resolveCollaborationMode(mode, model.trim(), reasoningEffort, developerInstructions) : undefined,
                         )}
                         onDecline={() => messages.decline(
                             message.approval!.id,
-                            model.trim() ? threads.resolveCollaborationMode(mode, model.trim(), reasoningEffort) : undefined,
+                            model.trim() ? threads.resolveCollaborationMode(mode, model.trim(), reasoningEffort, developerInstructions) : undefined,
                         )}
                         onCancel={() => messages.cancel(message.approval!.id)}
                     />
@@ -728,7 +733,7 @@
                         onSubmit={(answers) => messages.respondToUserInput(
                             message.id,
                             answers,
-                            model.trim() ? threads.resolveCollaborationMode(mode, model.trim(), reasoningEffort) : undefined,
+                            model.trim() ? threads.resolveCollaborationMode(mode, model.trim(), reasoningEffort, developerInstructions) : undefined,
                         )}
                     />
                 {:else if message.kind === "plan"}
@@ -781,6 +786,7 @@
         {model}
         {reasoningEffort}
         {mode}
+        presets={agentPresets}
         modelOptions={models.options}
         modelsLoading={models.status === "loading"}
         disabled={isInProgress || !socket.isHealthy}
@@ -788,6 +794,14 @@
         onSubmit={handleSubmit}
         onModelChange={(v) => model = v}
         onReasoningChange={(v) => reasoningEffort = v}
+        onApplyPreset={(preset) => {
+            model = preset.model;
+            reasoningEffort = preset.reasoningEffort;
+            modeUserOverride = true;
+            mode = preset.mode;
+            developerInstructions = preset.developerInstructions;
+            agentPresets = loadAgentPresets();
+        }}
         onModeChange={(v) => { modeUserOverride = true; mode = v; }}
     />
 </div>
