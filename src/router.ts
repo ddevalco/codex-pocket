@@ -1,22 +1,13 @@
 import { createRouter } from "sv-router";
-import Landing from "./routes/Landing.svelte";
-import Home from "./routes/Home.svelte";
-import NewTask from "./routes/NewTask.svelte";
-import Thread from "./routes/Thread.svelte";
-import Review from "./routes/Review.svelte";
-import Settings from "./routes/Settings.svelte";
-import Device from "./routes/Device.svelte";
-import Admin from "./routes/Admin.svelte";
-import Pair from "./routes/Pair.svelte";
 
 export const { navigate, route } = createRouter({
-  "/": Landing,
-  "/app": Home,
-  "/task": NewTask,
-  "/thread/:id": Thread,
-  "/thread/:id/review": Review,
-  "/settings": Settings,
-  "/device": Device,
-  "/admin": Admin,
-  "/pair": Pair,
+  "/": () => import("./routes/Landing.svelte"),
+  "/app": () => import("./routes/Home.svelte"),
+  "/task": () => import("./routes/NewTask.svelte"),
+  "/thread/:id": () => import("./routes/Thread.svelte"),
+  "/thread/:id/review": () => import("./routes/Review.svelte"),
+  "/settings": () => import("./routes/Settings.svelte"),
+  "/device": () => import("./routes/Device.svelte"),
+  "/admin": () => import("./routes/Admin.svelte"),
+  "/pair": () => import("./routes/Pair.svelte"),
 });
