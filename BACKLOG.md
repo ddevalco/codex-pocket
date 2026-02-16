@@ -6,6 +6,10 @@ This file mirrors the canonical backlog, which lives in **GitHub Projects**:
 
 If the two ever disagree, treat GitHub Projects as the source of truth and update this file to match.
 
+Issues are canonical for work items:
+
+- https://github.com/ddevalco/codex-pocket/issues
+
 ## Recently Done
 
 - CI: added an explicit `/admin/validate` smoke check (auth required).
@@ -65,4 +69,10 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 
 ## Active Items
 
-- None currently open in Project 2.
+- Reliability: durable outbox + idempotency for mutating RPCs (P1, #105)
+- Observability: run timeline + failure reason counters in admin status (P1, #106)
+- Away mode: blocked-turn push alerts for approvals/user-input (P2, #107)
+- Orchestration UX: prompt/agent presets with import/export + dropdown apply (P2, #108)
+- Multi-agent workflows: first-class helper-agent actions and preset profiles (P3, #109)
+
+Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATIONS.md)

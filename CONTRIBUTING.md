@@ -35,6 +35,28 @@ git config --global fetch.prune true
 - Update docs when behavior changes.
 - Update `CHANGELOG.md` for user-visible changes.
 
+## Backlog + Issue Tracking (Required)
+
+- GitHub is the canonical system for planning and tracking:
+	- Issues: https://github.com/ddevalco/codex-pocket/issues
+	- Project board: https://github.com/users/ddevalco/projects/2
+- Every feature/bug/chore starts as a GitHub issue (use templates).
+- Every PR must reference its issue (`Fixes #<id>` or `Refs #<id>`).
+- Every open issue should be assigned to exactly one status column in Project 2.
+- `BACKLOG.md` is a mirror for quick in-repo visibility; if it diverges, GitHub wins.
+
+Recommended label set:
+
+- `type:bug`, `type:feature`, `type:reliability`, `type:docs`
+- `priority:p0`, `priority:p1`, `priority:p2`
+- `area:ui`, `area:local-orbit`, `area:anchor`, `area:protocol`, `area:ci`
+
+Project hygiene cadence:
+
+- During triage: create/update issue + labels + project status.
+- Before opening PR: verify issue is in `In Progress`.
+- After merge: close issue and move to `Done`.
+
 PR description should include:
 - what/why
 - how to test
