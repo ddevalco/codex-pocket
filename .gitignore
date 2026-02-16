@@ -45,3 +45,4 @@ docs/AGENT_RULES.local.md
 
 # temp scratch
 .tmp
+.vscode-agent-orchestration/
