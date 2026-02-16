@@ -74,7 +74,7 @@ Issues are canonical for work items:
 
 ## Active Items
 
-- No open roadmap items from `docs/RECOMMENDATIONS.md`.
-- Next items should be created as new issues and added to GitHub Project 2 before implementation.
+- ACP + Codex multi-provider integration epic (see `docs/ACP_CODEX_INTEGRATION_EPIC.md`).
+- Track staged implementation issues in GitHub Project 2 before code execution.
 
 Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATIONS.md)
