@@ -48,6 +48,9 @@ Anchor management:
 - `ZANE_LOCAL_ANCHOR_LOG` (default `~/.codex-pocket/anchor.log`)
 - `ANCHOR_HOST` (default `127.0.0.1`)
 - `ANCHOR_PORT` (default `8788`)
+- `ANCHOR_CODEX_PATH` (optional)
+  - Full path to the `codex` binary used by Anchor when launchd PATH is minimal.
+  - Example: `/opt/homebrew/bin/codex` or `$HOME/.bun/bin/codex`.
 
 Pairing:
 - `ZANE_LOCAL_PAIR_TTL_SEC` (default `300`)

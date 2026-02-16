@@ -81,6 +81,40 @@ resolve_bun() {
   return 1
 }
 
+resolve_codex() {
+  local override
+  override="${ANCHOR_CODEX_PATH:-${CODEX_PATH:-}}"
+  if [[ -n "${override:-}" && -x "$override" ]]; then
+    echo "$override"
+    return 0
+  fi
+  if command -v codex >/dev/null 2>&1; then
+    command -v codex
+    return 0
+  fi
+  if [[ -x "$HOME/.bun/bin/codex" ]]; then
+    echo "$HOME/.bun/bin/codex"
+    return 0
+  fi
+  if [[ -x "$HOME/.local/bin/codex" ]]; then
+    echo "$HOME/.local/bin/codex"
+    return 0
+  fi
+  if [[ -x "$HOME/.npm-global/bin/codex" ]]; then
+    echo "$HOME/.npm-global/bin/codex"
+    return 0
+  fi
+  if [[ -x "/opt/homebrew/bin/codex" ]]; then
+    echo "/opt/homebrew/bin/codex"
+    return 0
+  fi
+  if [[ -x "/usr/local/bin/codex" ]]; then
+    echo "/usr/local/bin/codex"
+    return 0
+  fi
+  return 1
+}
+
 has_rg() {
   command -v rg >/dev/null 2>&1
 }
@@ -559,6 +593,7 @@ cleanup_stale_pid_file() {
 
 cmd_doctor() {
   echo "${bold}Dependencies${reset}"
+  local codexp
   need_cmd git
   if ts="$(resolve_tailscale 2>/dev/null)"; then
     echo "tailscale: ok ($ts)"
@@ -571,10 +606,11 @@ cmd_doctor() {
   else
     echo "bun: missing (install Bun: https://bun.sh)" >&2
   fi
-  if command -v codex >/dev/null 2>&1; then
-    echo "codex: ok"
+  if codexp="$(resolve_codex 2>/dev/null)"; then
+    echo "codex: ok ($codexp)"
   else
     echo "codex: missing (install if you want anchor to run)"
+    echo "  hint: set ANCHOR_CODEX_PATH to your codex binary path" >&2
   fi
 
   echo ""
@@ -644,10 +680,19 @@ cmd_diagnose() {
   else
     echo "bun:    missing"
   fi
-  if command -v codex >/dev/null 2>&1; then
-    echo "codex:  ok"
+  local codex_path codex_override
+  codex_override="${ANCHOR_CODEX_PATH:-${CODEX_PATH:-}}"
+  if codex_path="$(resolve_codex 2>/dev/null)"; then
+    echo "codex:  ok ($codex_path)"
+    if [[ -n "${codex_override:-}" && "$codex_override" != "$codex_path" ]]; then
+      echo "        note: override set but not executable: $codex_override"
+    fi
   else
     echo "codex:  missing"
+    if [[ -n "${codex_override:-}" ]]; then
+      echo "        override is set but not executable: $codex_override"
+    fi
+    echo "        fix: export ANCHOR_CODEX_PATH=/full/path/to/codex"
   fi
 
   echo ""
@@ -661,10 +706,10 @@ cmd_diagnose() {
   local status_json
   status_json="$(curl_auth "$base/admin/status" 2>/dev/null || true)"
   if [[ -n "${status_json:-}" ]]; then
-    python3 - <<'PY' <<<"$status_json"
+    python3 - "$status_json" <<'PY'
 import json,sys
 try:
-  d=json.load(sys.stdin)
+  d=json.loads(sys.argv[1])
 except Exception:
   sys.exit(0)
 auth=(d.get("anchorAuth") or {})
