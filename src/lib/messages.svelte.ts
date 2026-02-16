@@ -3,6 +3,7 @@ import { socket } from "./socket.svelte";
 import { threads } from "./threads.svelte";
 import { api } from "./api";
 import { auth } from "./auth.svelte";
+import { notifications } from "./notifications.svelte";
 
 const STORE_KEY = "__zane_messages_store__";
 
@@ -28,6 +29,29 @@ class MessagesStore {
   #execCommands = new Map<string, string>();
   #turnCompleteCallbacks = new Map<string, TurnCompleteCallback>();
   #pendingAgentMessageIds = new Map<string, string>();
+  #blockedNotificationSentByThread = new Map<string, boolean>();
+
+  #threadLabel(threadId: string): string {
+    const t = threads.list.find((x) => x.id === threadId);
+    const label = (t?.title || t?.name || t?.project || "").trim();
+    return label || threadId.slice(0, 8);
+  }
+
+  #resetBlockedNotification(threadId: string) {
+    this.#blockedNotificationSentByThread.delete(threadId);
+  }
+
+  #notifyThreadBlocked(threadId: string, reason: "approval" | "input") {
+    if (this.#blockedNotificationSentByThread.get(threadId)) return;
+    this.#blockedNotificationSentByThread.set(threadId, true);
+
+    const label = this.#threadLabel(threadId);
+    const body =
+      reason === "approval"
+        ? `Approval required in ${label}`
+        : `User input required in ${label}`;
+    void notifications.notifyBlockedTurn(threadId, body);
+  }
 
   #textFromContent(value: unknown): string {
     // Codex content shapes vary by version:
@@ -177,6 +201,7 @@ class MessagesStore {
     // Allow re-opening a thread to rehydrate history after we intentionally cleared it.
     this.#loadedThreads.delete(threadId);
     this.#eventsReplayed.delete(threadId);
+    this.#resetBlockedNotification(threadId);
     for (const key of this.#streamingText.keys()) {
       if (key.startsWith(`${threadId}:`)) {
         this.#streamingText.delete(key);
@@ -280,6 +305,8 @@ class MessagesStore {
     approval.status = "approved";
     this.#pendingApprovals = new Map(this.#pendingApprovals);
     this.#updateApprovalInMessages(approvalId, "approved");
+    const activeThread = threads.currentId;
+    if (activeThread) this.#resetBlockedNotification(activeThread);
 
     // Send JSON-RPC response with decision enum per Codex protocol (lowercase!)
     const decision = forSession ? "acceptForSession" : "accept";
@@ -296,6 +323,8 @@ class MessagesStore {
     approval.status = "declined";
     this.#pendingApprovals = new Map(this.#pendingApprovals);
     this.#updateApprovalInMessages(approvalId, "declined");
+    const activeThread = threads.currentId;
+    if (activeThread) this.#resetBlockedNotification(activeThread);
 
     // Decline = deny but let agent continue
     socket.sendReliable({
@@ -311,6 +340,8 @@ class MessagesStore {
     approval.status = "cancelled";
     this.#pendingApprovals = new Map(this.#pendingApprovals);
     this.#updateApprovalInMessages(approvalId, "cancelled");
+    const activeThread = threads.currentId;
+    if (activeThread) this.#resetBlockedNotification(activeThread);
 
     // Cancel = deny and interrupt turn
     socket.sendReliable({
@@ -324,6 +355,7 @@ class MessagesStore {
 
     const threadId = threads.currentId;
     if (!threadId) return;
+    this.#resetBlockedNotification(threadId);
 
     const msgs = this.#byThread.get(threadId) ?? [];
     const idx = msgs.findIndex((m) => m.id === messageId);
@@ -753,6 +785,7 @@ class MessagesStore {
         this.#planExplanationByThread = new Map(this.#planExplanationByThread).set(threadId, null);
         this.#statusDetailByThread = new Map(this.#statusDetailByThread).set(threadId, null);
         this.#resetReasoningState(threadId);
+        this.#resetBlockedNotification(threadId);
       }
       return;
     }
@@ -766,6 +799,7 @@ class MessagesStore {
         this.#statusDetailByThread = new Map(this.#statusDetailByThread).set(threadId, null);
         this.#isReasoningStreamingByThread = new Map(this.#isReasoningStreamingByThread).set(threadId, false);
         this.#streamingReasoningTextByThread = new Map(this.#streamingReasoningTextByThread).set(threadId, "");
+        this.#resetBlockedNotification(threadId);
 
         // Clear pending live messages for this thread — turn is done
         for (const [id, msg] of this.#pendingLiveMessages) {
@@ -828,6 +862,7 @@ class MessagesStore {
       if (!existing?.some((m) => m.id === inputMsg.id)) {
         this.#add(threadId, inputMsg);
       }
+      this.#notifyThreadBlocked(threadId, "input");
       return;
     }
 
@@ -881,6 +916,7 @@ class MessagesStore {
       if (!existing?.some((m) => m.id === approvalMsg.id)) {
         this.#add(threadId, approvalMsg);
       }
+      this.#notifyThreadBlocked(threadId, "approval");
       return;
     }
 
