@@ -151,3 +151,16 @@ Then verify serve is configured:
 ```bash
 codex-pocket diagnose
 ```
+
+### Anchor Log Shows `Executable not found in $PATH: "codex"`
+
+This usually means Anchor is running under launchd with a minimal PATH that does not include your Codex install location.
+
+Anchor now auto-checks common locations (`/opt/homebrew/bin/codex`, `/usr/local/bin/codex`, `$HOME/.bun/bin/codex`), but if your install is elsewhere set an explicit override:
+
+```bash
+export ANCHOR_CODEX_PATH="/full/path/to/codex"
+codex-pocket restart
+```
+
+If you use launchd, add the same env var to your launch configuration so it survives reboots.

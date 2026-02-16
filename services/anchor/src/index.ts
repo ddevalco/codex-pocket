@@ -1,6 +1,6 @@
 import { hostname, homedir } from "node:os";
 import { readdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 
 // Anchor does not need to bind a local HTTP server. Its job is to:
 // 1) spawn `codex app-server`
@@ -19,6 +19,7 @@ const MAX_SUBSCRIBED_THREADS = 1000;
 const subscribedThreads = new Set<string>();
 let appServer: Bun.Subprocess | null = null;
 let appServerStarting = false;
+let resolvedCodexExecutable: string | null = null;
 let orbitSocket: WebSocket | null = null;
 let orbitConnecting = false;
 let orbitHeartbeatInterval: ReturnType<typeof setInterval> | null = null;
@@ -121,18 +122,13 @@ function ensureAppServer(): void {
   appServerStarting = true;
 
   try {
-    appServer = Bun.spawn({
-      cmd: ["codex", "app-server"],
-      stdin: "pipe",
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    appServer = spawnAppServer();
     warnedNoAppServer = false;
     appServerInitialized = false;
     resetAnchorAuth();
     initializeAppServer();
 
-    appServer.exited.then((code) => {
+    appServer.exited.then((code: number | null) => {
       console.warn(`[anchor] app-server exited with code ${code}`);
       appServer = null;
       appServerInitialized = false;
@@ -189,6 +185,56 @@ function ensureAppServer(): void {
   } finally {
     appServerStarting = false;
   }
+}
+
+function codexExecutableCandidates(): string[] {
+  const envOverride = (process.env.ANCHOR_CODEX_PATH ?? process.env.CODEX_PATH ?? "").trim();
+  const home = homedir();
+  const candidates = [
+    envOverride,
+    "codex",
+    join(home, ".bun", "bin", "codex"),
+    join(home, ".local", "bin", "codex"),
+    join(home, ".npm-global", "bin", "codex"),
+    "/opt/homebrew/bin/codex",
+    "/usr/local/bin/codex",
+  ];
+  return Array.from(new Set(candidates.map((item) => item.trim()).filter(Boolean)));
+}
+
+function spawnAppServer(): Bun.Subprocess {
+  const candidates = codexExecutableCandidates();
+  const ordered = resolvedCodexExecutable
+    ? [resolvedCodexExecutable, ...candidates.filter((item) => item !== resolvedCodexExecutable)]
+    : candidates;
+  const errors: string[] = [];
+
+  for (const executable of ordered) {
+    try {
+      const spawned = Bun.spawn({
+        cmd: [executable, "app-server"],
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      if (resolvedCodexExecutable !== executable) {
+        console.log(`[anchor] using codex executable: ${executable}`);
+      }
+      resolvedCodexExecutable = executable;
+      return spawned;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      errors.push(`${executable}: ${message}`);
+    }
+  }
+
+  const pathValue = process.env.PATH ?? "";
+  const pathParts = pathValue.split(delimiter).filter(Boolean);
+  const pathPreview = pathParts.slice(0, 8).join(delimiter);
+  const pathSuffix = pathParts.length > 8 ? `${delimiter}...` : "";
+  throw new Error(
+    `[anchor] codex executable not found. Tried: ${ordered.join(", ")}. PATH=${pathPreview}${pathSuffix}. Set ANCHOR_CODEX_PATH to the full codex binary path. Errors: ${errors.join(" | ")}`,
+  );
 }
 
 function initializeAppServer(): void {
