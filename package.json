@@ -7,6 +7,7 @@
     "build": "VITE_ZANE_LOCAL=1 VITE_CODEX_POCKET_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo unknown) VITE_CODEX_POCKET_BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ) bunx --bun vite build",
     "preview": "bunx --bun vite preview --port 4173",
     "check:clean-tree": "./scripts/ci/check-clean-tree.sh",
+    "preflight": "./scripts/ci/release-preflight.sh",
     "prepare": "husky"
   },
   "lint-staged": {
