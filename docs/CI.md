@@ -3,12 +3,14 @@
 Codex Pocket uses GitHub Actions to catch regressions on every push and pull request.
 
 The workflow is defined in:
+
 - `.github/workflows/ci.yml`
 
 ## What It Checks
 
 - Installs dependencies with Bun
 - Builds the UI (Vite)
+- Runs bundle-size guardrails against the committed baseline
 - Runs small regression guards (fast static checks) to prevent known UI footguns
 - Starts `local-orbit` in CI mode (no Anchor autostart)
 - Verifies:
