@@ -8,7 +8,6 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ### Reliability
 
-- Security/dependencies: ran `npm audit fix` to remediate `devalue` DoS advisories (`GHSA-g2pg-6438-jwpf`, `GHSA-vw5p-8cq8-m7mv`) and `svelte` XSS advisory (`GHSA-6738-r8g5-qwp3`); `npm audit --audit-level=moderate` now reports 0 vulnerabilities.
 - Reliability: added durable client outbox with idempotency keys for mutating RPCs to prevent lost/duplicated user actions on reconnects (PR #111, P1 #105).
 - Observability: added server-side run timeline and failure reason counters exposed in `/admin/status` and Admin UI for improved remote debugging (PR #112, P1 #106).
 
@@ -41,7 +40,6 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Settings redesign follow-up: `/settings` now uses a responsive two-column card grid on desktop (single-column mobile) with core controls prioritized above secondary account/about details.
 - Admin/Settings redesign pass: refreshed `/admin` and `/settings` visual surfaces with calmer system-console styling (improved card hierarchy, spacing, button/input treatments, and responsive two-column admin operations layout) with no behavioral/API changes.
 - Thread export/share: added `.html` export format in thread view and thread-list quick actions (alongside existing Markdown/JSON exports).
-- Security: added in-process rate limits for sensitive token-minting endpoints (`/admin/pair/new`, `/uploads/new`) with explicit `429` responses and CI smoke coverage.
 - Attachments: composer now supports multi-image selection and shows removable attachment chips; image markdown is generated automatically on send so users no longer need to edit attachment markdown manually.
 - Admin uploads: added storage visibility in `/admin` (file count, bytes used, oldest/newest timestamps, and last prune activity) backed by a new authenticated `/admin/uploads/stats` endpoint.
 - Thread export/share: added PDF export action (print-to-PDF via browser print dialog) in thread view and thread-list quick actions, using existing HTML export content.
@@ -49,12 +47,8 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Admin uploads reporting: `/admin/uploads/stats` now includes last prune detail/source (manual/scheduled/unknown), surfaced in Admin Uploads UI.
 - Attachments: composer attachment chips now render small image thumbnails for faster visual verification before sending.
 - Admin uploads: auto-cleanup cadence is now configurable (1-168 hours) and visible in `/admin`, persisted with retention settings.
-- Security/Admin: phase-1 per-device token sessions added on the backend (`/admin/token/sessions*`) with create/list/revoke APIs and legacy-token auth compatibility.
 - Admin: added token session management UI in `/admin` (create/list/revoke session tokens) with one-time token display/copy and active/revoked status.
-- Security: token sessions now support `read_only` mode; read-only sessions are blocked from write HTTP actions and WebSocket upgrades.
-- Pairing/Security: `/admin/pair/new` now mints a unique token session per pairing code instead of reusing the legacy shared token.
 - Docs: updated README/Admin/Security/Protocol docs to reflect token-session auth, read-only mode, and per-device pairing tokens.
-- Security: read-only token sessions can now connect to WebSocket for live reads, while mutating client RPC methods are denied with explicit errors.
 
 ### UX
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
@@ -92,6 +86,23 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - CI now smoke-tests `/admin/uploads/retention` updates (retention + auto-cleanup interval) and verifies `/admin/status` reflects saved upload settings.
 - CI now smoke-tests token-session security behavior (pairing returns per-device token, read-only session write/WS mutating guards).
 - CI now also verifies pair codes are one-time consumable and revoked session tokens immediately lose auth.
+
+## 2026-02-17
+
+### Orchestration UX
+
+- feat(notifications): away-mode alerts (PR #113).
+- Orchestration UX: prompt and agent presets (PR #114).
+- Multi-agent: helper profile launch (PR #115).
+
+### Security
+
+- Security/dependencies: ran `npm audit fix` to remediate `devalue` DoS advisories (`GHSA-g2pg-6438-jwpf`, `GHSA-vw5p-8cq8-m7mv`) and `svelte` XSS advisory (`GHSA-6738-r8g5-qwp3`); `npm audit --audit-level=moderate` now reports 0 vulnerabilities.
+- Security: added in-process rate limits for sensitive token-minting endpoints (`/admin/pair/new`, `/uploads/new`) with explicit `429` responses and CI smoke coverage.
+- Security/Admin: phase-1 per-device token sessions added on the backend (`/admin/token/sessions*`) with create/list/revoke APIs and legacy-token auth compatibility.
+- Security: token sessions now support `read_only` mode; read-only sessions are blocked from write HTTP actions and WebSocket upgrades.
+- Pairing/Security: `/admin/pair/new` now mints a unique token session per pairing code instead of reusing the legacy shared token.
+- Security: read-only token sessions can now connect to WebSocket for live reads, while mutating client RPC methods are denied with explicit errors.
 
 ## 2026-02-08
 

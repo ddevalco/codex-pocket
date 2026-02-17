@@ -224,6 +224,10 @@ All providers declare capabilities via `ProviderCapabilities`:
 **Goal:** Enable sending prompts to Copilot sessions and streaming responses  
 **Detailed Plan:** [`docs/PHASE2_PLAN.md`](PHASE2_PLAN.md)
 
+**Issue structure clarification:**
+- Umbrella/planning container: #131 (with design/plan context also recorded in #133 and #134)
+- Implementation task issues: #144 (`sendPrompt`), #145 (streaming), #146 (UI prompt input)
+
 ### Overview
 
 Builds on Phase 1 provider infrastructure to add write capabilities:
@@ -238,6 +242,8 @@ Builds on Phase 1 provider infrastructure to add write capabilities:
 **⚠️ Entry Gate:** All issues must be reviewed against [`PHASE2_PLAN.md`](PHASE2_PLAN.md) before code execution.
 
 #### Issue #131: ACP Write Capability - sendPrompt Method
+
+Implementation tracking: #144
 
 **Scope:** Implement `CopilotAcpAdapter.sendPrompt()` method with request/response handling.
 
@@ -255,6 +261,8 @@ Builds on Phase 1 provider infrastructure to add write capabilities:
 **Dependencies:** Phase 1 complete ✅
 
 #### Issue #133: Streaming Response Handling
+
+Implementation tracking: #145
 
 **Scope:** Parse ACP update notifications, aggregate chunks, emit normalized events.
 
@@ -274,6 +282,8 @@ Builds on Phase 1 provider infrastructure to add write capabilities:
 **Dependencies:** #131 (requires sendPrompt to generate turnIds)
 
 #### Issue #134: UI Prompt Input for Copilot Sessions
+
+Implementation tracking: #146
 
 **Scope:** Enable prompt composer for Copilot sessions with streaming response display.
 
@@ -304,6 +314,8 @@ Phase 1 ✅
 ```
 
 **Critical path:** Issues must be implemented in strict sequence (no parallelization).
+
+**Implementation issue critical path:** #144 → #145 → #146
 
 ### Risk Mitigation
 

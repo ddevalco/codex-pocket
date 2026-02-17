@@ -311,7 +311,14 @@ function classifyError(code: string): string {
 
 ## Issue Breakdown
 
+Issue mapping clarification:
+- Umbrella/planning container: #131
+- Detailed planning references: #133, #134
+- Implementation task tracking: #144 (`sendPrompt`), #145 (streaming), #146 (UI prompt input)
+
 ### Issue #131: ACP Write Capability - sendPrompt Method
+
+Implementation tracking issue: #144
 
 **Scope:** Implement `sendPrompt()` method in `CopilotAcpAdapter` with basic request/response handling.
 
@@ -375,6 +382,8 @@ describe("CopilotAcpAdapter.sendPrompt", () => {
 ---
 
 ### Issue #133: Streaming Response Handling
+
+Implementation tracking issue: #145
 
 **Scope:** Parse ACP update notifications, aggregate chunks, and emit normalized events to subscribers.
 
@@ -462,6 +471,8 @@ describe("ACPEventNormalizer", () => {
 
 ### Issue #134: UI Prompt Input for Copilot Sessions
 
+Implementation tracking issue: #146
+
 **Scope:** Enable prompt composer for Copilot sessions in thread detail view, with appropriate UX affordances for write operations.
 
 **Acceptance Criteria:**
@@ -527,6 +538,8 @@ graph TD
 
 **Critical path:** #131 → #133 → #134  
 **Parallelization:** None (strict dependency chain)
+
+**Implementation issue critical path:** #144 → #145 → #146
 
 **Rationale:**
 - #131 must work before streaming tests can verify turnId correlation

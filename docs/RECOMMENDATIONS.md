@@ -4,6 +4,12 @@ Date: 2026-02-15
 
 This document lays out recommended work from the architecture and protocol review.
 
+## Completed Since Publication
+
+- ✅ #107 completed in PR #113 (`feat(notifications): away-mode alerts`)
+- ✅ #108 completed in PR #114 (`Orchestration UX: prompt and agent presets`)
+- ✅ #109 completed in PR #115 (`Multi-agent: helper profile launch`)
+
 ## Tracking Policy
 
 - Canonical tracker: GitHub Issues
@@ -68,7 +74,7 @@ Suggested labels:
 
 ### 3) Away mode notifications for blocked turns
 
-Issue: #107
+Issue: #107 — ✅ COMPLETED (PR #113)
 
 Issue title:
 - `Away mode: push notification when turn is blocked on approval or user input`
@@ -91,7 +97,7 @@ Suggested labels:
 
 ### 4) Prompt/agent presets with import/export
 
-Issue: #108
+Issue: #108 — ✅ COMPLETED (PR #114)
 
 Issue title:
 - `Orchestration UX: prompt and agent presets with import/export`
@@ -117,7 +123,7 @@ Suggested labels:
 
 ### 5) First-class helper-agent orchestration
 
-Issue: #109
+Issue: #109 — ✅ COMPLETED (PR #115)
 
 Issue title:
 - `Multi-agent: first-class helper agent actions and profile-based spawn`
