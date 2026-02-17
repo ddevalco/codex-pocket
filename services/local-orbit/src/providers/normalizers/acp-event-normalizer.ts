@@ -145,7 +145,7 @@ export class ACPStreamingNormalizer {
     // Check for type switch - flush old context and create new one
     const newCategory = this.mapUpdateTypeToCategory(update.type);
     if (ctx.category !== newCategory && ctx.chunks.length > 0) {
-      const flushedEvent = this.flushContext(ctx, lastNotification);
+      const flushedEvent = this.flushContext(ctx, notification);
       // Create new context for the new type
       ctx = this.createContext(sessionId, turnId, update.type);
       this.contexts.set(key, ctx);
