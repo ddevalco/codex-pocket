@@ -6,6 +6,10 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ## Unreleased
 
+- Core/Multi-provider: implemented Phase 1 of multi-provider support with a provider registry and lifecycle management (PR #143).
+- Providers: added read-only Copilot ACP (Agent Control Plane) adapter to surface active Copilot sessions (PR #143).
+- API: added unified provider and session listing endpoints to support discovery across different backend adapters (PR #143).
+- UI: home page threads are now grouped by provider, allowing for discovery of external sessions (PR #143).
 - CLI: added `codex-pocket self-test` and expanded `smoke-test` to cover the NDJSON events replay endpoint (helps catch “blank threads” regressions).
 - CLI: smoke-test now also verifies `/app` serves HTML and the main JS bundle is fetchable (catches "blank app" incidents when the service is unhealthy or UI dist is mismatched).
 - CLI: background-mode start is now fully detached (prevents "service starts then immediately dies" when invoked from install/update helpers).
