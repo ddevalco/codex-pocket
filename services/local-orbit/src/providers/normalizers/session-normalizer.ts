@@ -200,8 +200,17 @@ export class CodexSessionNormalizer extends BaseSessionNormalizer {
 }
 
 /**
- * Placeholder: ACP session normalizer.
- * To be implemented when ACP adapter is built.
+ * ACP (Agent Communication Protocol) session normalizer.
+ * Maps ACP session structure to NormalizedSession format.
+ *
+ * Expected ACP session structure:
+ * - id: string (required)
+ * - title?: string
+ * - status?: string
+ * - created_at?: string | number
+ * - updated_at?: string | number
+ * - metadata?: { project?, repo?, ... }
+ * - messages?: Array<{role, content}>
  */
 export class ACPSessionNormalizer extends BaseSessionNormalizer {
   constructor(providerId: ProviderId = "copilot-acp") {
@@ -209,27 +218,113 @@ export class ACPSessionNormalizer extends BaseSessionNormalizer {
   }
 
   async normalizeSession(rawSession: unknown): Promise<NormalizedSession | null> {
-    // TODO: Implement ACP-specific session normalization
-    // This will depend on the actual ACP protocol session structure
-
+    // Validate input is an object
     if (!rawSession || typeof rawSession !== "object") {
+      console.warn(`[${this.providerId}] Invalid session: not an object`, rawSession);
       return null;
     }
 
     const raw = rawSession as Record<string, unknown>;
 
-    // Placeholder implementation
-    const sessionId = this.extractString(raw.sessionId || raw.id);
-    if (!sessionId) return null;
+    // Extract required sessionId (ACP uses 'id')
+    const sessionId = this.extractString(raw.id);
+    if (!sessionId) {
+      console.warn(`[${this.providerId}] Session missing required 'id' field:`, raw);
+      return null;
+    }
 
+    // Extract title - generate from content if not provided
+    let title = this.extractString(raw.title);
+    if (!title) {
+      title = this.generateTitle(raw);
+    }
+
+    // Extract project and repo from metadata if available
+    let project: string | undefined;
+    let repo: string | undefined;
+    if (raw.metadata && typeof raw.metadata === "object") {
+      const meta = raw.metadata as Record<string, unknown>;
+      project = this.extractString(meta.project) || undefined;
+      repo = this.extractString(meta.repo) || undefined;
+    }
+
+    // Map status to normalized status enum
+    const status = this.mapStatus(raw.status);
+
+    // Extract timestamps with defensive parsing
+    const createdAt = this.extractTimestamp(raw.created_at);
+    const updatedAt = this.extractTimestamp(raw.updated_at, createdAt);
+
+    // Generate preview snippet from recent messages
+    const preview = this.generatePreview(raw);
+
+    // Preserve full raw session for debugging/replay
     return this.createSession({
       sessionId,
-      title: this.extractString(raw.title) || "Untitled Session",
-      status: this.mapStatus(raw.status),
-      createdAt: this.extractTimestamp(raw.createdAt),
-      updatedAt: this.extractTimestamp(raw.updatedAt),
+      title,
+      project,
+      repo,
+      status,
+      createdAt,
+      updatedAt,
+      preview,
+      metadata: this.extractMetadata(raw.metadata),
       rawSession: raw,
     });
+  }
+
+  /**
+   * Generate a title from session content if title is missing.
+   */
+  private generateTitle(raw: Record<string, unknown>): string {
+    // Try to extract from first user message
+    if (Array.isArray(raw.messages) && raw.messages.length > 0) {
+      for (const msg of raw.messages) {
+        if (
+          msg &&
+          typeof msg === "object" &&
+          "role" in msg &&
+          "content" in msg &&
+          msg.role === "user"
+        ) {
+          const content = this.extractString((msg as Record<string, unknown>).content);
+          if (content) {
+            // Use first line or first 50 chars as title
+            const firstLine = content.split("\n")[0];
+            return firstLine.length > 50 ? firstLine.slice(0, 47) + "..." : firstLine;
+          }
+        }
+      }
+    }
+
+    // Fallback to generic title with timestamp
+    const timestamp = this.extractTimestamp(raw.created_at);
+    const date = new Date(timestamp);
+    return `Session ${date.toLocaleDateString()}`;
+  }
+
+  /**
+   * Generate a preview snippet from recent session content.
+   */
+  private generatePreview(raw: Record<string, unknown>): string | undefined {
+    // If explicit preview field exists, use it
+    if (typeof raw.preview === "string" && raw.preview.trim()) {
+      return raw.preview.slice(0, 200);
+    }
+
+    // Otherwise, extract from last message
+    if (Array.isArray(raw.messages) && raw.messages.length > 0) {
+      // Get last message
+      const lastMsg = raw.messages[raw.messages.length - 1];
+      if (lastMsg && typeof lastMsg === "object" && "content" in lastMsg) {
+        const content = this.extractString((lastMsg as Record<string, unknown>).content);
+        if (content) {
+          return content.slice(0, 200);
+        }
+      }
+    }
+
+    return undefined;
   }
 }
 
