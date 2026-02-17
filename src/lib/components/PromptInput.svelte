@@ -14,6 +14,8 @@
     modelOptions?: ModelOption[];
     modelsLoading?: boolean;
     disabled?: boolean;
+    loading?: boolean;
+    error?: string;
     draftKey?: string;
     onStop?: () => void;
 	    onSubmit: (input: string, attachments?: ImageAttachment[]) => void;
@@ -39,6 +41,8 @@
     modelOptions = [],
     modelsLoading = false,
     disabled = false,
+    loading = false,
+    error = "",
     draftKey,
     onStop,
     onSubmit,
@@ -78,7 +82,7 @@
   let uploadError = $state<string | null>(null);
   let pendingAttachments = $state<ImageAttachment[]>([]);
 
-  const canSubmit = $derived((input.trim().length > 0 || pendingAttachments.length > 0) && !disabled);
+  const canSubmit = $derived((input.trim().length > 0 || pendingAttachments.length > 0) && !disabled && !loading);
 
   // Restore draft when draftKey changes
   $effect(() => {
@@ -177,7 +181,7 @@
   }
 
   function sendQuickReply(text: string) {
-    if (disabled) return;
+    if (disabled || loading) return;
     const trimmed = text.trim();
     if (!trimmed && pendingAttachments.length === 0) return;
     onSubmit(composeInputWithAttachments(trimmed), pendingAttachments);
@@ -276,7 +280,7 @@
             type="button"
             class="quick-reply-btn"
             onclick={() => sendQuickReply(reply.text)}
-            disabled={disabled}
+            disabled={disabled || loading}
             title={reply.text}
           >
             {reply.label}
@@ -289,7 +293,7 @@
       onkeydown={handleKeydown}
       placeholder="What would you like to do?"
       rows="1"
-      {disabled}
+      disabled={disabled || loading}
 	    ></textarea>
     {#if pendingAttachments.length}
       <div class="attachment-chips" role="list" aria-label="Selected attachments">
@@ -342,13 +346,13 @@
 	          We want the user to be able to choose either Camera or Photo Library.
 	        -->
 	        <label class="tool-btn row" title="Attach image">
-		          <input
+              <input
 		            class="file-input"
 		            type="file"
 		            accept="image/*"
                 multiple
 		            onchange={handlePickImage}
-		            disabled={disabled || uploadBusy}
+                disabled={disabled || loading || uploadBusy}
 		          />
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15V8a2 2 0 0 0-2-2h-3l-2-2H10L8 6H5a2 2 0 0 0-2 2v7" />
@@ -532,7 +536,7 @@
         </button>
       {:else}
         <button type="submit" class="submit-btn row" disabled={!canSubmit}>
-          {#if disabled}
+          {#if disabled || loading}
             <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
             </svg>
@@ -547,6 +551,9 @@
     </div>
     {#if uploadError}
       <div class="hint hint-error" style="padding: 0 var(--space-md) var(--space-sm);">{uploadError}</div>
+    {/if}
+    {#if error}
+      <div class="hint hint-error" style="padding: 0 var(--space-md) var(--space-sm);">{error}</div>
     {/if}
   </div>
 </form>

@@ -38,6 +38,27 @@
     const threadId = $derived(route.params.id);
 
 
+    const currentThread = $derived.by(() => {
+        const id = threadId;
+        if (!id) return null;
+        return threads.list.find((t) => t.id === id) ?? null;
+    });
+
+    const threadProvider = $derived.by(() => {
+        if (currentThread?.provider) return currentThread.provider;
+        return threadId?.startsWith("copilot-acp:") ? "copilot-acp" : "codex";
+    });
+
+    const canSendPrompt = $derived.by(() => {
+        if (threadProvider !== "copilot-acp") return true;
+        const capabilities = (currentThread as any)?.capabilities;
+        if (typeof capabilities?.sendPrompt === "boolean") return capabilities.sendPrompt;
+        return true;
+    });
+
+    const composerDisabled = $derived.by(() => isInProgress || !socket.isHealthy || !canSendPrompt);
+
+
     const threadTitle = $derived.by(() => {
         const id = threadId;
         if (!id) return "";
@@ -470,6 +491,8 @@
     });
 
     let sendError = $state<string | null>(null);
+    let promptLoading = $state(false);
+    let promptError = $state<string | null>(null);
 
     type ImageAttachment = {
         kind: "image";
@@ -483,9 +506,34 @@
         if (!inputText || !threadId) return;
 
         sendError = null;
+        promptError = null;
 
         const clientRequestId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
         messages.addPending(threadId, inputText, clientRequestId);
+
+        if (threadProvider === "copilot-acp") {
+            if (!canSendPrompt) {
+                promptError = "Copilot provider does not support prompt input for this session.";
+                messages.updateStatus(threadId, clientRequestId, "error");
+                return;
+            }
+            promptLoading = true;
+            const result = socket.sendReliable({
+                method: "sendPrompt",
+                id: Date.now(),
+                clientRequestId,
+                params: {
+                    threadId,
+                    message: inputText,
+                },
+            });
+            promptLoading = false;
+            if (!result.success) {
+                promptError = result.error ?? "Failed to send prompt";
+                messages.updateStatus(threadId, clientRequestId, "error");
+            }
+            return;
+        }
 
         const input: Array<Record<string, unknown>> = [{ type: "text", text: inputText }];
         for (const a of attachments) {
@@ -833,6 +881,12 @@
         {/snippet}
     </AppHeader>
 
+    {#if threadProvider === "copilot-acp"}
+        <div class="provider-badge row">
+            <span>Copilot ACP</span>
+        </div>
+    {/if}
+
     <div class="transcript" bind:this={container}>
         {#if messages.current.length === 0}
             <div class="empty row">
@@ -895,10 +949,10 @@
             {/if}
         {/if}
 
-        {#if sendError || (socket.status !== "connected" && socket.status !== "connecting" && socket.error)}
+        {#if sendError || promptError || (socket.status !== "connected" && socket.status !== "connecting" && socket.error)}
             <div class="connection-error row">
                 <span class="error-icon row">!</span>
-                <span class="error-text">{sendError || socket.error}</span>
+                <span class="error-text">{sendError || promptError || socket.error}</span>
                 {#if socket.status === "reconnecting"}
                     <span class="error-hint">Reconnecting automatically...</span>
                 {:else if socket.status === "error" || socket.status === "disconnected"}
@@ -925,7 +979,9 @@
         presets={agentPresets}
         modelOptions={models.options}
         modelsLoading={models.status === "loading"}
-        disabled={isInProgress || !socket.isHealthy}
+        disabled={composerDisabled}
+        loading={promptLoading}
+        error={promptError || ""}
         onStop={isInProgress ? handleStop : undefined}
         onSubmit={handleSubmit}
         onModelChange={(v) => model = v}
@@ -947,6 +1003,14 @@
         --stack-gap: 0;
         height: 100%;
         background: var(--cli-bg);
+    }
+
+    .provider-badge {
+        --row-gap: 0;
+        padding: 0 var(--space-md) var(--space-xs);
+        color: var(--cli-text-muted);
+        font-size: var(--text-xs);
+        font-family: var(--font-mono);
     }
 
     /* Transcript */

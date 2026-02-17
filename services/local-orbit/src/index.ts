@@ -1675,6 +1675,105 @@ function isAcpWriteOperation(msg: any): boolean {
   return typeof threadId === "string" && threadId.startsWith("copilot-acp:");
 }
 
+function isAcpSendPromptOperation(msg: any): boolean {
+  if (!msg || typeof msg !== "object") return false;
+  if (msg.method !== "turn/start" && msg.method !== "sendPrompt") return false;
+  const threadId = msg.params?.threadId || msg.params?.thread_id || msg.params?.id;
+  return typeof threadId === "string" && threadId.startsWith("copilot-acp:");
+}
+
+function acpSessionIdFromThreadId(threadId: string): string {
+  return threadId.replace(/^copilot-acp:/, "").trim();
+}
+
+function extractPromptText(msg: any): string {
+  const params = msg?.params ?? {};
+  const direct = [params.message, params.text, params.prompt];
+  for (const candidate of direct) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+
+  const input = params.input;
+  if (Array.isArray(input)) {
+    for (const item of input) {
+      if (item && typeof item === "object" && item.type === "text" && typeof item.text === "string" && item.text.trim()) {
+        return item.text.trim();
+      }
+    }
+  }
+
+  return "";
+}
+
+function acpCanSendPrompt(): boolean {
+  const adapter = registry.get("copilot-acp") as any;
+  return Boolean(adapter?.capabilities?.sendPrompt);
+}
+
+async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
+  if (!ws) return;
+
+  const requestId = msg?.id;
+  const threadId = msg?.params?.threadId || msg?.params?.thread_id || msg?.params?.id;
+  if (typeof threadId !== "string" || !threadId.startsWith("copilot-acp:")) {
+    send(ws, {
+      jsonrpc: "2.0",
+      id: requestId,
+      error: { code: -32602, message: "Invalid ACP threadId" },
+    });
+    return;
+  }
+
+  if (!acpCanSendPrompt()) {
+    send(ws, {
+      jsonrpc: "2.0",
+      id: requestId,
+      error: {
+        code: -32000,
+        message: "Copilot ACP provider does not support sendPrompt",
+        data: { provider: "copilot-acp", capability: "sendPrompt" },
+      },
+    });
+    return;
+  }
+
+  const text = extractPromptText(msg);
+  if (!text) {
+    send(ws, {
+      jsonrpc: "2.0",
+      id: requestId,
+      error: { code: -32602, message: "Missing prompt text" },
+    });
+    return;
+  }
+
+  try {
+    const adapter = registry.get("copilot-acp") as any;
+    const sessionId = acpSessionIdFromThreadId(threadId);
+    const result = await adapter.sendPrompt(sessionId, { text });
+    send(ws, {
+      jsonrpc: "2.0",
+      id: requestId,
+      result: {
+        ...(result ?? {}),
+        provider: "copilot-acp",
+        threadId,
+        sessionId,
+      },
+    });
+  } catch (err) {
+    send(ws, {
+      jsonrpc: "2.0",
+      id: requestId,
+      error: {
+        code: -32001,
+        message: err instanceof Error ? err.message : "Failed to send prompt",
+        data: { provider: "copilot-acp", threadId },
+      },
+    });
+  }
+}
+
 async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
   const msg = parseJsonMessage(msgText);
   if (!msg) return;
@@ -1694,7 +1793,12 @@ async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
   // Track thread/list requests in client message handler (where messages go to anchor)
   const parsed = msg as any;
 
-  // Block write operations to ACP sessions
+  if (fromRole === "client" && isAcpSendPromptOperation(parsed) && acpCanSendPrompt()) {
+    await routeAcpSendPrompt(parsed, ws);
+    return;
+  }
+
+  // Block unsupported write operations to ACP sessions
   if (fromRole === "client" && isAcpWriteOperation(parsed)) {
     if (ws) {
       const errorResponse = {
@@ -1702,8 +1806,8 @@ async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
         id: parsed.id,
         error: {
           code: -32000,
-          message: "Copilot ACP sessions are read-only in Phase 1",
-          data: { provider: "copilot-acp", phase: 1 },
+          message: "Copilot ACP write operation is not supported",
+          data: { provider: "copilot-acp", capability: "sendPrompt" },
         },
       };
       send(ws, errorResponse);
