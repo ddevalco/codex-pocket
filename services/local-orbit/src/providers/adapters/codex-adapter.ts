@@ -1,0 +1,103 @@
+/**
+ * Codex Provider Adapter
+ *
+ * This is a Phase 1 placeholder for the Codex app-server provider.
+ * Currently implements basic health reporting and empty results for session listing.
+ */
+
+import type { ProviderAdapter } from "../contracts.js";
+import type {
+  ProviderCapabilities,
+  ProviderHealthStatus,
+  SessionListResult,
+  SessionFilters,
+  NormalizedSession,
+  PromptInput,
+  PromptOptions,
+  EventSubscription,
+  NormalizedEvent,
+} from "../provider-types.js";
+
+/**
+ * Configuration for Codex adapter
+ */
+export interface CodexConfig {
+  /**
+   * Optional base URL for Codex API
+   */
+  baseUrl?: string;
+}
+
+/**
+ * Codex Provider Adapter implementation
+ */
+export class CodexAdapter implements ProviderAdapter {
+  readonly providerId = "codex";
+  readonly providerName = "Codex";
+
+  readonly capabilities: ProviderCapabilities = {
+    listSessions: true,
+    openSession: false,
+    sendPrompt: false,
+    streaming: false,
+    attachments: false,
+    approvals: false,
+    multiTurn: false,
+    filtering: false,
+    pagination: false,
+  };
+
+  constructor(_config: CodexConfig = {}) {
+    // Placeholder config usage
+  }
+
+  async start(): Promise<void> {
+    // No-op for placeholder
+  }
+
+  async stop(): Promise<void> {
+    // No-op for placeholder
+  }
+
+  async health(): Promise<ProviderHealthStatus> {
+    return {
+      status: "healthy",
+      message: "Codex adapter placeholder (Phase 1)",
+      lastCheck: new Date().toISOString(),
+    };
+  }
+
+  async listSessions(_cursor?: string, _filters?: SessionFilters): Promise<SessionListResult> {
+    return {
+      sessions: [],
+      hasMore: false,
+    };
+  }
+
+  async openSession(sessionId: string): Promise<NormalizedSession> {
+    throw new Error(`Method not implemented: openSession(${sessionId})`);
+  }
+
+  async sendPrompt(
+    sessionId: string,
+    _input: PromptInput,
+    _options?: PromptOptions,
+  ): Promise<{ turnId?: string; requestId?: string; [key: string]: unknown }> {
+    throw new Error(`Method not implemented: sendPrompt(${sessionId})`);
+  }
+
+  async subscribe(
+    sessionId: string,
+    _callback: (event: NormalizedEvent) => void,
+  ): Promise<EventSubscription> {
+    throw new Error(`Method not implemented: subscribe(${sessionId})`);
+  }
+
+  async unsubscribe(_subscription: EventSubscription): Promise<void> {
+    // No-op for placeholder
+  }
+
+  async normalizeEvent(_rawEvent: unknown): Promise<NormalizedEvent | null> {
+    return null;
+  }
+}

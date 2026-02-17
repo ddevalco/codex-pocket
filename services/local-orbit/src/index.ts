@@ -5,6 +5,11 @@ import { dirname, join, basename } from "node:path";
 import { createHash } from "node:crypto";
 import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
+import { createRegistry } from "./providers/registry.js";
+import { CodexAdapter, CopilotAcpAdapter } from "./providers/adapters/index.js";
+
+// Track thread/list requests for response augmentation
+const threadListRequests = new Map<number, number>(); // id -> timestamp
 
 // Local Orbit: a minimal replacement for the Cloudflare Orbit/Auth stack.
 //
@@ -161,6 +166,26 @@ function uploadConfigFromConfigJson(json: Record<string, unknown> | null): void 
 
 const loadedConfig = loadConfigJson();
 uploadConfigFromConfigJson(loadedConfig);
+
+// Initialize provider registry
+const registry = createRegistry();
+
+// Register Codex adapter (placeholder)
+registry.register("codex", (cfg) => new CodexAdapter(cfg.extra), {
+  enabled: true,
+});
+
+// Register Copilot ACP adapter
+const providersConfig = (loadedConfig?.providers as Record<string, any>) || {};
+const copilotCfg = providersConfig["copilot-acp"] || {};
+registry.register(
+  "copilot-acp",
+  (cfg) => new CopilotAcpAdapter(cfg.extra),
+  {
+    enabled: copilotCfg.enabled !== false,
+    extra: copilotCfg,
+  },
+);
 
 // Prefer config.json (so token rotation persists across restarts), fall back to env.
 AUTH_TOKEN = tokenFromConfigJson(loadedConfig) ?? AUTH_TOKEN;
@@ -1592,7 +1617,65 @@ function unsubscribeAll(role: Role, ws: WebSocket): void {
   subs.clear();
 }
 
-async function relay(fromRole: Role, msgText: string): Promise<void> {
+// Helper: Check if response is for thread/list
+function isThreadListResponse(msg: any, fromAnchor: boolean): boolean {
+  if (!fromAnchor || !msg.result) return false;
+  if (msg.method === "thread/list") return true;
+  if (threadListRequests.has(msg.id)) {
+    threadListRequests.delete(msg.id);
+    return true;
+  }
+  return false;
+}
+
+// Helper: Find and augment thread list in response
+async function augmentThreadList(response: any): Promise<any> {
+  try {
+    const adapter = registry.get("copilot-acp");
+    if (!adapter) return response;
+
+    const result = await (adapter as any).listSessions();
+    if (!result.sessions || result.sessions.length === 0) return response;
+
+    // Map NormalizedSession to thread format
+    const acpThreads = result.sessions.map((session: any) => ({
+      id: `copilot-acp:${session.sessionId}`,
+      provider: "copilot-acp",
+      name: session.title,
+      title: session.title,
+      status: session.status,
+      project: session.project,
+      repo: session.repo,
+      preview: session.preview,
+      created_at: Math.floor(new Date(session.createdAt).getTime() / 1000),
+      updated_at: Math.floor(new Date(session.updatedAt).getTime() / 1000),
+    }));
+
+    // Find thread list and append
+    const list = response.result?.data || response.result?.threads || response.result || [];
+    if (Array.isArray(list)) {
+      list.push(...acpThreads);
+    }
+
+    return response;
+  } catch (err) {
+    console.warn("[local-orbit] Failed to augment thread list with ACP sessions:", err);
+    return response;
+  }
+}
+
+// Helper: Check if operation is write to ACP session
+function isAcpWriteOperation(msg: any): boolean {
+  if (!msg.method) return false;
+
+  const writeMethods = ["turn/start", "turn/stop", "thread/rename", "thread/archive", "thread/delete"];
+  if (!writeMethods.includes(msg.method)) return false;
+
+  const threadId = msg.params?.threadId || msg.params?.thread_id || msg.params?.id;
+  return typeof threadId === "string" && threadId.startsWith("copilot-acp:");
+}
+
+async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
   const msg = parseJsonMessage(msgText);
   if (!msg) return;
 
@@ -1608,14 +1691,47 @@ async function relay(fromRole: Role, msgText: string): Promise<void> {
     return;
   }
 
+  // Track thread/list requests in client message handler (where messages go to anchor)
+  const parsed = msg as any;
+
+  // Block write operations to ACP sessions
+  if (fromRole === "client" && isAcpWriteOperation(parsed)) {
+    if (ws) {
+      const errorResponse = {
+        jsonrpc: "2.0",
+        id: parsed.id,
+        error: {
+          code: -32000,
+          message: "Copilot ACP sessions are read-only in Phase 1",
+          data: { provider: "copilot-acp", phase: 1 },
+        },
+      };
+      send(ws, errorResponse);
+    }
+    return; // Don't forward to anchor
+  }
+
+  if (fromRole === "client" && parsed.method === "thread/list" && typeof parsed.id === "number") {
+    threadListRequests.set(parsed.id, Date.now());
+    // Clean old entries (> 30s)
+    for (const [id, ts] of threadListRequests) {
+      if (Date.now() - ts > 30000) threadListRequests.delete(id);
+    }
+  }
+
   // Best-effort: enrich thread objects with Codex desktop thread titles (if present locally).
   // This keeps Codex Pocket thread list titles in sync with the Codex desktop UI.
   // Only applies for server->client messages, since titles are a presentation concern.
   let msgOut: string = msgText;
   if (fromRole === "anchor") {
     try {
-      const cloned = JSON.parse(msgText) as Record<string, unknown>;
+      let cloned = JSON.parse(msgText) as any;
       await injectThreadTitles(cloned);
+
+      if (isThreadListResponse(cloned, true)) {
+        cloned = await augmentThreadList(cloned);
+      }
+
       msgOut = JSON.stringify(cloned);
     } catch {
       // ignore
@@ -1659,6 +1775,9 @@ async function relay(fromRole: Role, msgText: string): Promise<void> {
   logEvent(fromRole === "client" ? "client" : "server", fromRole, msgText);
   for (const ws of all.keys()) send(ws, msgOut);
 }
+
+// Start all enabled providers
+await registry.startAll();
 
 const server = Bun.serve<WsData>({
   hostname: HOST,
@@ -1724,6 +1843,7 @@ const server = Bun.serve<WsData>({
         },
         reliability: reliabilitySnapshot(),
         version: { appCommit: APP_COMMIT },
+        providers: await registry.healthAll(),
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
     }
@@ -2455,7 +2575,7 @@ const server = Bun.serve<WsData>({
         }
       }
 
-      await relay(role, text);
+      await relay(role, text, ws);
     },
     close(ws) {
       const role = ws.data.role;
@@ -2493,3 +2613,13 @@ if (AUTOSTART_ANCHOR) {
     console.warn(`[local-orbit] failed to autostart anchor: ${res.error ?? "unknown error"}`);
   }
 }
+
+// Graceful shutdown
+const shutdown = async () => {
+  console.log("[local-orbit] Shutting down providers...");
+  await registry.stopAll();
+  process.exit(0);
+};
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);

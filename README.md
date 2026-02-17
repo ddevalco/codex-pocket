@@ -101,6 +101,41 @@ Prioritized engineering recommendations are maintained in:
 - **Port conflict / service won’t start**
   - Run `~/.codex-pocket/bin/codex-pocket diagnose` to see what’s listening and the latest logs.
 
+## Features
+
+- 📱 Remote control for Codex on Mac from your iPhone
+- 🔐 Secure E2E connection via Tailscale
+- 🎨 Multi-provider support (Codex, GitHub Copilot)
+- 💾 Local-first data persistence
+- ⚡ Real-time WebSocket communication
+- 🧪 Bundle size guardrails and release preflight checks
+
+## Multi-Provider Support
+
+Codex Pocket now supports multiple AI providers in a single interface:
+
+- **Codex**: Full read/write support (default)
+- **GitHub Copilot** (Phase 1): Read-only session viewing via ACP protocol
+
+### Viewing Copilot Sessions
+
+If you have the GitHub Copilot CLI installed (`gh copilot` or `copilot`):
+
+1. Start a Copilot session in your terminal
+2. Open Codex Pocket on your iPhone
+3. Navigate to the Home screen
+4. Your Copilot sessions appear in the "GitHub Copilot" section
+
+Phase 1 provides **read-only** access:
+
+- ✅ View Copilot sessions alongside Codex threads
+- ✅ See session titles, previews, and timestamps
+- ❌ Cannot send prompts or modify Copilot sessions (coming in Phase 2)
+
+### Adding More Providers
+
+Codex Pocket uses a pluggable adapter architecture. See [docs/PROVIDERS.md](docs/PROVIDERS.md) for a guide on adding new AI providers.
+
 ## How Codex Pocket Differs From Zane
 Codex Pocket is a focused fork for a single use case: **run Codex locally on macOS and access it securely from iPhone over Tailscale**.
 
