@@ -359,10 +359,45 @@ Phase 2 complete when:
 - provider grouping UX ✅ completed in Phase 1
 - provider filter chips and persisted view preferences (optional enhancements, deferred)
 
-### Phase 4 — Capability Matrix + Graceful Degrade
+## Phase 4: Capability Matrix + Graceful Degrade
 
-- provider capability matrix in client
-- disable unsupported actions safely (with hints)
+**Status:** Planning (Plan Approved)
+**Detailed Plan:** [`docs/PHASE4_PLAN.md`](PHASE4_PLAN.md)
+**Goal:** Introduce capability detection and graceful UI degradation based on provider features.
+
+### Scope
+
+1.  **Capability Plumbing:** Surface provider capability flags in thread/session payloads.
+2.  **Graceful Degrade UX:** Disable unsupported actions with explicit hints (no hard-coded checks).
+3.  **ACP Attachments:** Extend send path to support file attachments.
+4.  **ACP Approvals:** Handle "approve/reject" events from ACP.
+5.  **Filtering:** Provider/status filtering with persistence.
+
+### Implementation Issues
+
+**P4-01: Capability Matrix Plumbing**
+- Surface provider capability flags in thread/session payloads and client thread model
+- Dependencies: Phase 1/2 complete
+
+**P4-02: Graceful Degrade UX**
+- Disable unsupported actions with explicit hints based on capability matrix
+- Dependencies: P4-01
+
+**P4-03: ACP Attachment Support**
+- Extend ACP send path to carry attachments with safe degradation
+- Dependencies: P4-01, P4-02
+
+**P4-04: ACP Approvals + User Input Handling**
+- Normalize ACP approval/input events and integrate with existing approval components
+- Dependencies: P4-03
+
+**P4-05: Advanced Filtering + View Persistence**
+- Add provider/status/query filtering with local persistence
+- Dependencies: P4-01
+
+**P4-06: Hardening + Release Gate**
+- Finalize tests, docs, CI checks following stacked PR discipline
+- Dependencies: P4-02, P4-04, P4-05
 
 ### Phase 5 — Hardening
 
