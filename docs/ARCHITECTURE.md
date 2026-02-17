@@ -20,44 +20,6 @@ Responsibilities:
 
 Local-orbit binds to `127.0.0.1` by default and is intended to be exposed to your iPhone using `tailscale serve`.
 
-#### Provider Abstraction Layer (New in #129)
-
-Folder: `services/local-orbit/src/providers/`
-
-The provider abstraction layer enables Codex Pocket to integrate with multiple agent providers (Codex app-server, GitHub Copilot ACP, etc.) through a unified interface.
-
-**Core contracts:**
-
-- `ProviderAdapter` - Interface all providers must implement
-  - Lifecycle: `start()`, `stop()`, `health()`
-  - Sessions: `listSessions()`, `openSession()`
-  - Execution: `sendPrompt()`, `subscribe()`, `unsubscribe()`
-  - Normalization: `normalizeEvent()`
-- `ProviderRegistry` - Manages multiple active providers
-- `ProviderCapabilities` - Declares supported features per provider
-
-**Normalized models:**
-
-- `NormalizedSession` - Unified session shape for cross-provider UI
-  - Fields: `provider`, `sessionId`, `title`, `project`, `repo`, `status`, `createdAt`, `updatedAt`, `preview`
-  - Always includes `rawSession` for debugging/provider-specific features
-- `NormalizedEvent` - Unified event envelope for timeline rendering
-  - Categories: `user_message`, `agent_message`, `reasoning`, `plan`, `tool_command`, `file_diff`, `approval_request`, `user_input_request`, `lifecycle_status`, `metadata`
-  - Always includes `rawEvent` for replay/debugging
-
-**Normalizers:**
-
-- `BaseSessionNormalizer` / `BaseEventNormalizer` - Abstract base classes
-- `CodexSessionNormalizer` / `CodexEventNormalizer` - Reference implementations for Codex
-- `ACPSessionNormalizer` / `ACPEventNormalizer` - Placeholder for future ACP integration
-
-**Design principles:**
-
-- Provider-agnostic core with explicit capability flags
-- Preserve raw payloads for debugging, replay, and provider-specific features
-- Extensible without breaking existing implementations
-- No UI changes required until provider-aware features are activated
-
 ### 2) Anchor (Codex bridge)
 
 File: `services/anchor/src/index.ts`
@@ -79,6 +41,101 @@ Responsibilities:
 - Display threads, live output, diffs, approvals.
 - Connect to local-orbit over WebSocket (`wss://<host>/ws` when served via Tailscale HTTPS).
 - Fetch stored events from `GET /threads/:id/events`.
+
+## Provider Abstraction Layer
+
+Codex Pocket supports multiple AI provider backends through a unified adapter interface. This enables viewing and interacting with sessions from different providers (Codex, GitHub Copilot, etc.) in one UI.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    UI (Svelte)                      │
+│          Home.svelte, Thread.svelte                 │
+└──────────────────┬──────────────────────────────────┘
+                   │ WebSocket (JSON-RPC)
+┌──────────────────▼──────────────────────────────────┐
+│           local-orbit (Node.js server)              │
+│  ┌───────────────────────────────────────────────┐  │
+│  │          ProviderRegistry                     │  │
+│  │   - Lifecycle management (start/stop)         │  │
+│  │   - Health aggregation                        │  │
+│  │   - Adapter lookup                            │  │
+│  └───┬───────────────────────────────────────┬───┘  │
+│      │                                       │      │
+│  ┌───▼──────────┐                   ┌────────▼────┐ │
+│  │CodexAdapter  │                   │CopilotACP   │ │
+│  │(placeholder) │                   │Adapter      │ │
+│  └───┬──────────┘                   └────────┬────┘ │
+│      │                                       │      │
+└──────┼───────────────────────────────────────┼──────┘
+       │                                       │
+   ┌───▼────┐                          ┌──────▼─────┐
+   │ anchor │                          │ gh copilot │
+   │(Codex) │                          │   --acp    │
+   └────────┘                          └────────────┘
+```
+
+### ProviderAdapter Contract
+
+All providers implement the `ProviderAdapter` interface:
+
+```typescript
+interface ProviderAdapter {
+  name: string;
+  capabilities: ProviderCapabilities;
+  
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  health(): Promise<ProviderHealth>;
+  
+  listSessions(params?: ListSessionsParams): Promise<ListSessionsResult>;
+  sendMessage(params: SendMessageParams): Promise<SendMessageResult>;
+  streamMessage(params: StreamMessageParams): AsyncIterableIterator<StreamChunk>;
+}
+```
+
+### Session Normalization
+
+Provider-specific session formats are normalized to a common schema:
+
+```typescript
+interface NormalizedSession {
+  sessionId: string;
+  provider: string;  // 'codex', 'copilot-acp', etc.
+  title: string;
+  preview: string;
+  createdAt?: string;
+  updatedAt?: string;
+  status: 'active' | 'completed' | 'error';
+  metadata: Record<string, any>;
+}
+```
+
+### Provider Integration Points
+
+1. **Startup**: `ProviderRegistry.startAll()` called during server initialization
+2. **Shutdown**: `ProviderRegistry.stopAll()` called on SIGTERM/SIGINT
+3. **Thread List**: `augmentThreadList()` fetches sessions from all providers and merges
+4. **Read-Only Enforcement**: `isAcpWriteOperation()` blocks writes to non-Codex providers in Phase 1
+5. **Health Checks**: `/admin/health` endpoint aggregates provider health
+
+### Copilot ACP Adapter
+
+The `CopilotAcpAdapter` implements GitHub Copilot ACP (Agent Control Protocol):
+
+- **Process Management**: Spawns `gh copilot --acp` or `copilot --acp` child process
+- **Communication**: JSON-RPC over stdio using `AcpClient`
+- **Graceful Degradation**: Returns degraded health if CLI not installed
+- **Phase 1 Scope**: Read-only session listing (no prompt sending yet)
+
+### Phase 1 Constraints
+
+- **Read-Only**: ACP sessions are list-only; write operations return error
+- **UI Gating**: Archive/rename buttons disabled for Copilot threads
+- **No Message Send**: Prompt submission to Copilot deferred to Phase 2
+
+See [ACP_CODEX_INTEGRATION_EPIC.md](./ACP_CODEX_INTEGRATION_EPIC.md) for implementation timeline.
 
 ## Data Flow
 
