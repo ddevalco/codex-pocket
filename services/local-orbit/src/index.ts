@@ -1664,7 +1664,18 @@ async function augmentThreadList(response: any): Promise<any> {
   }
 }
 
-async function relay(fromRole: Role, msgText: string): Promise<void> {
+// Helper: Check if operation is write to ACP session
+function isAcpWriteOperation(msg: any): boolean {
+  if (!msg.method) return false;
+
+  const writeMethods = ["turn/start", "turn/stop", "thread/rename", "thread/archive", "thread/delete"];
+  if (!writeMethods.includes(msg.method)) return false;
+
+  const threadId = msg.params?.threadId || msg.params?.thread_id || msg.params?.id;
+  return typeof threadId === "string" && threadId.startsWith("copilot-acp:");
+}
+
+async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
   const msg = parseJsonMessage(msgText);
   if (!msg) return;
 
@@ -1682,6 +1693,24 @@ async function relay(fromRole: Role, msgText: string): Promise<void> {
 
   // Track thread/list requests in client message handler (where messages go to anchor)
   const parsed = msg as any;
+
+  // Block write operations to ACP sessions
+  if (fromRole === "client" && isAcpWriteOperation(parsed)) {
+    if (ws) {
+      const errorResponse = {
+        jsonrpc: "2.0",
+        id: parsed.id,
+        error: {
+          code: -32000,
+          message: "Copilot ACP sessions are read-only in Phase 1",
+          data: { provider: "copilot-acp", phase: 1 },
+        },
+      };
+      send(ws, errorResponse);
+    }
+    return; // Don't forward to anchor
+  }
+
   if (fromRole === "client" && parsed.method === "thread/list" && typeof parsed.id === "number") {
     threadListRequests.set(parsed.id, Date.now());
     // Clean old entries (> 30s)
@@ -2546,7 +2575,7 @@ const server = Bun.serve<WsData>({
         }
       }
 
-      await relay(role, text);
+      await relay(role, text, ws);
     },
     close(ws) {
       const role = ws.data.role;
