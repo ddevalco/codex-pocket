@@ -279,8 +279,8 @@ export class CopilotAcpAdapter implements ProviderAdapter {
           attachments: input.attachments || [],
         },
         options: {
-          mode: options?.mode || "auto",
-          model: options?.model,
+          mode: options?.mode ?? "auto",
+          ...(options?.model && { model: options.model }),
           ...options,
         },
       };
@@ -300,11 +300,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
         ...response,
       };
     } catch (err) {
-      console.error("[copilot-acp] Failed to send prompt:", err);
-      // Re-throw with structured error
-      if (err instanceof Error) {
-        throw new Error(`Failed to send prompt: ${err.message}`);
-      }
+      // Let caller handle errors (consistent with listSessions)
       throw err;
     }
   }
