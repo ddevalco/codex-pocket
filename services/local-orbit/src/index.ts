@@ -8,6 +8,9 @@ import QRCode from "qrcode";
 import { createRegistry } from "./providers/registry.js";
 import { CodexAdapter, CopilotAcpAdapter } from "./providers/adapters/index.js";
 
+// Track thread/list requests for response augmentation
+const threadListRequests = new Map<number, number>(); // id -> timestamp
+
 // Local Orbit: a minimal replacement for the Cloudflare Orbit/Auth stack.
 //
 // Goals:
@@ -1614,6 +1617,53 @@ function unsubscribeAll(role: Role, ws: WebSocket): void {
   subs.clear();
 }
 
+// Helper: Check if response is for thread/list
+function isThreadListResponse(msg: any, fromAnchor: boolean): boolean {
+  if (!fromAnchor || !msg.result) return false;
+  if (msg.method === "thread/list") return true;
+  if (threadListRequests.has(msg.id)) {
+    threadListRequests.delete(msg.id);
+    return true;
+  }
+  return false;
+}
+
+// Helper: Find and augment thread list in response
+async function augmentThreadList(response: any): Promise<any> {
+  try {
+    const adapter = registry.get("copilot-acp");
+    if (!adapter) return response;
+
+    const result = await (adapter as any).listSessions();
+    if (!result.sessions || result.sessions.length === 0) return response;
+
+    // Map NormalizedSession to thread format
+    const acpThreads = result.sessions.map((session: any) => ({
+      id: `copilot-acp:${session.sessionId}`,
+      provider: "copilot-acp",
+      name: session.title,
+      title: session.title,
+      status: session.status,
+      project: session.project,
+      repo: session.repo,
+      preview: session.preview,
+      created_at: Math.floor(new Date(session.createdAt).getTime() / 1000),
+      updated_at: Math.floor(new Date(session.updatedAt).getTime() / 1000),
+    }));
+
+    // Find thread list and append
+    const list = response.result?.data || response.result?.threads || response.result || [];
+    if (Array.isArray(list)) {
+      list.push(...acpThreads);
+    }
+
+    return response;
+  } catch (err) {
+    console.warn("[local-orbit] Failed to augment thread list with ACP sessions:", err);
+    return response;
+  }
+}
+
 async function relay(fromRole: Role, msgText: string): Promise<void> {
   const msg = parseJsonMessage(msgText);
   if (!msg) return;
@@ -1630,14 +1680,29 @@ async function relay(fromRole: Role, msgText: string): Promise<void> {
     return;
   }
 
+  // Track thread/list requests in client message handler (where messages go to anchor)
+  const parsed = msg as any;
+  if (fromRole === "client" && parsed.method === "thread/list" && typeof parsed.id === "number") {
+    threadListRequests.set(parsed.id, Date.now());
+    // Clean old entries (> 30s)
+    for (const [id, ts] of threadListRequests) {
+      if (Date.now() - ts > 30000) threadListRequests.delete(id);
+    }
+  }
+
   // Best-effort: enrich thread objects with Codex desktop thread titles (if present locally).
   // This keeps Codex Pocket thread list titles in sync with the Codex desktop UI.
   // Only applies for server->client messages, since titles are a presentation concern.
   let msgOut: string = msgText;
   if (fromRole === "anchor") {
     try {
-      const cloned = JSON.parse(msgText) as Record<string, unknown>;
+      let cloned = JSON.parse(msgText) as any;
       await injectThreadTitles(cloned);
+
+      if (isThreadListResponse(cloned, true)) {
+        cloned = await augmentThreadList(cloned);
+      }
+
       msgOut = JSON.stringify(cloned);
     } catch {
       // ignore
