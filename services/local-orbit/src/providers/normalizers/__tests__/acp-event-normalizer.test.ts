@@ -1,5 +1,5 @@
 /**
- * Tests for ACPEventNormalizer
+ * Tests for ACPStreamingNormalizer
  *
  * Covers:
  * - Chunk aggregation by turnId
@@ -14,16 +14,13 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import {
-  ACPEventNormalizer,
+  ACPStreamingNormalizer,
   type AcpUpdateNotification,
 } from "../acp-event-normalizer.js";
 import type { NormalizedEvent } from "../../provider-types.js";
 
-describe("ACPEventNormalizer", () => {
-  let normalizer: ACPEventNormalizer;
-  let dateNowSpy: any;
-  let setTimeoutSpy: any;
-  let clearTimeoutSpy: any;
+describe("ACPStreamingNormalizer", () => {
+  let normalizer: ACPStreamingNormalizer;
   let originalSetTimeout: typeof setTimeout;
   let originalClearTimeout: typeof clearTimeout;
   let originalDateNow: typeof Date.now;
@@ -35,21 +32,11 @@ describe("ACPEventNormalizer", () => {
     originalDateNow = Date.now;
 
     // Create normalizer with short timeout for testing
-    normalizer = new ACPEventNormalizer({ streamTimeout: 1000 });
+    normalizer = new ACPStreamingNormalizer({ streamTimeout: 1000 });
   });
 
   afterEach(() => {
     normalizer.clearAllContexts();
-    // Restore originals
-    if (dateNowSpy) {
-      Date.now = originalDateNow;
-    }
-    if (setTimeoutSpy) {
-      globalThis.setTimeout = originalSetTimeout;
-    }
-    if (clearTimeoutSpy) {
-      globalThis.clearTimeout = originalClearTimeout;
-    }
   });
 
   describe("Basic aggregation", () => {
@@ -418,9 +405,9 @@ describe("ACPEventNormalizer", () => {
 
     it("resets timeout on subsequent updates", (done: () => void) => {
       const events: NormalizedEvent[] = [];
-      const timeoutNormalizer = new ACPEventNormalizer({ streamTimeout: 500 });
+      const timeoutNormalizer = new ACPStreamingNormalizer({ streamTimeout: 500 });
 
-      timeoutNormalizer.on("event", (event) => {
+      timeoutNormalizer.on("event", (event: NormalizedEvent) => {
         events.push(event);
         // Check that we got the full message
         expect(events[0].text).toBe("Part 1 Part 2");

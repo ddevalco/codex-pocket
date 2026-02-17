@@ -73,9 +73,9 @@ interface StreamingContext {
 }
 
 /**
- * ACPEventNormalizer configuration
+ * ACPStreamingNormalizer configuration
  */
-export interface ACPEventNormalizerConfig {
+export interface ACPStreamingNormalizerConfig {
   /**
    * Timeout for incomplete streams in milliseconds (default: 30000)
    */
@@ -83,31 +83,31 @@ export interface ACPEventNormalizerConfig {
 }
 
 /**
- * ACPEventNormalizer class for handling streaming ACP notifications.
+ * ACPStreamingNormalizer class for handling streaming ACP notifications.
  *
  * Usage:
  * ```typescript
- * const normalizer = new ACPEventNormalizer();
+ * const normalizer = new ACPStreamingNormalizer();
  * normalizer.on('event', (event) => {
  *   console.log('Normalized event:', event);
  * });
  * normalizer.handleUpdate(notification);
  * ```
  */
-export class ACPEventNormalizer {
+export class ACPStreamingNormalizer {
   private contexts = new Map<string, StreamingContext>();
   private eventHandlers: Array<(event: NormalizedEvent) => void> = [];
   private streamTimeout: number;
 
-  constructor(config: ACPEventNormalizerConfig = {}) {
+  constructor(config: ACPStreamingNormalizerConfig = {}) {
     this.streamTimeout = config.streamTimeout ?? 30000; // 30 seconds default
   }
 
   /**
    * Register event handler
    */
-  on(event: "event", handler: (event: NormalizedEvent) => void): void {
-    if (event === "event") {
+  on(event: 'event', handler: (event: NormalizedEvent) => void): void {
+    if (event === 'event') {
       this.eventHandlers.push(handler);
     }
   }
@@ -115,8 +115,8 @@ export class ACPEventNormalizer {
   /**
    * Remove event handler
    */
-  off(event: "event", handler: (event: NormalizedEvent) => void): void {
-    if (event === "event") {
+  off(event: 'event', handler: (event: NormalizedEvent) => void): void {
+    if (event === 'event') {
       const idx = this.eventHandlers.indexOf(handler);
       if (idx !== -1) {
         this.eventHandlers.splice(idx, 1);
@@ -144,12 +144,13 @@ export class ACPEventNormalizer {
 
     // Check for type switch - flush old context and create new one
     const newCategory = this.mapUpdateTypeToCategory(update.type);
-    const hasContent = ctx.chunks.length > 0 || Object.keys(ctx.payload || {}).length > 0;
-    if (ctx.category !== newCategory && hasContent) {
+    if (ctx.category !== newCategory && ctx.chunks.length > 0) {
       const flushedEvent = this.flushContext(ctx, notification);
       // Create new context for the new type
       ctx = this.createContext(sessionId, turnId, update.type);
       this.contexts.set(key, ctx);
+      // Reset timeout for new context (fix context/memory leak)
+      this.resetTimeout(ctx, key, notification);
       // Continue processing with new context
       this.appendToContext(ctx, update, notification);
       return flushedEvent;
@@ -276,7 +277,7 @@ export class ACPEventNormalizer {
     // Set new timeout
     ctx.timeoutHandle = setTimeout(() => {
       console.warn(
-        `[copilot-acp] Stream timeout for ${key} after ${this.streamTimeout}ms`,
+        `[ACPStreamingNormalizer] Stream timeout for ${key} after ${this.streamTimeout}ms`,
       );
       // Flush incomplete stream and cleanup
       const context = this.contexts.get(key);
@@ -315,7 +316,7 @@ export class ACPEventNormalizer {
       try {
         handler(event);
       } catch (err) {
-        console.error("[copilot-acp] Event handler error:", err);
+        console.error('[ACPStreamingNormalizer] Event handler error:', err);
       }
     }
   }
