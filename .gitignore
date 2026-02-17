@@ -46,3 +46,8 @@ docs/AGENT_RULES.local.md
 # temp scratch
 .tmp
 .vscode-agent-orchestration/
+
+# Build/analysis artifacts
+analyze_report.py
+analysis.txt
+.bundlesize.report.json
