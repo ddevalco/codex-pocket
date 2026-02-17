@@ -1,4 +1,4 @@
-import type { Message, RpcMessage, ApprovalRequest, UserInputRequest, UserInputQuestion, TurnStatus, PlanStep, CollaborationMode } from "./types";
+import type { Message, RpcMessage, ApprovalRequest, UserInputRequest, UserInputQuestion, TurnStatus, PlanStep, CollaborationMode, MessageStatus } from "./types";
 import { socket } from "./socket.svelte";
 import { threads } from "./threads.svelte";
 import { api } from "./api";
@@ -593,6 +593,27 @@ class MessagesStore {
     return trimmed;
   }
 
+  addPending(threadId: string, text: string, clientRequestId: string) {
+    this.#add(threadId, {
+      id: clientRequestId,
+      role: "user",
+      text,
+      threadId,
+      status: "sending",
+      clientRequestId,
+    });
+  }
+
+  updateStatus(threadId: string, messageId: string, status: MessageStatus) {
+    const msgs = this.#byThread.get(threadId);
+    if (!msgs) return;
+    const idx = msgs.findIndex((m) => m.id === messageId);
+    if (idx === -1) return;
+    const updated = [...msgs];
+    updated[idx] = { ...updated[idx], status };
+    this.#byThread = new Map(this.#byThread).set(threadId, updated);
+  }
+
   handleMessage(msg: RpcMessage) {
     // Most Codex app-server responses come back as `{ id, result }` with no `method`,
     // but some relays/proxies may preserve the request method on the response.
@@ -660,11 +681,21 @@ class MessagesStore {
         const itemId = item.id as string;
         const text = this.#textFromContent((item as any).content) || "";
 
+        // Deduplicate against pending messages
+        const existing = this.#byThread.get(threadId);
+        if (existing) {
+          const pendingIdx = existing.findIndex((m) => m.status === "sending" && m.text.trim() === text.trim());
+          if (pendingIdx !== -1) {
+            this.#remove(threadId, existing[pendingIdx].id);
+          }
+        }
+
         this.#add(threadId, {
           id: itemId,
           role: "user",
           text,
           threadId,
+          status: "sent",
         });
       } else if (type === "commandExecution") {
         const itemId = item.id as string;
