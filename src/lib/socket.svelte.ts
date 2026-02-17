@@ -74,6 +74,10 @@ class SocketStore {
     return this.#url;
   }
 
+  isPending(clientRequestId: string): boolean {
+    return this.#outbox.some((item) => item.id === clientRequestId);
+  }
+
   get isHealthy() {
     return this.status === "connected" && this.#socket?.readyState === WebSocket.OPEN;
   }

@@ -116,6 +116,8 @@ export interface UserInputRequest {
   status: "pending" | "answered";
 }
 
+export type MessageStatus = "sending" | "sent" | "error";
+
 export interface Message {
   id: string;
   role: MessageRole;
@@ -127,6 +129,8 @@ export interface Message {
   approval?: ApprovalRequest;
   userInputRequest?: UserInputRequest;
   planStatus?: "pending" | "approved";
+  status?: MessageStatus;
+  clientRequestId?: string;
 }
 
 // JSON-RPC style message envelope
@@ -136,6 +140,7 @@ export interface RpcMessage {
   params?: Record<string, unknown>;
   result?: unknown;
   error?: unknown;
+  clientRequestId?: string;
 }
 
 // Turn status

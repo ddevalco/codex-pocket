@@ -112,6 +112,12 @@
   }
 
   const prefixConfig = $derived.by(() => {
+    if (message.status === "sending") {
+      return { prefix: "◌", color: "var(--cli-text-muted)", bgClass: "user-bg sending" };
+    }
+    if (message.status === "error") {
+      return { prefix: "!", color: "var(--cli-error)", bgClass: "user-bg error" };
+    }
     if (message.role === "user") {
       return { prefix: ">", color: "var(--cli-prefix-agent)", bgClass: "user-bg" };
     }
@@ -140,8 +146,6 @@
       const html = marked.parse(raw, {
         async: false,
         breaks: true,
-        headerIds: false,
-        mangle: false,
       }) as string;
 
       return DOMPurify.sanitize(html, {
@@ -410,6 +414,16 @@
   .prefix {
     flex-shrink: 0;
     font-weight: 600;
+  }
+
+  /* Status animation */
+  :global(.message-block.user-bg.sending .prefix) {
+    animation: status-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes status-pulse {
+    0%, 100% { opacity: 1.0; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.92); }
   }
 
   .text {

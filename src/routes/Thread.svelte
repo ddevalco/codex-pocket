@@ -484,6 +484,9 @@
 
         sendError = null;
 
+        const clientRequestId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+        messages.addPending(threadId, inputText, clientRequestId);
+
         const input: Array<Record<string, unknown>> = [{ type: "text", text: inputText }];
         for (const a of attachments) {
             if (a.kind !== "image" || !a.localPath) continue;
@@ -524,11 +527,13 @@
         const result = socket.sendReliable({
             method: "turn/start",
             id: Date.now(),
+            clientRequestId,
             params,
         });
 
         if (!result.success) {
             sendError = result.error ?? "Failed to send message";
+            messages.updateStatus(threadId, clientRequestId, "error");
         }
     }
 

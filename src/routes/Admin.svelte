@@ -33,6 +33,7 @@
         anchorAuthInvalid: number;
         readOnlyDenied: number;
         rateLimited: number;
+        duplicateDropped: number;
         anchorStartFailed: number;
         anchorStopFailed: number;
       };
@@ -806,6 +807,8 @@
                 <div class="v">{status.reliability?.counters.readOnlyDenied ?? 0}</div>
                 <div class="k">Rate limits</div>
                 <div class="v">{status.reliability?.counters.rateLimited ?? 0}</div>
+                <div class="k">Duplicate drops</div>
+                <div class="v">{status.reliability?.counters.duplicateDropped ?? 0}</div>
                 <div class="k">Anchor start/stop failures</div>
                 <div class="v">{status.reliability?.counters.anchorStartFailed ?? 0} / {status.reliability?.counters.anchorStopFailed ?? 0}</div>
               </div>
