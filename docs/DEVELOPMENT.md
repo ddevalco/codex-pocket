@@ -31,6 +31,20 @@ bun run build
 
 Output goes to `dist/`.
 
+## Release Preflight
+
+Run the full release checklist before tagging or shipping:
+
+```bash
+bun run preflight
+```
+
+Skip the GitHub CI check if needed:
+
+```bash
+./scripts/ci/release-preflight.sh --skip-ci-check
+```
+
 ## Repo Hygiene
 
 Agent artifacts are local-only. Do not commit agent prompts, notes, or rule sets.
