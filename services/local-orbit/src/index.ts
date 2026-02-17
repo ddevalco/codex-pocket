@@ -202,6 +202,7 @@ type ReliabilityCounterKey =
   | "anchorAuthInvalid"
   | "readOnlyDenied"
   | "rateLimited"
+  | "duplicateDropped"
   | "anchorStartFailed"
   | "anchorStopFailed";
 
@@ -213,6 +214,7 @@ type ReliabilityEventKind =
   | "anchor_auth_invalid"
   | "read_only_denied"
   | "rate_limited"
+  | "duplicate_dropped"
   | "anchor_start_failed"
   | "anchor_stop_failed";
 
@@ -314,6 +316,7 @@ const reliabilityCounters: Record<ReliabilityCounterKey, number> = {
   anchorAuthInvalid: 0,
   readOnlyDenied: 0,
   rateLimited: 0,
+  duplicateDropped: 0,
   anchorStartFailed: 0,
   anchorStopFailed: 0,
 };
@@ -1306,6 +1309,7 @@ function shouldDropDuplicateClientRequest(message: Record<string, unknown>): boo
 
   const existing = clientRequestIdSeenUntil.get(id);
   if (existing && existing > now) {
+    reliabilityRecord("duplicateDropped", "duplicate_dropped", id.slice(0, 32));
     return true;
   }
 
