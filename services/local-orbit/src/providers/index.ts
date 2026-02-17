@@ -85,6 +85,6 @@ export {
 export {
   BaseEventNormalizer,
   CodexEventNormalizer,
-  ACPEventNormalizer,
+  ACPStreamingNormalizer,
   createEventNormalizer,
 } from "./normalizers/event-normalizer.js";
