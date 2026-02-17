@@ -619,14 +619,27 @@
                   }}
                   title="Print/export thread as PDF"
                 >PDF</button>
-                {#if !readonly}
-                  <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>
-                  <button
-                    class="archive-btn"
-                    onclick={() => threads.archive(thread.id)}
-                    title="Archive thread"
-                  >×</button>
-                {/if}
+
+                <button
+                  class="thread-action-btn rename-btn"
+                  onclick={() => renameThread(thread)}
+                  disabled={thread.provider === "copilot-acp" || readonly}
+                  title={thread.provider === "copilot-acp"
+                    ? "Copilot sessions are read-only in Phase 1"
+                    : "Rename thread"}
+                >
+                  ✏️
+                </button>
+                <button
+                  class="thread-action-btn archive-btn"
+                  onclick={() => threads.archive(thread.id)}
+                  disabled={thread.provider === "copilot-acp" || readonly}
+                  title={thread.provider === "copilot-acp"
+                    ? "Copilot sessions are read-only in Phase 1"
+                    : "Archive thread"}
+                >
+                  📦
+                </button>
               </li>
             {/each}
           </ul>
@@ -1430,6 +1443,16 @@
 
   .archive-btn:hover {
     color: var(--cli-error);
+  }
+
+  .thread-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .thread-action-btn:disabled:hover {
+    background: transparent;
+    color: var(--cli-text-muted) !important;
   }
 
   /* Mobile: prioritize thread title visibility. */
