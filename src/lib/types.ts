@@ -21,6 +21,7 @@ export interface ThreadInfo {
   lastActivity?: number;
   lastActiveAt?: number;
   modelProvider?: string;
+  provider?: string;
   status?: string;
 }
 
