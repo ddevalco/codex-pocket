@@ -71,6 +71,9 @@ export {
 
 export type { EventStats } from "./normalized-event.js";
 
+// Provider Registry
+export { ProviderRegistry, createRegistry } from "./registry.js";
+
 // Normalizers
 export {
   BaseSessionNormalizer,
