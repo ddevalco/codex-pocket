@@ -123,5 +123,124 @@ describe("AcpClient", () => {
       expect(err.message).toContain("exited");
     }
   });
+
+  describe("session routing", () => {
+    it("routes notifications to session-specific handlers", async () => {
+      const session1Handler = mock(() => {});
+      const session2Handler = mock(() => {});
+      
+      client.onSessionEvent("session-1", session1Handler);
+      client.onSessionEvent("session-2", session2Handler);
+      
+      // Send update for session-1
+      stdout.pushLine(JSON.stringify({
+        jsonrpc: "2.0",
+        method: "update",
+        params: {
+          sessionId: "session-1",
+          turnId: "turn-1",
+          update: { type: "content", delta: "hello" }
+        }
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      expect(session1Handler).toHaveBeenCalledTimes(1);
+      expect(session2Handler).not.toHaveBeenCalled();
+    });
+
+    it("removes handlers via offSessionEvent", async () => {
+      const handler = mock(() => {});
+      
+      client.onSessionEvent("session-1", handler);
+      client.offSessionEvent("session-1", handler);
+      
+      // Send update for session-1
+      stdout.pushLine(JSON.stringify({
+        jsonrpc: "2.0",
+        method: "update",
+        params: {
+          sessionId: "session-1",
+          turnId: "turn-1",
+          update: { type: "content", delta: "hello" }
+        }
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("isolates sessions (no cross-session leakage)", async () => {
+      const sessionAHandler = mock(() => {});
+      const sessionBHandler = mock(() => {});
+      
+      client.onSessionEvent("session-a", sessionAHandler);
+      client.onSessionEvent("session-b", sessionBHandler);
+      
+      // Send update for session-a
+      stdout.pushLine(JSON.stringify({
+        jsonrpc: "2.0",
+        method: "update",
+        params: {
+          sessionId: "session-a",
+          turnId: "turn-1",
+          update: { type: "content", delta: "hello" }
+        }
+      }));
+      
+      // Send update for session-b
+      stdout.pushLine(JSON.stringify({
+        jsonrpc: "2.0",
+        method: "update",
+        params: {
+          sessionId: "session-b",
+          turnId: "turn-1",
+          update: { type: "content", delta: "world" }
+        }
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Each handler should only receive its own session's events
+      expect(sessionAHandler).toHaveBeenCalledTimes(1);
+      expect(sessionBHandler).toHaveBeenCalledTimes(1);
+      
+      // Verify session-a handler received session-a notification
+      const sessionANotification = sessionAHandler.mock.calls[0][0];
+      expect(sessionANotification.params.sessionId).toBe("session-a");
+      
+      // Verify session-b handler received session-b notification
+      const sessionBNotification = sessionBHandler.mock.calls[0][0];
+      expect(sessionBNotification.params.sessionId).toBe("session-b");
+    });
+
+    it("cleans up empty handler arrays on offSessionEvent", async () => {
+      const handler1 = mock(() => {});
+      const handler2 = mock(() => {});
+      
+      client.onSessionEvent("session-1", handler1);
+      client.onSessionEvent("session-1", handler2);
+      
+      client.offSessionEvent("session-1", handler1);
+      client.offSessionEvent("session-1", handler2);
+      
+      // Send update for session-1
+      stdout.pushLine(JSON.stringify({
+        jsonrpc: "2.0",
+        method: "update",
+        params: {
+          sessionId: "session-1",
+          turnId: "turn-1",
+          update: { type: "content", delta: "hello" }
+        }
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).not.toHaveBeenCalled();
+    });
+  });
 });
 

@@ -122,53 +122,53 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
 
   describe("validation errors", () => {
     it("throws error for empty sessionId", async () => {
-      expect(async () => {
-        await adapter.sendPrompt("", { text: "Test" });
-      }).toThrow("Invalid sessionId: must be a non-empty string");
+      await expect(adapter.sendPrompt("", { text: "Test" })).rejects.toThrow(
+        "Invalid sessionId: must be a non-empty string"
+      );
     });
 
     it("throws error for whitespace-only sessionId", async () => {
-      expect(async () => {
-        await adapter.sendPrompt("   ", { text: "Test" });
-      }).toThrow("Invalid sessionId: must be a non-empty string");
+      await expect(adapter.sendPrompt("   ", { text: "Test" })).rejects.toThrow(
+        "Invalid sessionId: must be a non-empty string"
+      );
     });
 
     it("throws error for non-string sessionId", async () => {
-      expect(async () => {
-        await adapter.sendPrompt(null as any, { text: "Test" });
-      }).toThrow("Invalid sessionId: must be a non-empty string");
+      await expect(adapter.sendPrompt(null as any, { text: "Test" })).rejects.toThrow(
+        "Invalid sessionId: must be a non-empty string"
+      );
     });
 
     it("throws error for empty input text", async () => {
-      expect(async () => {
-        await adapter.sendPrompt("session-123", { text: "" });
-      }).toThrow("Invalid input: text must be a non-empty string");
+      await expect(adapter.sendPrompt("session-123", { text: "" })).rejects.toThrow(
+        "Invalid input: text must be a non-empty string"
+      );
     });
 
     it("throws error for whitespace-only input text", async () => {
-      expect(async () => {
-        await adapter.sendPrompt("session-123", { text: "   " });
-      }).toThrow("Invalid input: text must be a non-empty string");
+      await expect(adapter.sendPrompt("session-123", { text: "   " })).rejects.toThrow(
+        "Invalid input: text must be a non-empty string"
+      );
     });
 
     it("throws error for missing input", async () => {
-      expect(async () => {
-        await adapter.sendPrompt("session-123", null as any);
-      }).toThrow("Invalid input: text must be a non-empty string");
+      await expect(adapter.sendPrompt("session-123", null as any)).rejects.toThrow(
+        "Invalid input: text must be a non-empty string"
+      );
     });
 
     it("throws error for missing input text", async () => {
-      expect(async () => {
-        await adapter.sendPrompt("session-123", {} as any);
-      }).toThrow("Invalid input: text must be a non-empty string");
+      await expect(adapter.sendPrompt("session-123", {} as any)).rejects.toThrow(
+        "Invalid input: text must be a non-empty string"
+      );
     });
 
     it("throws error when client not available", async () => {
       (adapter as any).client = null;
 
-      expect(async () => {
-        await adapter.sendPrompt("session-123", { text: "Test" });
-      }).toThrow("Copilot adapter not started or not available");
+      await expect(adapter.sendPrompt("session-123", { text: "Test" })).rejects.toThrow(
+        "Copilot adapter not started or not available"
+      );
     });
   });
 
@@ -178,9 +178,9 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
         new Error("Request 1 (sendPrompt) timed out after 5000ms"),
       );
 
-      expect(async () => {
-        await adapter.sendPrompt("session-123", { text: "Test" });
-      }).toThrow("timed out");
+      await expect(adapter.sendPrompt("session-123", { text: "Test" })).rejects.toThrow(
+        "timed out"
+      );
     });
 
     it("passes 5-second timeout to sendRequest", async () => {
@@ -202,9 +202,9 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
         new Error("JSON-RPC error -32600: Invalid Request"),
       );
 
-      expect(async () => {
-        await adapter.sendPrompt("session-123", { text: "Test" });
-      }).toThrow("Failed to send prompt: JSON-RPC error -32600: Invalid Request");
+      await expect(adapter.sendPrompt("session-123", { text: "Test" })).rejects.toThrow(
+        "JSON-RPC error -32600: Invalid Request"
+      );
     });
 
     it("handles rate limit errors", async () => {
@@ -212,9 +212,9 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
         new Error("JSON-RPC error 429: Rate limit exceeded"),
       );
 
-      expect(async () => {
-        await adapter.sendPrompt("session-123", { text: "Test" });
-      }).toThrow("Failed to send prompt: JSON-RPC error 429: Rate limit exceeded");
+      await expect(adapter.sendPrompt("session-123", { text: "Test" })).rejects.toThrow(
+        "JSON-RPC error 429: Rate limit exceeded"
+      );
     });
 
     it("handles session not found errors", async () => {
@@ -222,17 +222,15 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
         new Error("JSON-RPC error 404: Session not found"),
       );
 
-      expect(async () => {
-        await adapter.sendPrompt("invalid-session", { text: "Test" });
-      }).toThrow("Failed to send prompt: JSON-RPC error 404: Session not found");
+      await expect(adapter.sendPrompt("invalid-session", { text: "Test" })).rejects.toThrow(
+        "JSON-RPC error 404: Session not found"
+      );
     });
 
     it("re-throws non-Error exceptions", async () => {
       mockClient.sendRequest.mockRejectedValue("String error");
 
-      expect(async () => {
-        await adapter.sendPrompt("session-123", { text: "Test" });
-      }).toThrow();
+      await expect(adapter.sendPrompt("session-123", { text: "Test" })).rejects.toThrow();
     });
   });
 
@@ -243,7 +241,7 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
 
     it("maintains other capability flags", () => {
       expect(adapter.capabilities.listSessions).toBe(true);
-      expect(adapter.capabilities.streaming).toBe(false);
+      expect(adapter.capabilities.streaming).toBe(true); // Issue #145 - streaming now supported
       expect(adapter.capabilities.openSession).toBe(false);
     });
   });
