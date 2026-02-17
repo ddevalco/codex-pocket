@@ -4,6 +4,9 @@ All notable changes to **Codex Pocket** will be documented here.
 
 This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. See `docs/ATTRIBUTION.md`.
 
+- Core/Multi-provider: ACP write capability implementation via `sendPrompt` (PR #147).
+- Providers: streaming response handling for ACP sessions (PR #148).
+- UI: prompt input and session interaction for Copilot sessions (PR #149).
 - Core/Multi-provider: implemented Phase 1 of multi-provider support with a provider registry and lifecycle management (PR #143).
 - Providers: added read-only Copilot ACP (Agent Control Plane) adapter to surface active Copilot sessions (PR #143).
 - API: added unified provider and session listing endpoints to support discovery across different backend adapters (PR #143).

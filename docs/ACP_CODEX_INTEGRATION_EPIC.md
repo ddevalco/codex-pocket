@@ -6,7 +6,7 @@ Date: 2026-02-16
 
 - ✅ **Phase 0**: Contracts & Schemas (PR #138, merged)
 - ✅ **Phase 1**: Registry & Read-Only Adapter (PR #143, merged)
-- ✅ **Phase 2**: Prompt Send + Streaming (Completed 2026-02-17)
+- ✅ **Phase 2**: Prompt Send + Streaming (PRs #147, #148, #149 • 2026-02-17)
 - ✅ **Phase 3**: Home UI Grouping (completed in Phase 1 / PR #143)
 - 📋 **Phase 4**: Capability Matrix (planned)
 - 📋 **Phase 5**: Hardening (planned)
