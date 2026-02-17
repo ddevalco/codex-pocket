@@ -1,6 +1,7 @@
 <script lang="ts">
   import { socket } from "../lib/socket.svelte";
   import { threads } from "../lib/threads.svelte";
+  import type { ThreadInfo } from "../lib/types";
   import { messages } from "../lib/messages.svelte";
   import { navigate } from "../router";
   import { models } from "../lib/models.svelte";
@@ -195,19 +196,44 @@
     return "Unlabeled";
   }
 
-  const groupedVisibleThreads = $derived.by(() => {
-    const groups = new Map<string, typeof visibleThreads>();
+  function groupThreadsByProject(threads: ThreadInfo[]) {
+    const groups = new Map<string, ThreadInfo[]>();
+
+    for (const thread of threads) {
+      const label = threadGroupLabel(thread);
+      if (!groups.has(label)) {
+        groups.set(label, []);
+      }
+      groups.get(label)!.push(thread);
+    }
+
+    return {
+      groups: Array.from(groups.entries()).map(([label, threads]) => ({
+        label,
+        threads,
+      })),
+    };
+  }
+
+  // Group threads by provider (Codex vs Copilot)
+  const providerGroups = $derived.by(() => {
+    const codex: ThreadInfo[] = [];
+    const copilot: ThreadInfo[] = [];
+
     for (const thread of visibleThreads) {
-      const key = threadGroupLabel(thread);
-      const existing = groups.get(key);
-      if (existing) {
-        existing.push(thread);
+      if (thread.provider === "copilot-acp") {
+        copilot.push(thread);
       } else {
-        groups.set(key, [thread]);
+        codex.push(thread); // undefined provider = Codex default
       }
     }
-    return Array.from(groups.entries(), ([label, threads]) => ({ label, threads }));
+
+    return { codex, copilot };
   });
+
+  // Group each provider's threads by repo/project
+  const codexGrouped = $derived(groupThreadsByProject(providerGroups.codex));
+  const copilotGrouped = $derived(groupThreadsByProject(providerGroups.copilot));
 
   let collapsedGroups = $state<Record<string, boolean>>({});
 
@@ -501,6 +527,115 @@
   }
 </script>
 
+{#snippet threadSection(groups: any[], readonly = false)}
+  {#if groups.length > 0}
+    {#each groups as group (group.label)}
+      <div class="thread-group stack">
+        <button
+          class="thread-group-toggle row"
+          type="button"
+          onclick={() => toggleGroup(group.label)}
+          aria-expanded={!isGroupCollapsed(group.label)}
+          title={isGroupCollapsed(group.label) ? "Expand group" : "Collapse group"}
+        >
+          <span class="thread-group-caret" aria-hidden="true">{isGroupCollapsed(group.label) ? "▸" : "▾"}</span>
+          <span class="thread-group-title">{group.label}</span>
+          <span class="thread-group-count">{group.threads.length}</span>
+        </button>
+        {#if !isGroupCollapsed(group.label)}
+          <ul class="thread-list">
+            {#each group.threads as thread (thread.id)}
+              {@const repoLabel = threadRepoLabel(thread)}
+              {@const projectLabel = threadProjectLabel(thread)}
+              <li class="thread-item row">
+                <a
+                  class="thread-link row"
+                  href="/thread/{thread.id}"
+                  onclick={(e) => {
+                    e.preventDefault();
+                    threads.open(thread.id);
+                    navigate("/thread/:id", { params: { id: thread.id } });
+                  }}
+                >
+                  <span class="thread-icon">›</span>
+                  <span
+                    class="thread-indicator"
+                    class:thread-indicator-idle={threadIndicator(thread) === "idle"}
+                    class:thread-indicator-working={threadIndicator(thread) === "working"}
+                    class:thread-indicator-blocked={threadIndicator(thread) === "blocked"}
+                    title={indicatorTitle(threadIndicator(thread))}
+                    aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread))}
+                  >●</span>
+                  <span class="thread-main stack">
+                    <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
+                    {#if repoLabel || projectLabel}
+                      <span
+                        class="thread-context row"
+                        title={threadContextTitle(
+                          thread,
+                          repoLabel && projectLabel ? `${repoLabel}/${projectLabel}` : repoLabel || projectLabel || ""
+                        )}
+                      >
+                        {#if repoLabel}
+                          <span class="thread-repo-pill">{repoLabel}</span>
+                        {/if}
+                        {#if projectLabel}
+                          <span class="thread-project-pill">{projectLabel}</span>
+                        {/if}
+                      </span>
+                    {/if}
+                    <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
+                  </span>
+                </a>
+                <button
+                  class="export-btn"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
+                  }}
+                  title="Share/export thread as Markdown"
+                >⇪</button>
+                <button
+                  class="export-btn"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
+                  }}
+                  title="Share/export thread as JSON"
+                >⎘</button>
+                <button
+                  class="export-btn"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
+                  }}
+                  title="Share/export thread as HTML"
+                >⌘</button>
+                <button
+                  class="export-btn"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
+                  }}
+                  title="Print/export thread as PDF"
+                >PDF</button>
+                {#if !readonly}
+                  <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>
+                  <button
+                    class="archive-btn"
+                    onclick={() => threads.archive(thread.id)}
+                    title="Archive thread"
+                  >×</button>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    {/each}
+  {/if}
+{/snippet}
+
 <svelte:head>
   <title>Codex Pocket</title>
 </svelte:head>
@@ -602,108 +737,38 @@
             </div>
           </div>
         {/if}
-        {#each groupedVisibleThreads as group (group.label)}
-          <div class="thread-group stack">
-            <button
-              class="thread-group-toggle row"
-              type="button"
-              onclick={() => toggleGroup(group.label)}
-              aria-expanded={!isGroupCollapsed(group.label)}
-              title={isGroupCollapsed(group.label) ? "Expand group" : "Collapse group"}
-            >
-              <span class="thread-group-caret" aria-hidden="true">{isGroupCollapsed(group.label) ? "▸" : "▾"}</span>
-              <span class="thread-group-title">{group.label}</span>
-              <span class="thread-group-count">{group.threads.length}</span>
-            </button>
-            {#if !isGroupCollapsed(group.label)}
-              <ul class="thread-list">
-                {#each group.threads as thread (thread.id)}
-                  {@const repoLabel = threadRepoLabel(thread)}
-                  {@const projectLabel = threadProjectLabel(thread)}
-                  <li class="thread-item row">
-                    <a
-                      class="thread-link row"
-                      href="/thread/{thread.id}"
-                      onclick={(e) => {
-                        e.preventDefault();
-                        threads.open(thread.id);
-                        navigate("/thread/:id", { params: { id: thread.id } });
-                      }}
-                    >
-                      <span class="thread-icon">›</span>
-                      <span
-                        class="thread-indicator"
-                        class:thread-indicator-idle={threadIndicator(thread) === "idle"}
-                        class:thread-indicator-working={threadIndicator(thread) === "working"}
-                        class:thread-indicator-blocked={threadIndicator(thread) === "blocked"}
-                        title={indicatorTitle(threadIndicator(thread))}
-                        aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread))}
-                      >●</span>
-                      <span class="thread-main stack">
-                        <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
-                        {#if repoLabel || projectLabel}
-                          <span
-                            class="thread-context row"
-                            title={threadContextTitle(
-                              thread,
-                              repoLabel && projectLabel ? `${repoLabel}/${projectLabel}` : repoLabel || projectLabel || ""
-                            )}
-                          >
-                            {#if repoLabel}
-                              <span class="thread-repo-pill">{repoLabel}</span>
-                            {/if}
-                            {#if projectLabel}
-                              <span class="thread-project-pill">{projectLabel}</span>
-                            {/if}
-                          </span>
-                        {/if}
-                        <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
-                      </span>
-                    </a>
-                    <button
-                      class="export-btn"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
-                      }}
-                      title="Share/export thread as Markdown"
-                    >⇪</button>
-                    <button
-                      class="export-btn"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
-                      }}
-                      title="Share/export thread as JSON"
-                    >⎘</button>
-                    <button
-                      class="export-btn"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
-                      }}
-                      title="Share/export thread as HTML"
-                    >⌘</button>
-                    <button
-                      class="export-btn"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
-                      }}
-                      title="Print/export thread as PDF"
-                    >PDF</button>
-                    <button class="rename-btn" onclick={() => renameThread(thread)} title="Rename thread">✎</button>
-                    <button
-                      class="archive-btn"
-                      onclick={() => threads.archive(thread.id)}
-                      title="Archive thread"
-                    >×</button>
-                  </li>
-                {/each}
-              </ul>
-            {/if}
+
+        <!-- Codex Provider Section -->
+        <div class="provider-section">
+          <div class="provider-header">
+            <div class="provider-title">
+              <span class="provider-badge">Codex</span>
+            </div>
+            <button class="new-thread-btn" onclick={openTaskModal}> ✨ New task </button>
           </div>
-        {/each}
+
+          {#if codexGrouped.groups.length > 0}
+            {@render threadSection(codexGrouped.groups)}
+          {:else}
+            <div class="empty-state">No Codex threads yet</div>
+          {/if}
+        </div>
+
+        <!-- Copilot Provider Section -->
+        <div class="provider-section">
+          <div class="provider-header">
+            <div class="provider-title">
+              <span class="provider-badge">GitHub Copilot</span>
+              <span class="readonly-chip">Read-only</span>
+            </div>
+          </div>
+
+          {#if copilotGrouped.groups.length > 0}
+            {@render threadSection(copilotGrouped.groups, true)}
+          {:else}
+            <div class="empty-state">No Copilot sessions detected</div>
+          {/if}
+        </div>
       {/if}
     </div>
   {/if}
@@ -780,6 +845,62 @@
     color: var(--cli-text);
     font-family: var(--font-mono);
     font-size: var(--text-sm);
+  }
+
+  .provider-section {
+    margin-bottom: 2rem;
+    border: 1px solid var(--cli-border);
+    border-radius: 8px;
+    background: var(--cli-bg);
+    padding: 1rem;
+  }
+
+  .provider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--cli-border);
+  }
+
+  .provider-title {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .provider-badge {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--cli-prefix-agent);
+  }
+
+  .readonly-chip {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    background: var(--cli-bg);
+    color: var(--cli-text-dim);
+    border: 1px solid var(--cli-border);
+    border-radius: 4px;
+  }
+
+  .new-thread-btn {
+    padding: 0.5rem 1rem;
+    background: var(--cli-prefix-agent);
+    color: var(--cli-bg);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+
+  .empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: var(--cli-text-muted);
   }
 
   .field {
@@ -1325,6 +1446,7 @@
     /* Allow titles to use 2 lines on narrow screens. */
     .thread-preview {
       display: -webkit-box;
+      line-clamp: 2;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       white-space: normal;
