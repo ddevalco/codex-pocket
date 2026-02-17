@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-17T00:52:37Z",
+  "generatedAt": "2026-02-17T18:23:01Z",
   "status": "ok",
   "thresholds": {
     "perChunk": {
@@ -12,38 +12,37 @@
     }
   },
   "baseline": {
-    "totalBytes": 10029271,
+    "totalBytes": 10036497,
     "chunks": {
       "Admin.css": 10750,
-      "Admin.js": 36340,
+      "Admin.js": 36267,
       "AppHeader.css": 5711,
-      "AppHeader.js": 8057,
+      "AppHeader.js": 8074,
       "DangerZone.css": 1809,
       "DangerZone.js": 990,
       "Device.css": 786,
       "Device.js": 499,
-      "Home.css": 10681,
-      "Home.js": 19062,
+      "Home.css": 11844,
+      "Home.js": 20582,
       "Landing.css": 4445,
-      "Landing.js": 5947,
+      "Landing.js": 5963,
       "NewTask.css": 2186,
       "NewTask.js": 3166,
       "Pair.css": 564,
-      "Pair.js": 1685,
+      "Pair.js": 1616,
       "ProjectPicker.css": 2316,
-      "ProjectPicker.js": 2656,
+      "ProjectPicker.js": 2582,
       "Review.css": 3281,
-      "Review.js": 12203,
+      "Review.js": 11668,
       "Settings.css": 7862,
-      "Settings.js": 20084,
-      "Thread.css": 26945,
-      "Thread.js": 58529,
+      "Settings.js": 19986,
+      "Thread.css": 27591,
+      "Thread.js": 59636,
       "abap.js": 15852,
-      "actionscript-3.js": 14049,
+      "actionscript.js": 14049,
       "ada.js": 48082,
-      "andromeeda-C.js": 8976,
-      "angular-html.js": 24287,
-      "angular-ts.js": 183820,
+      "andromeeda.js": 8976,
+      "angular.js": 208107,
       "apache.js": 12456,
       "apex.js": 46985,
       "apl.js": 24039,
@@ -52,9 +51,9 @@
       "asciidoc.js": 131513,
       "asm.js": 40717,
       "astro.js": 24008,
-      "aurora-x-D.js": 13659,
+      "aurora.js": 13659,
       "awk.js": 5461,
-      "ayu-dark.js": 19837,
+      "ayu.js": 19837,
       "ballerina.js": 58693,
       "bat.js": 12888,
       "beancount.js": 10373,
@@ -67,10 +66,7 @@
       "c3.js": 24886,
       "cadence.js": 23669,
       "cairo.js": 2936,
-      "catppuccin-frappe.js": 47258,
-      "catppuccin-latte.js": 47256,
-      "catppuccin-macchiato.js": 47263,
-      "catppuccin-mocha.js": 47255,
+      "catppuccin.js": 189032,
       "clarity.js": 14275,
       "clojure.js": 6413,
       "cmake.js": 9855,
@@ -78,7 +74,7 @@
       "codeowners.js": 547,
       "codeql.js": 26883,
       "coffee.js": 27422,
-      "common-lisp.js": 22581,
+      "common.js": 22581,
       "coq.js": 5526,
       "cpp.js": 626081,
       "crystal.js": 29388,
@@ -88,59 +84,43 @@
       "cue.js": 16204,
       "cypher.js": 5956,
       "d.js": 43795,
-      "dark-plus.js": 9097,
+      "dark.js": 9097,
       "dart.js": 7812,
       "dax.js": 5365,
       "desktop.js": 1833,
       "diff.js": 2569,
       "docker.js": 1741,
       "dotenv.js": 1422,
-      "dracula-soft.js": 21076,
-      "dracula.js": 21066,
-      "dream-maker.js": 10469,
+      "dracula.js": 42142,
+      "dream.js": 10469,
       "edge.js": 2363,
       "elixir.js": 16321,
       "elm.js": 10968,
-      "emacs-lisp.js": 779854,
+      "emacs.js": 779854,
       "erb.js": 2607,
       "erlang.js": 37480,
-      "everforest-dark.js": 53745,
-      "everforest-light.js": 53748,
+      "everforest.js": 107493,
       "fennel.js": 4768,
       "fish.js": 13038,
       "fluent.js": 3610,
-      "fortran-fixed-form.js": 1665,
-      "fortran-free-form.js": 88969,
+      "fortran.js": 90634,
       "fsharp.js": 25305,
       "gdresource.js": 5259,
       "gdscript.js": 18975,
       "gdshader.js": 6326,
       "genie.js": 3356,
       "gherkin.js": 11946,
-      "git-commit.js": 1230,
-      "git-rebase.js": 983,
-      "github-dark-default.js": 14435,
-      "github-dark-dimmed.js": 14433,
-      "github-dark-high-contrast.js": 14595,
-      "github-dark.js": 11405,
-      "github-light-default.js": 14156,
-      "github-light-high-contrast.js": 14275,
-      "github-light.js": 11184,
+      "git.js": 2213,
+      "github.js": 94483,
       "gleam.js": 2577,
-      "glimmer-js.js": 20071,
-      "glimmer-ts.js": 20071,
+      "glimmer.js": 40142,
       "glsl.js": 3634,
       "gn.js": 4002,
       "gnuplot.js": 14783,
       "go.js": 46775,
       "graphql.js": 18002,
       "groovy.js": 19179,
-      "gruvbox-dark-hard.js": 22633,
-      "gruvbox-dark-medium.js": 22637,
-      "gruvbox-dark-soft.js": 22633,
-      "gruvbox-light-hard.js": 22636,
-      "gruvbox-light-medium.js": 22640,
-      "gruvbox-light-soft.js": 22636,
+      "gruvbox.js": 135815,
       "hack.js": 80241,
       "haml.js": 8263,
       "handlebars.js": 12150,
@@ -150,15 +130,14 @@
       "hjson.js": 12053,
       "hlsl.js": 7264,
       "houston.js": 35422,
-      "html-derivative.js": 900,
-      "html.js": 57247,
+      "html.js": 58147,
       "http.js": 4549,
       "hurl.js": 3652,
       "hxml.js": 1743,
       "hy.js": 2648,
       "imba.js": 49930,
       "index.css": 7525,
-      "index.js": 18723,
+      "index.js": 18593,
       "ini.js": 1525,
       "java.js": 27219,
       "javascript.js": 174827,
@@ -172,38 +151,31 @@
       "jssm.js": 2238,
       "jsx.js": 177792,
       "julia.js": 31066,
-      "kanagawa-dragon.js": 17127,
-      "kanagawa-lotus.js": 17126,
-      "kanagawa-wave.js": 17123,
+      "kanagawa.js": 51376,
       "kdl.js": 3629,
       "kotlin.js": 8785,
       "kusto.js": 15173,
       "laserwave.js": 11499,
       "latex.js": 72194,
       "lean.js": 5784,
-      "legacy.js": 53,
+      "legacy.js": 54,
       "less.js": 97633,
-      "light-plus.js": 9941,
+      "light.js": 9941,
       "liquid.js": 18089,
       "llvm.js": 5040,
       "log.js": 2852,
       "logo.js": 3127,
       "lua.js": 15205,
-      "luau-C.js": 13964,
+      "luau.js": 13964,
       "make.js": 8961,
       "markdown.js": 59335,
       "marko.js": 25483,
-      "material-theme-darker.js": 18629,
-      "material-theme-lighter.js": 18634,
-      "material-theme-ocean.js": 18629,
-      "material-theme-palenight.js": 18635,
-      "material-theme.js": 18615,
+      "material.js": 93142,
       "matlab.js": 16086,
       "mdc.js": 19634,
       "mdx.js": 136114,
       "mermaid.js": 29511,
-      "min-dark.js": 6291,
-      "min-light.js": 6969,
+      "min.js": 13260,
       "mipsasm.js": 3259,
       "models.svelte.js": 1850,
       "mojo.js": 69299,
@@ -213,17 +185,15 @@
       "narrat.js": 3672,
       "nextflow.js": 4424,
       "nginx.js": 35374,
-      "night-owl.js": 28913,
+      "night.js": 28913,
       "nim.js": 22460,
       "nix.js": 15511,
       "nord.js": 26723,
       "notifications.svelte.js": 3616,
-      "nushell-C.js": 20400,
-      "objective-c.js": 105413,
-      "objective-cpp.js": 171972,
+      "nushell.js": 20400,
+      "objective.js": 277385,
       "ocaml.js": 62449,
-      "one-dark-pro.js": 33787,
-      "one-light.js": 25298,
+      "one.js": 59085,
       "openscad.js": 2824,
       "pascal.js": 4150,
       "perl.js": 43156,
@@ -253,13 +223,11 @@
       "raku.js": 10472,
       "razor.js": 27510,
       "red.js": 6262,
-      "reg-C.js": 2345,
+      "reg.js": 2345,
       "regexp.js": 7988,
       "rel.js": 3368,
       "riscv.js": 6914,
-      "rose-pine-dawn.js": 21754,
-      "rose-pine-moon.js": 21753,
-      "rose-pine.js": 21743,
+      "rose.js": 65250,
       "rosmsg.js": 4523,
       "rst.js": 10673,
       "ruby.js": 45912,
@@ -273,24 +241,22 @@
       "shaderlab.js": 5922,
       "shellscript.js": 41479,
       "shellsession.js": 711,
-      "slack-dark.js": 9117,
-      "slack-ochin.js": 9431,
+      "slack.js": 18548,
       "smalltalk.js": 6587,
-      "snazzy-light.js": 20773,
-      "solarized-dark.js": 6846,
-      "solarized-light.js": 6480,
+      "snazzy.js": 20773,
+      "solarized.js": 13326,
       "solidity.js": 16074,
       "soy.js": 6981,
       "sparql.js": 1480,
       "splunk.js": 3436,
       "sql.js": 23407,
-      "ssh-config.js": 3617,
+      "ssh.js": 3617,
       "stata.js": 56991,
       "stylus.js": 31074,
       "svelte.js": 18046,
       "swift.js": 86607,
-      "synthwave-84.js": 14036,
-      "system-verilog.js": 26203,
+      "synthwave.js": 14036,
+      "system.js": 26203,
       "systemd.js": 7869,
       "talonscript.js": 6757,
       "tasl.js": 3288,
@@ -300,9 +266,9 @@
       "tex.js": 9659,
       "theme.svelte.js": 1110,
       "threads.svelte.js": 32245,
-      "tokyo-night.js": 35665,
+      "tokyo.js": 35665,
       "toml.js": 6426,
-      "ts-tags.js": 8948,
+      "ts.js": 8948,
       "tsv.js": 739,
       "tsx.js": 175536,
       "turtle.js": 3700,
@@ -313,19 +279,13 @@
       "v.js": 13214,
       "vala.js": 3370,
       "vb.js": 6093,
-      "vendor-markdown-B.js": 63680,
-      "vendor-pierre.js": 409195,
-      "vendor-router.js": 51278,
+      "vendor.js": 527888,
       "verilog.js": 5931,
       "vesper.js": 12692,
       "vhdl.js": 24264,
       "viml.js": 20365,
-      "vitesse-black.js": 13677,
-      "vitesse-dark.js": 13759,
-      "vitesse-light.js": 13616,
-      "vue-html.js": 8472,
-      "vue-vine.js": 190051,
-      "vue.js": 24484,
+      "vitesse.js": 41052,
+      "vue.js": 223007,
       "vyper.js": 74648,
       "wasm.js": 634343,
       "wenyan.js": 2157,
@@ -341,13 +301,16 @@
     }
   },
   "current": {
-    "totalBytes": 10029271,
+    "totalBytes": 10036497,
     "chunks": {
+      "NewTask.js": 3166,
       "pkl.js": 10372,
       "handlebars.js": 12150,
       "swift.js": 86607,
+      "theme.svelte.js": 1110,
       "clojure.js": 6413,
       "nord.js": 26723,
+      "Device.js": 499,
       "systemd.js": 7869,
       "mermaid.js": 29511,
       "cpp.js": 626081,
@@ -358,69 +321,59 @@
       "racket.js": 92389,
       "graphql.js": 18002,
       "typespec.js": 24020,
-      "github-light-high-contrast.js": 14275,
+      "github.js": 94483,
       "viml.js": 20365,
       "python.js": 69952,
       "zenscript.js": 3912,
       "terraform.js": 11389,
-      "reg-C.js": 2345,
+      "reg.js": 2345,
       "razor.js": 27510,
-      "fortran-fixed-form.js": 1665,
+      "fortran.js": 90634,
       "perl.js": 43156,
       "turtle.js": 3700,
-      "gruvbox-light-soft.js": 22636,
-      "aurora-x-D.js": 13659,
-      "gruvbox-dark-soft.js": 22633,
-      "AppHeader.js": 8057,
+      "gruvbox.js": 135815,
+      "aurora.js": 13659,
       "plastic.js": 9295,
       "wasm.js": 634343,
       "raku.js": 10472,
       "poimandres.js": 33494,
       "ada.js": 48082,
-      "Admin.js": 36340,
       "sdbl.js": 4702,
       "rust.js": 15069,
-      "notifications.svelte.js": 3616,
-      "ts-tags.js": 8948,
+      "ts.js": 8948,
       "crystal.js": 29388,
-      "vitesse-black.js": 13677,
+      "vitesse.js": 41052,
       "ini.js": 1525,
       "vala.js": 3370,
-      "Device.js": 499,
       "jsonnet.js": 3618,
       "codeql.js": 26883,
       "docker.js": 1741,
-      "actionscript-3.js": 14049,
-      "github-dark-default.js": 14435,
+      "actionscript.js": 14049,
       "typst.js": 8387,
-      "github-light-default.js": 14156,
       "Landing.css": 4445,
       "Admin.css": 10750,
       "Settings.css": 7862,
-      "dream-maker.js": 10469,
+      "dream.js": 10469,
       "sas.js": 9062,
       "houston.js": 35422,
       "plsql.js": 8512,
       "wikitext.js": 55885,
       "apex.js": 46985,
       "rst.js": 10673,
-      "github-dark-dimmed.js": 14433,
       "rel.js": 3368,
-      "material-theme.js": 18615,
-      "everforest-light.js": 53748,
+      "material.js": 93142,
+      "everforest.js": 107493,
       "cobol.js": 39148,
       "javascript.js": 174827,
-      "snazzy-light.js": 20773,
+      "snazzy.js": 20773,
       "verilog.js": 5931,
-      "Home.css": 10681,
+      "vendor.js": 527888,
       "move.js": 17331,
       "cmake.js": 9855,
       "templ.js": 24064,
       "dax.js": 5365,
-      "threads.svelte.js": 32245,
       "NewTask.css": 2186,
-      "synthwave-84.js": 14036,
-      "Pair.js": 1685,
+      "synthwave.js": 14036,
       "berry.js": 3005,
       "shaderlab.js": 5922,
       "jsx.js": 177792,
@@ -435,42 +388,36 @@
       "scss.js": 27204,
       "puppet.js": 11437,
       "diff.js": 2569,
-      "git-commit.js": 1230,
+      "git.js": 2213,
       "red.js": 6262,
       "powershell.js": 20151,
-      "dracula.js": 21066,
+      "dracula.js": 42142,
       "bibtex.js": 4795,
-      "html.js": 57247,
-      "rose-pine.js": 21743,
-      "legacy.js": 53,
+      "html.js": 58147,
+      "rose.js": 65250,
       "lua.js": 15205,
-      "night-owl.js": 28913,
-      "vendor-markdown-B.js": 63680,
-      "catppuccin-latte.js": 47256,
+      "night.js": 28913,
+      "catppuccin.js": 189032,
       "erlang.js": 37480,
       "postcss.js": 6417,
       "kotlin.js": 8785,
-      "vitesse-light.js": 13616,
-      "one-dark-pro.js": 33787,
-      "gruvbox-light-medium.js": 22640,
+      "one.js": 59085,
       "tsv.js": 739,
-      "angular-html.js": 24287,
-      "gruvbox-dark-hard.js": 22633,
+      "angular.js": 208107,
       "gn.js": 4002,
       "cue.js": 16204,
-      "everforest-dark.js": 53745,
       "shellscript.js": 41479,
       "smalltalk.js": 6587,
       "tcl.js": 4429,
-      "one-light.js": 25298,
-      "glimmer-ts.js": 20071,
-      "ayu-dark.js": 19837,
+      "glimmer.js": 40142,
+      "ayu.js": 19837,
       "vyper.js": 74648,
       "wgsl.js": 5144,
       "gdresource.js": 5259,
+      "AppHeader.js": 8074,
       "sparql.js": 1480,
       "ProjectPicker.css": 2316,
-      "light-plus.js": 9941,
+      "light.js": 9941,
       "nginx.js": 35374,
       "po.js": 3239,
       "desktop.js": 1833,
@@ -478,40 +425,37 @@
       "r.js": 6541,
       "jssm.js": 2238,
       "solidity.js": 16074,
-      "models.svelte.js": 1850,
-      "rose-pine-moon.js": 21753,
-      "Review.js": 12203,
       "haxe.js": 35164,
       "json.js": 2824,
-      "common-lisp.js": 22581,
+      "common.js": 22581,
       "talonscript.js": 6757,
-      "solarized-dark.js": 6846,
+      "solarized.js": 13326,
       "bat.js": 12888,
       "Review.css": 3281,
       "csv.js": 1143,
       "gleam.js": 2577,
       "fsharp.js": 25305,
+      "Review.js": 11668,
       "clarity.js": 14275,
       "tasl.js": 3288,
-      "catppuccin-mocha.js": 47255,
       "gherkin.js": 11946,
       "julia.js": 31066,
       "marko.js": 25483,
-      "catppuccin-macchiato.js": 47263,
+      "Home.css": 11844,
       "AppHeader.css": 5711,
-      "git-rebase.js": 983,
       "astro.js": 24008,
       "apache.js": 12456,
       "coffee.js": 27422,
       "hjson.js": 12053,
       "markdown.js": 59335,
-      "system-verilog.js": 26203,
+      "system.js": 26203,
       "cypher.js": 5956,
       "xsl.js": 1385,
       "sass.js": 9289,
       "llvm.js": 5040,
       "soy.js": 6981,
       "coq.js": 5526,
+      "index.js": 18593,
       "Device.css": 786,
       "genie.js": 3356,
       "java.js": 27219,
@@ -519,7 +463,7 @@
       "jsonc.js": 3109,
       "zig.js": 5340,
       "vb.js": 6093,
-      "vendor-router.js": 51278,
+      "Home.js": 20582,
       "go.js": 46775,
       "ara.js": 6362,
       "wolfram.js": 262391,
@@ -527,87 +471,71 @@
       "awk.js": 5461,
       "imba.js": 49930,
       "bsl.js": 33867,
-      "nushell-C.js": 20400,
-      "vue.js": 24484,
-      "vendor-pierre.js": 409195,
-      "objective-c.js": 105413,
+      "Thread.css": 27591,
+      "nushell.js": 20400,
+      "vue.js": 223007,
+      "objective.js": 277385,
       "xml.js": 5384,
       "kdl.js": 3629,
+      "notifications.svelte.js": 3616,
       "liquid.js": 18089,
-      "gruvbox-light-hard.js": 22636,
       "hy.js": 2648,
-      "DangerZone.js": 990,
+      "models.svelte.js": 1850,
       "index.css": 7525,
       "toml.js": 6426,
-      "kanagawa-lotus.js": 17126,
+      "kanagawa.js": 51376,
       "dotenv.js": 1422,
-      "emacs-lisp.js": 779854,
-      "vue-vine.js": 190051,
+      "emacs.js": 779854,
       "regexp.js": 7988,
       "logo.js": 3127,
       "lean.js": 5784,
       "hxml.js": 1743,
-      "material-theme-palenight.js": 18635,
-      "kanagawa-wave.js": 17123,
-      "solarized-light.js": 6480,
       "Pair.css": 564,
-      "objective-cpp.js": 171972,
-      "material-theme-lighter.js": 18634,
-      "andromeeda-C.js": 8976,
+      "Pair.js": 1616,
+      "andromeeda.js": 8976,
       "mdx.js": 136114,
-      "material-theme-ocean.js": 18629,
       "polar.js": 4671,
       "powerquery.js": 5903,
-      "min-light.js": 6969,
-      "rose-pine-dawn.js": 21754,
+      "min.js": 13260,
       "bicep.js": 5382,
       "jinja.js": 5685,
+      "Landing.js": 5963,
       "qss.js": 7472,
       "tsx.js": 175536,
       "elixir.js": 16321,
       "twig.js": 21364,
       "ballerina.js": 58693,
       "groovy.js": 19179,
-      "dark-plus.js": 9097,
+      "dark.js": 9097,
       "narrat.js": 3672,
       "fish.js": 13038,
       "sql.js": 23407,
       "stata.js": 56991,
       "prolog.js": 11356,
-      "Home.js": 19062,
-      "gruvbox-dark-medium.js": 22637,
       "hcl.js": 10053,
-      "html-derivative.js": 900,
       "abap.js": 15852,
       "mdc.js": 19634,
-      "ssh-config.js": 3617,
+      "ssh.js": 3617,
       "v.js": 13214,
+      "DangerZone.js": 990,
       "tex.js": 9659,
       "fennel.js": 4768,
       "vesper.js": 12692,
       "wit.js": 21467,
       "hlsl.js": 7264,
-      "kanagawa-dragon.js": 17127,
-      "dracula-soft.js": 21076,
       "haml.js": 8263,
       "codeowners.js": 547,
-      "github-dark.js": 11405,
-      "Settings.js": 20084,
       "cairo.js": 2936,
       "nim.js": 22460,
       "yaml.js": 10506,
-      "glimmer-js.js": 20071,
-      "Landing.js": 5947,
       "asciidoc.js": 131513,
-      "slack-dark.js": 9117,
-      "tokyo-night.js": 35665,
+      "Admin.js": 36267,
+      "slack.js": 18548,
+      "tokyo.js": 35665,
       "erb.js": 2607,
       "scala.js": 28884,
-      "vue-html.js": 8472,
-      "vitesse-dark.js": 13759,
-      "catppuccin-frappe.js": 47258,
+      "Thread.js": 59636,
       "ocaml.js": 62449,
-      "NewTask.js": 3166,
       "pug.js": 13842,
       "mojo.js": 69299,
       "c.js": 72113,
@@ -617,36 +545,32 @@
       "php.js": 110999,
       "pascal.js": 4150,
       "glsl.js": 3634,
-      "fortran-free-form.js": 88969,
       "wenyan.js": 2157,
       "json5.js": 3254,
-      "luau-C.js": 13964,
+      "luau.js": 13964,
       "svelte.js": 18046,
       "elm.js": 10968,
+      "threads.svelte.js": 32245,
       "latex.js": 72194,
       "mipsasm.js": 3259,
-      "material-theme-darker.js": 18629,
       "edge.js": 2363,
+      "Settings.js": 19986,
       "nextflow.js": 4424,
       "make.js": 8961,
       "haskell.js": 41490,
       "shellsession.js": 711,
       "cadence.js": 23669,
       "fluent.js": 3610,
-      "min-dark.js": 6291,
+      "legacy.js": 54,
+      "ProjectPicker.js": 2582,
       "scheme.js": 7169,
       "rosmsg.js": 4523,
-      "index.js": 18723,
       "apl.js": 24039,
       "c3.js": 24886,
       "csharp.js": 87720,
-      "theme.svelte.js": 1110,
       "laserwave.js": 11499,
-      "angular-ts.js": 183820,
-      "Thread.js": 58529,
       "qmldir.js": 1002,
       "less.js": 97633,
-      "ProjectPicker.js": 2656,
       "gdshader.js": 6326,
       "vhdl.js": 24264,
       "proto.js": 6548,
@@ -654,7 +578,6 @@
       "applescript.js": 29571,
       "purescript.js": 24686,
       "prisma.js": 6330,
-      "github-light.js": 11184,
       "css.js": 49023,
       "monokai.js": 7884,
       "beancount.js": 10373,
@@ -662,11 +585,8 @@
       "matlab.js": 16086,
       "stylus.js": 31074,
       "moonbit.js": 5538,
-      "Thread.css": 26945,
       "hurl.js": 3652,
-      "riscv.js": 6914,
-      "slack-ochin.js": 9431,
-      "github-dark-high-contrast.js": 14595
+      "riscv.js": 6914
     }
   },
   "diff": {
@@ -687,13 +607,13 @@
         ]
       },
       "Admin.js": {
-        "baselineBytes": 36340,
-        "currentBytes": 36340,
+        "baselineBytes": 36267,
+        "currentBytes": 36267,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Admin-HQx1PlFP.js"
+          "Admin-52CvUMQf.js"
         ]
       },
       "AppHeader.css": {
@@ -707,13 +627,13 @@
         ]
       },
       "AppHeader.js": {
-        "baselineBytes": 8057,
-        "currentBytes": 8057,
+        "baselineBytes": 8074,
+        "currentBytes": 8074,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "AppHeader-Dg67urOp.js"
+          "AppHeader-CiqGjVJP.js"
         ]
       },
       "DangerZone.css": {
@@ -733,7 +653,7 @@
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "DangerZone-C6jNal4y.js"
+          "DangerZone-DzygO6tQ.js"
         ]
       },
       "Device.css": {
@@ -753,27 +673,27 @@
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Device-ceZ-Uoxb.js"
+          "Device-Bw6n4FBe.js"
         ]
       },
       "Home.css": {
-        "baselineBytes": 10681,
-        "currentBytes": 10681,
+        "baselineBytes": 11844,
+        "currentBytes": 11844,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Home-KeWXtvrE.css"
+          "Home-DZWalx65.css"
         ]
       },
       "Home.js": {
-        "baselineBytes": 19062,
-        "currentBytes": 19062,
+        "baselineBytes": 20582,
+        "currentBytes": 20582,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Home-S4zS6OjL.js"
+          "Home-F9AwcMu0.js"
         ]
       },
       "Landing.css": {
@@ -787,13 +707,13 @@
         ]
       },
       "Landing.js": {
-        "baselineBytes": 5947,
-        "currentBytes": 5947,
+        "baselineBytes": 5963,
+        "currentBytes": 5963,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Landing-ComRfodw.js"
+          "Landing-D0ZjHWN7.js"
         ]
       },
       "NewTask.css": {
@@ -813,7 +733,7 @@
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "NewTask-CfrMKjbo.js"
+          "NewTask-S_HgY8bt.js"
         ]
       },
       "Pair.css": {
@@ -827,13 +747,13 @@
         ]
       },
       "Pair.js": {
-        "baselineBytes": 1685,
-        "currentBytes": 1685,
+        "baselineBytes": 1616,
+        "currentBytes": 1616,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Pair-UDft1Jgu.js"
+          "Pair-CTzpPzXw.js"
         ]
       },
       "ProjectPicker.css": {
@@ -847,13 +767,13 @@
         ]
       },
       "ProjectPicker.js": {
-        "baselineBytes": 2656,
-        "currentBytes": 2656,
+        "baselineBytes": 2582,
+        "currentBytes": 2582,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "ProjectPicker-DtX8mFjR.js"
+          "ProjectPicker-BGjbGHS2.js"
         ]
       },
       "Review.css": {
@@ -867,13 +787,13 @@
         ]
       },
       "Review.js": {
-        "baselineBytes": 12203,
-        "currentBytes": 12203,
+        "baselineBytes": 11668,
+        "currentBytes": 11668,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Review-ghIYyXRk.js"
+          "Review-C_-55jjY.js"
         ]
       },
       "Settings.css": {
@@ -887,33 +807,33 @@
         ]
       },
       "Settings.js": {
-        "baselineBytes": 20084,
-        "currentBytes": 20084,
+        "baselineBytes": 19986,
+        "currentBytes": 19986,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Settings-BD5RSPXb.js"
+          "Settings-100nyoAT.js"
         ]
       },
       "Thread.css": {
-        "baselineBytes": 26945,
-        "currentBytes": 26945,
+        "baselineBytes": 27591,
+        "currentBytes": 27591,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Thread-fp_effu6.css"
+          "Thread-D9oqSZF6.css"
         ]
       },
       "Thread.js": {
-        "baselineBytes": 58529,
-        "currentBytes": 58529,
+        "baselineBytes": 59636,
+        "currentBytes": 59636,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "Thread-D_R1CIDG.js"
+          "Thread-DQX4-wlt.js"
         ]
       },
       "abap.js": {
@@ -926,7 +846,7 @@
           "abap-BdImnpbu.js"
         ]
       },
-      "actionscript-3.js": {
+      "actionscript.js": {
         "baselineBytes": 14049,
         "currentBytes": 14049,
         "deltaBytes": 0,
@@ -946,7 +866,7 @@
           "ada-bCR0ucgS.js"
         ]
       },
-      "andromeeda-C.js": {
+      "andromeeda.js": {
         "baselineBytes": 8976,
         "currentBytes": 8976,
         "deltaBytes": 0,
@@ -956,23 +876,14 @@
           "andromeeda-C-Jbm3Hp.js"
         ]
       },
-      "angular-html.js": {
-        "baselineBytes": 24287,
-        "currentBytes": 24287,
+      "angular.js": {
+        "baselineBytes": 208107,
+        "currentBytes": 208107,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "angular-html-CU67Zn6k.js"
-        ]
-      },
-      "angular-ts.js": {
-        "baselineBytes": 183820,
-        "currentBytes": 183820,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "angular-html-CU67Zn6k.js",
           "angular-ts-BwZT4LLn.js"
         ]
       },
@@ -1056,7 +967,7 @@
           "astro-CbQHKStN.js"
         ]
       },
-      "aurora-x-D.js": {
+      "aurora.js": {
         "baselineBytes": 13659,
         "currentBytes": 13659,
         "deltaBytes": 0,
@@ -1076,7 +987,7 @@
           "awk-DMzUqQB5.js"
         ]
       },
-      "ayu-dark.js": {
+      "ayu.js": {
         "baselineBytes": 19837,
         "currentBytes": 19837,
         "deltaBytes": 0,
@@ -1206,43 +1117,16 @@
           "cairo-KRGpt6FW.js"
         ]
       },
-      "catppuccin-frappe.js": {
-        "baselineBytes": 47258,
-        "currentBytes": 47258,
+      "catppuccin.js": {
+        "baselineBytes": 189032,
+        "currentBytes": 189032,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "catppuccin-frappe-DFWUc33u.js"
-        ]
-      },
-      "catppuccin-latte.js": {
-        "baselineBytes": 47256,
-        "currentBytes": 47256,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "catppuccin-latte-C9dUb6Cb.js"
-        ]
-      },
-      "catppuccin-macchiato.js": {
-        "baselineBytes": 47263,
-        "currentBytes": 47263,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "catppuccin-macchiato-DQyhUUbL.js"
-        ]
-      },
-      "catppuccin-mocha.js": {
-        "baselineBytes": 47255,
-        "currentBytes": 47255,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "catppuccin-frappe-DFWUc33u.js",
+          "catppuccin-latte-C9dUb6Cb.js",
+          "catppuccin-macchiato-DQyhUUbL.js",
           "catppuccin-mocha-D87Tk5Gz.js"
         ]
       },
@@ -1316,7 +1200,7 @@
           "coffee-Ch7k5sss.js"
         ]
       },
-      "common-lisp.js": {
+      "common.js": {
         "baselineBytes": 22581,
         "currentBytes": 22581,
         "deltaBytes": 0,
@@ -1416,7 +1300,7 @@
           "d-85-TOEBH.js"
         ]
       },
-      "dark-plus.js": {
+      "dark.js": {
         "baselineBytes": 9097,
         "currentBytes": 9097,
         "deltaBytes": 0,
@@ -1486,27 +1370,18 @@
           "dotenv-Da5cRb03.js"
         ]
       },
-      "dracula-soft.js": {
-        "baselineBytes": 21076,
-        "currentBytes": 21076,
+      "dracula.js": {
+        "baselineBytes": 42142,
+        "currentBytes": 42142,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
+          "dracula-BzJJZx-M.js",
           "dracula-soft-BXkSAIEj.js"
         ]
       },
-      "dracula.js": {
-        "baselineBytes": 21066,
-        "currentBytes": 21066,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "dracula-BzJJZx-M.js"
-        ]
-      },
-      "dream-maker.js": {
+      "dream.js": {
         "baselineBytes": 10469,
         "currentBytes": 10469,
         "deltaBytes": 0,
@@ -1546,7 +1421,7 @@
           "elm-DbKCFpqz.js"
         ]
       },
-      "emacs-lisp.js": {
+      "emacs.js": {
         "baselineBytes": 779854,
         "currentBytes": 779854,
         "deltaBytes": 0,
@@ -1576,23 +1451,14 @@
           "erlang-DsQrWhSR.js"
         ]
       },
-      "everforest-dark.js": {
-        "baselineBytes": 53745,
-        "currentBytes": 53745,
+      "everforest.js": {
+        "baselineBytes": 107493,
+        "currentBytes": 107493,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "everforest-dark-BgDCqdQA.js"
-        ]
-      },
-      "everforest-light.js": {
-        "baselineBytes": 53748,
-        "currentBytes": 53748,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "everforest-dark-BgDCqdQA.js",
           "everforest-light-C8M2exoo.js"
         ]
       },
@@ -1626,23 +1492,14 @@
           "fluent-C4IJs8-o.js"
         ]
       },
-      "fortran-fixed-form.js": {
-        "baselineBytes": 1665,
-        "currentBytes": 1665,
+      "fortran.js": {
+        "baselineBytes": 90634,
+        "currentBytes": 90634,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "fortran-fixed-form-CkoXwp7k.js"
-        ]
-      },
-      "fortran-free-form.js": {
-        "baselineBytes": 88969,
-        "currentBytes": 88969,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "fortran-fixed-form-CkoXwp7k.js",
           "fortran-free-form-BxgE0vQu.js"
         ]
       },
@@ -1706,94 +1563,31 @@
           "gherkin-DyxjwDmM.js"
         ]
       },
-      "git-commit.js": {
-        "baselineBytes": 1230,
-        "currentBytes": 1230,
+      "git.js": {
+        "baselineBytes": 2213,
+        "currentBytes": 2213,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "git-commit-F4YmCXRG.js"
-        ]
-      },
-      "git-rebase.js": {
-        "baselineBytes": 983,
-        "currentBytes": 983,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "git-commit-F4YmCXRG.js",
           "git-rebase-r7XF79zn.js"
         ]
       },
-      "github-dark-default.js": {
-        "baselineBytes": 14435,
-        "currentBytes": 14435,
+      "github.js": {
+        "baselineBytes": 94483,
+        "currentBytes": 94483,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "github-dark-default-Cuk6v7N8.js"
-        ]
-      },
-      "github-dark-dimmed.js": {
-        "baselineBytes": 14433,
-        "currentBytes": 14433,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "github-dark-dimmed-DH5Ifo-i.js"
-        ]
-      },
-      "github-dark-high-contrast.js": {
-        "baselineBytes": 14595,
-        "currentBytes": 14595,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "github-dark-high-contrast-E3gJ1_iC.js"
-        ]
-      },
-      "github-dark.js": {
-        "baselineBytes": 11405,
-        "currentBytes": 11405,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "github-dark-DHJKELXO.js"
-        ]
-      },
-      "github-light-default.js": {
-        "baselineBytes": 14156,
-        "currentBytes": 14156,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "github-light-default-D7oLnXFd.js"
-        ]
-      },
-      "github-light-high-contrast.js": {
-        "baselineBytes": 14275,
-        "currentBytes": 14275,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "github-dark-DHJKELXO.js",
+          "github-dark-default-Cuk6v7N8.js",
+          "github-dark-dimmed-DH5Ifo-i.js",
+          "github-dark-high-contrast-E3gJ1_iC.js",
+          "github-light-DAi9KRSo.js",
+          "github-light-default-D7oLnXFd.js",
           "github-light-high-contrast-BfjtVDDH.js"
-        ]
-      },
-      "github-light.js": {
-        "baselineBytes": 11184,
-        "currentBytes": 11184,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "github-light-DAi9KRSo.js"
         ]
       },
       "gleam.js": {
@@ -1806,23 +1600,14 @@
           "gleam-BspZqrRM.js"
         ]
       },
-      "glimmer-js.js": {
-        "baselineBytes": 20071,
-        "currentBytes": 20071,
+      "glimmer.js": {
+        "baselineBytes": 40142,
+        "currentBytes": 40142,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "glimmer-js-Rg0-pVw9.js"
-        ]
-      },
-      "glimmer-ts.js": {
-        "baselineBytes": 20071,
-        "currentBytes": 20071,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "glimmer-js-Rg0-pVw9.js",
           "glimmer-ts-U6CK756n.js"
         ]
       },
@@ -1886,63 +1671,18 @@
           "groovy-gcz8RCvz.js"
         ]
       },
-      "gruvbox-dark-hard.js": {
-        "baselineBytes": 22633,
-        "currentBytes": 22633,
+      "gruvbox.js": {
+        "baselineBytes": 135815,
+        "currentBytes": 135815,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "gruvbox-dark-hard-CFHQjOhq.js"
-        ]
-      },
-      "gruvbox-dark-medium.js": {
-        "baselineBytes": 22637,
-        "currentBytes": 22637,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "gruvbox-dark-medium-GsRaNv29.js"
-        ]
-      },
-      "gruvbox-dark-soft.js": {
-        "baselineBytes": 22633,
-        "currentBytes": 22633,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "gruvbox-dark-soft-CVdnzihN.js"
-        ]
-      },
-      "gruvbox-light-hard.js": {
-        "baselineBytes": 22636,
-        "currentBytes": 22636,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "gruvbox-light-hard-CH1njM8p.js"
-        ]
-      },
-      "gruvbox-light-medium.js": {
-        "baselineBytes": 22640,
-        "currentBytes": 22640,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "gruvbox-light-medium-DRw_LuNl.js"
-        ]
-      },
-      "gruvbox-light-soft.js": {
-        "baselineBytes": 22636,
-        "currentBytes": 22636,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "gruvbox-dark-hard-CFHQjOhq.js",
+          "gruvbox-dark-medium-GsRaNv29.js",
+          "gruvbox-dark-soft-CVdnzihN.js",
+          "gruvbox-light-hard-CH1njM8p.js",
+          "gruvbox-light-medium-DRw_LuNl.js",
           "gruvbox-light-soft-hJgmCMqR.js"
         ]
       },
@@ -2036,24 +1776,15 @@
           "houston-DnULxvSX.js"
         ]
       },
-      "html-derivative.js": {
-        "baselineBytes": 900,
-        "currentBytes": 900,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "html-derivative-BFtXZ54Q.js"
-        ]
-      },
       "html.js": {
-        "baselineBytes": 57247,
-        "currentBytes": 57247,
+        "baselineBytes": 58147,
+        "currentBytes": 58147,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "html-GMplVEZG.js"
+          "html-GMplVEZG.js",
+          "html-derivative-BFtXZ54Q.js"
         ]
       },
       "http.js": {
@@ -2117,13 +1848,13 @@
         ]
       },
       "index.js": {
-        "baselineBytes": 18723,
-        "currentBytes": 18723,
+        "baselineBytes": 18593,
+        "currentBytes": 18593,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "index-UE5flfu2.js"
+          "index-9ch9Dnu5.js"
         ]
       },
       "ini.js": {
@@ -2256,33 +1987,15 @@
           "julia-CxzCAyBv.js"
         ]
       },
-      "kanagawa-dragon.js": {
-        "baselineBytes": 17127,
-        "currentBytes": 17127,
+      "kanagawa.js": {
+        "baselineBytes": 51376,
+        "currentBytes": 51376,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "kanagawa-dragon-CkXjmgJE.js"
-        ]
-      },
-      "kanagawa-lotus.js": {
-        "baselineBytes": 17126,
-        "currentBytes": 17126,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "kanagawa-lotus-CfQXZHmo.js"
-        ]
-      },
-      "kanagawa-wave.js": {
-        "baselineBytes": 17123,
-        "currentBytes": 17123,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "kanagawa-dragon-CkXjmgJE.js",
+          "kanagawa-lotus-CfQXZHmo.js",
           "kanagawa-wave-DWedfzmr.js"
         ]
       },
@@ -2347,13 +2060,13 @@
         ]
       },
       "legacy.js": {
-        "baselineBytes": 53,
-        "currentBytes": 53,
+        "baselineBytes": 54,
+        "currentBytes": 54,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "legacy-donOb7sf.js"
+          "legacy-0Ju6ZlPv.js"
         ]
       },
       "less.js": {
@@ -2366,7 +2079,7 @@
           "less-B1dDrJ26.js"
         ]
       },
-      "light-plus.js": {
+      "light.js": {
         "baselineBytes": 9941,
         "currentBytes": 9941,
         "deltaBytes": 0,
@@ -2426,7 +2139,7 @@
           "lua-BbnMAYS6.js"
         ]
       },
-      "luau-C.js": {
+      "luau.js": {
         "baselineBytes": 13964,
         "currentBytes": 13964,
         "deltaBytes": 0,
@@ -2466,54 +2179,18 @@
           "marko-DZsq8hO1.js"
         ]
       },
-      "material-theme-darker.js": {
-        "baselineBytes": 18629,
-        "currentBytes": 18629,
+      "material.js": {
+        "baselineBytes": 93142,
+        "currentBytes": 93142,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "material-theme-darker-BfHTSMKl.js"
-        ]
-      },
-      "material-theme-lighter.js": {
-        "baselineBytes": 18634,
-        "currentBytes": 18634,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "material-theme-lighter-B0m2ddpp.js"
-        ]
-      },
-      "material-theme-ocean.js": {
-        "baselineBytes": 18629,
-        "currentBytes": 18629,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "material-theme-ocean-CyktbL80.js"
-        ]
-      },
-      "material-theme-palenight.js": {
-        "baselineBytes": 18635,
-        "currentBytes": 18635,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "material-theme-D5KoaKCx.js",
+          "material-theme-darker-BfHTSMKl.js",
+          "material-theme-lighter-B0m2ddpp.js",
+          "material-theme-ocean-CyktbL80.js",
           "material-theme-palenight-Csfq5Kiy.js"
-        ]
-      },
-      "material-theme.js": {
-        "baselineBytes": 18615,
-        "currentBytes": 18615,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "material-theme-D5KoaKCx.js"
         ]
       },
       "matlab.js": {
@@ -2556,23 +2233,14 @@
           "mermaid-mWjccvbQ.js"
         ]
       },
-      "min-dark.js": {
-        "baselineBytes": 6291,
-        "currentBytes": 6291,
+      "min.js": {
+        "baselineBytes": 13260,
+        "currentBytes": 13260,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "min-dark-CafNBF8u.js"
-        ]
-      },
-      "min-light.js": {
-        "baselineBytes": 6969,
-        "currentBytes": 6969,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "min-dark-CafNBF8u.js",
           "min-light-CTRr51gU.js"
         ]
       },
@@ -2593,7 +2261,7 @@
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "models.svelte-uazqDdiY.js"
+          "models.svelte-h8iSoghu.js"
         ]
       },
       "mojo.js": {
@@ -2666,7 +2334,7 @@
           "nginx-DknmC5AR.js"
         ]
       },
-      "night-owl.js": {
+      "night.js": {
         "baselineBytes": 28913,
         "currentBytes": 28913,
         "deltaBytes": 0,
@@ -2713,10 +2381,10 @@
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "notifications.svelte-CDtIcHmR.js"
+          "notifications.svelte-DR3r57W7.js"
         ]
       },
-      "nushell-C.js": {
+      "nushell.js": {
         "baselineBytes": 20400,
         "currentBytes": 20400,
         "deltaBytes": 0,
@@ -2726,23 +2394,14 @@
           "nushell-C-sUppwS.js"
         ]
       },
-      "objective-c.js": {
-        "baselineBytes": 105413,
-        "currentBytes": 105413,
+      "objective.js": {
+        "baselineBytes": 277385,
+        "currentBytes": 277385,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "objective-c-DXmwc3jG.js"
-        ]
-      },
-      "objective-cpp.js": {
-        "baselineBytes": 171972,
-        "currentBytes": 171972,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "objective-c-DXmwc3jG.js",
           "objective-cpp-CLxacb5B.js"
         ]
       },
@@ -2756,23 +2415,14 @@
           "ocaml-C0hk2d4L.js"
         ]
       },
-      "one-dark-pro.js": {
-        "baselineBytes": 33787,
-        "currentBytes": 33787,
+      "one.js": {
+        "baselineBytes": 59085,
+        "currentBytes": 59085,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "one-dark-pro-DVMEJ2y_.js"
-        ]
-      },
-      "one-light.js": {
-        "baselineBytes": 25298,
-        "currentBytes": 25298,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "one-dark-pro-DVMEJ2y_.js",
           "one-light-PoHY5YXO.js"
         ]
       },
@@ -3066,7 +2716,7 @@
           "red-bN70gL4F.js"
         ]
       },
-      "reg-C.js": {
+      "reg.js": {
         "baselineBytes": 2345,
         "currentBytes": 2345,
         "deltaBytes": 0,
@@ -3106,33 +2756,15 @@
           "riscv-BM1_JUlF.js"
         ]
       },
-      "rose-pine-dawn.js": {
-        "baselineBytes": 21754,
-        "currentBytes": 21754,
+      "rose.js": {
+        "baselineBytes": 65250,
+        "currentBytes": 65250,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "rose-pine-dawn-DHQR4-dF.js"
-        ]
-      },
-      "rose-pine-moon.js": {
-        "baselineBytes": 21753,
-        "currentBytes": 21753,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "rose-pine-moon-D4_iv3hh.js"
-        ]
-      },
-      "rose-pine.js": {
-        "baselineBytes": 21743,
-        "currentBytes": 21743,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "rose-pine-dawn-DHQR4-dF.js",
+          "rose-pine-moon-D4_iv3hh.js",
           "rose-pine-qdsjHGoJ.js"
         ]
       },
@@ -3266,23 +2898,14 @@
           "shellsession-BADoaaVG.js"
         ]
       },
-      "slack-dark.js": {
-        "baselineBytes": 9117,
-        "currentBytes": 9117,
+      "slack.js": {
+        "baselineBytes": 18548,
+        "currentBytes": 18548,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "slack-dark-BthQWCQV.js"
-        ]
-      },
-      "slack-ochin.js": {
-        "baselineBytes": 9431,
-        "currentBytes": 9431,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "slack-dark-BthQWCQV.js",
           "slack-ochin-DqwNpetd.js"
         ]
       },
@@ -3296,7 +2919,7 @@
           "smalltalk-BERRCDM3.js"
         ]
       },
-      "snazzy-light.js": {
+      "snazzy.js": {
         "baselineBytes": 20773,
         "currentBytes": 20773,
         "deltaBytes": 0,
@@ -3306,23 +2929,14 @@
           "snazzy-light-Bw305WKR.js"
         ]
       },
-      "solarized-dark.js": {
-        "baselineBytes": 6846,
-        "currentBytes": 6846,
+      "solarized.js": {
+        "baselineBytes": 13326,
+        "currentBytes": 13326,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "solarized-dark-DXbdFlpD.js"
-        ]
-      },
-      "solarized-light.js": {
-        "baselineBytes": 6480,
-        "currentBytes": 6480,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "solarized-dark-DXbdFlpD.js",
           "solarized-light-L9t79GZl.js"
         ]
       },
@@ -3376,7 +2990,7 @@
           "sql-BLtJtn59.js"
         ]
       },
-      "ssh-config.js": {
+      "ssh.js": {
         "baselineBytes": 3617,
         "currentBytes": 3617,
         "deltaBytes": 0,
@@ -3426,7 +3040,7 @@
           "swift-Dg5xB15N.js"
         ]
       },
-      "synthwave-84.js": {
+      "synthwave.js": {
         "baselineBytes": 14036,
         "currentBytes": 14036,
         "deltaBytes": 0,
@@ -3436,7 +3050,7 @@
           "synthwave-84-CbfX1IO0.js"
         ]
       },
-      "system-verilog.js": {
+      "system.js": {
         "baselineBytes": 26203,
         "currentBytes": 26203,
         "deltaBytes": 0,
@@ -3523,7 +3137,7 @@
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "theme.svelte-C4FvRVfF.js"
+          "theme.svelte-DKCSiJsg.js"
         ]
       },
       "threads.svelte.js": {
@@ -3533,10 +3147,10 @@
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "threads.svelte-D9eu8gpl.js"
+          "threads.svelte-B1KwIt-A.js"
         ]
       },
-      "tokyo-night.js": {
+      "tokyo.js": {
         "baselineBytes": 35665,
         "currentBytes": 35665,
         "deltaBytes": 0,
@@ -3556,7 +3170,7 @@
           "toml-vGWfd6FD.js"
         ]
       },
-      "ts-tags.js": {
+      "ts.js": {
         "baselineBytes": 8948,
         "currentBytes": 8948,
         "deltaBytes": 0,
@@ -3666,34 +3280,16 @@
           "vb-D17OF-Vu.js"
         ]
       },
-      "vendor-markdown-B.js": {
-        "baselineBytes": 63680,
-        "currentBytes": 63680,
+      "vendor.js": {
+        "baselineBytes": 527888,
+        "currentBytes": 527888,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "vendor-markdown-B-YAsVbD.js"
-        ]
-      },
-      "vendor-pierre.js": {
-        "baselineBytes": 409195,
-        "currentBytes": 409195,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "vendor-pierre-BnHSWcHk.js"
-        ]
-      },
-      "vendor-router.js": {
-        "baselineBytes": 51278,
-        "currentBytes": 51278,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "vendor-router-BBjlm5hv.js"
+          "vendor-markdown-B-YAsVbD.js",
+          "vendor-pierre-DgRmSo22.js",
+          "vendor-router-CyLPbIjr.js"
         ]
       },
       "verilog.js": {
@@ -3736,64 +3332,28 @@
           "viml-CJc9bBzg.js"
         ]
       },
-      "vitesse-black.js": {
-        "baselineBytes": 13677,
-        "currentBytes": 13677,
+      "vitesse.js": {
+        "baselineBytes": 41052,
+        "currentBytes": 41052,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "vitesse-black-Bkuqu6BP.js"
-        ]
-      },
-      "vitesse-dark.js": {
-        "baselineBytes": 13759,
-        "currentBytes": 13759,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "vitesse-dark-D0r3Knsf.js"
-        ]
-      },
-      "vitesse-light.js": {
-        "baselineBytes": 13616,
-        "currentBytes": 13616,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
+          "vitesse-black-Bkuqu6BP.js",
+          "vitesse-dark-D0r3Knsf.js",
           "vitesse-light-CVO1_9PV.js"
         ]
       },
-      "vue-html.js": {
-        "baselineBytes": 8472,
-        "currentBytes": 8472,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "vue-html-AaS7Mt5G.js"
-        ]
-      },
-      "vue-vine.js": {
-        "baselineBytes": 190051,
-        "currentBytes": 190051,
-        "deltaBytes": 0,
-        "deltaPct": 0.0,
-        "status": "ok",
-        "sources": [
-          "vue-vine-CQOfvN7w.js"
-        ]
-      },
       "vue.js": {
-        "baselineBytes": 24484,
-        "currentBytes": 24484,
+        "baselineBytes": 223007,
+        "currentBytes": 223007,
         "deltaBytes": 0,
         "deltaPct": 0.0,
         "status": "ok",
         "sources": [
-          "vue-DN_0RTcg.js"
+          "vue-DN_0RTcg.js",
+          "vue-html-AaS7Mt5G.js",
+          "vue-vine-CQOfvN7w.js"
         ]
       },
       "vyper.js": {
