@@ -588,36 +588,48 @@
                   </span>
                 </a>
                 <button
-                  class="export-btn"
+                  class="export-btn thread-action-btn"
                   onclick={(e) => {
                     e.stopPropagation();
                     exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
                   }}
-                  title="Share/export thread as Markdown"
+                  disabled={thread.provider === "copilot-acp" || readonly}
+                  title={thread.provider === "copilot-acp"
+                    ? "Copilot sessions are read-only in Phase 1"
+                    : "Share/export thread as Markdown"}
                 >⇪</button>
                 <button
-                  class="export-btn"
+                  class="export-btn thread-action-btn"
                   onclick={(e) => {
                     e.stopPropagation();
                     exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
                   }}
-                  title="Share/export thread as JSON"
+                  disabled={thread.provider === "copilot-acp" || readonly}
+                  title={thread.provider === "copilot-acp"
+                    ? "Copilot sessions are read-only in Phase 1"
+                    : "Share/export thread as JSON"}
                 >⎘</button>
                 <button
-                  class="export-btn"
+                  class="export-btn thread-action-btn"
                   onclick={(e) => {
                     e.stopPropagation();
                     exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
                   }}
-                  title="Share/export thread as HTML"
+                  disabled={thread.provider === "copilot-acp" || readonly}
+                  title={thread.provider === "copilot-acp"
+                    ? "Copilot sessions are read-only in Phase 1"
+                    : "Share/export thread as HTML"}
                 >⌘</button>
                 <button
-                  class="export-btn"
+                  class="export-btn thread-action-btn"
                   onclick={(e) => {
                     e.stopPropagation();
                     exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
                   }}
-                  title="Print/export thread as PDF"
+                  disabled={thread.provider === "copilot-acp" || readonly}
+                  title={thread.provider === "copilot-acp"
+                    ? "Copilot sessions are read-only in Phase 1"
+                    : "Print/export thread as PDF"}
                 >PDF</button>
 
                 <button
@@ -628,7 +640,7 @@
                     ? "Copilot sessions are read-only in Phase 1"
                     : "Rename thread"}
                 >
-                  ✏️
+                  ✎
                 </button>
                 <button
                   class="thread-action-btn archive-btn"
@@ -638,7 +650,7 @@
                     ? "Copilot sessions are read-only in Phase 1"
                     : "Archive thread"}
                 >
-                  📦
+                  ×
                 </button>
               </li>
             {/each}
