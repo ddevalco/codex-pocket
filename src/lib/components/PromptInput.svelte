@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import type { ModeKind, ModelOption, ReasoningEffort } from "../types";
   import type { AgentPreset } from "../presets";
   import { api } from "../api";
   import { loadQuickReplies, type QuickReply } from "../quickReplies";
+  import { drafts } from "../drafts.svelte";
 
 	  interface Props {
     model: string;
@@ -12,6 +14,7 @@
     modelOptions?: ModelOption[];
     modelsLoading?: boolean;
     disabled?: boolean;
+    draftKey?: string;
     onStop?: () => void;
 	    onSubmit: (input: string, attachments?: ImageAttachment[]) => void;
 	    onModelChange: (model: string) => void;
@@ -36,6 +39,7 @@
     modelOptions = [],
     modelsLoading = false,
     disabled = false,
+    draftKey,
     onStop,
     onSubmit,
     onModelChange,
@@ -69,10 +73,45 @@
     quickReplies = loadQuickReplies();
   });
 
+
+  let uploadBusy = $state(false);
+  let uploadError = $state<string | null>(null);
+  let pendingAttachments = $state<ImageAttachment[]>([]);
+
   const canSubmit = $derived((input.trim().length > 0 || pendingAttachments.length > 0) && !disabled);
-	  let uploadBusy = $state(false);
-	  let uploadError = $state<string | null>(null);
-	  let pendingAttachments = $state<ImageAttachment[]>([]);
+
+  // Restore draft when draftKey changes
+  $effect(() => {
+    if (draftKey) {
+      untrack(() => {
+        const draft = drafts.get(draftKey!);
+        if (draft) {
+          input = draft.text;
+          pendingAttachments = [...draft.attachments];
+        } else {
+           // Clear input when switching to a thread with no draft
+           // This handles navigation between threads correctly
+           input = "";
+           pendingAttachments = [];
+        }
+      });
+    }
+  });
+
+  // Save changes to draft
+  $effect(() => {
+    if (draftKey) {
+      // Create local references to track changes
+      const currentInput = input;
+      const currentAttachments = pendingAttachments;
+      
+      // Store has built-in debounce
+      untrack(() => {
+         drafts.set(draftKey!, currentInput, currentAttachments);
+      });
+    }
+  });
+
 
   const reasoningOptions: { value: ReasoningEffort; label: string }[] = [
     { value: "low", label: "Low" },
@@ -274,7 +313,30 @@
 
     <div class="footer split">
       <div class="tools row">
-	        <!-- Image upload -->
+        <!-- Draft Indicator -->
+        {#if draftKey && (input.length > 0 || pendingAttachments.length > 0)}
+          <div class="draft-indicator row">
+            <span class="draft-label">Draft saved</span>
+            <button
+              type="button"
+              class="draft-clear-btn"
+              onclick={() => {
+                input = "";
+                pendingAttachments = [];
+                drafts.deleteDraft(draftKey!);
+              }}
+              title="Clear draft"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <div class="draft-separator"></div>
+          </div>
+        {/if}
+
+        <!-- Image upload -->
 	        <!--
 	          On iOS Safari, `capture` forces the camera UI and can hide the photo library picker.
 	          We want the user to be able to choose either Camera or Photo Library.
@@ -785,6 +847,43 @@
 
   .stop-btn:hover {
     opacity: 0.85;
+  }
+
+
+  .draft-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-xs);
+    color: var(--cli-text-dim);
+    margin-right: 8px;
+    padding-right: 8px;
+    border-right: 1px solid var(--cli-border);
+  }
+
+  .draft-label {
+    white-space: nowrap;
+    font-style: italic;
+  }
+
+  .draft-clear-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border-radius: 50%;
+    color: var(--cli-text-muted);
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .draft-clear-btn:hover {
+    color: var(--cli-error);
+    background: var(--cli-bg-hover);
   }
 
   @media (max-width: 480px) {
