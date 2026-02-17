@@ -36,6 +36,37 @@ These are intentionally small, targeted checks that catch regressions that are e
 detect with a generic smoke test. Example: a past thread-list regression where reactive state bookkeeping inside
 an effect created a feedback loop and made the thread list appear empty/unusable.
 
+## Bundle Size Guardrails
+
+CI automatically checks the size of the production build against a committed baseline (`.bundlesize.baseline.json`).
+
+### When CI Fails
+
+The check will fail if:
+
+- Total bundle size increases by more than **5%**.
+- Any individual chunk increases by more than **10%** (for chunks > 1KB).
+
+These thresholds prevent accidental "bundle bloat" from new dependencies or logic while allowing for minor fluctuations.
+
+### Updating the Baseline
+
+If a feature legitimately increases the bundle size (e.g., adding a new major feature or library), the baseline should be updated to reflect the new state.
+
+1. Ensure you have a standard production build:
+
+   ```bash
+   npm run build
+   ```
+
+2. Generate a new baseline file:
+
+   ```bash
+   python3 scripts/generate-baseline.py
+   ```
+
+3. Commit the updated `.bundlesize.baseline.json` as part of your pull request.
+
 ## Does CI Cost Money?
 
 - Public repos: GitHub Actions is available without paying for it.
