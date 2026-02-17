@@ -47,8 +47,7 @@ def normalize(name: str) -> str:
 
 baseline_chunks = {}
 for name, size in baseline_chunks_raw.items():
-    norm = normalize(name)
-    baseline_chunks[norm] = baseline_chunks.get(norm, 0) + int(size)
+    baseline_chunks[name] = baseline_chunks.get(name, 0) + int(size)
 
 current_chunks = {}
 current_sources = {}
