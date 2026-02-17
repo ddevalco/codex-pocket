@@ -1,6 +1,15 @@
 # ACP + Codex Multi-Provider Integration Epic
 
-Date: 2026-02-15
+Date: 2026-02-16
+
+## Status
+
+- ✅ **Phase 0**: Contracts & Schemas (PR #138, merged)
+- ✅ **Phase 1**: Registry & Read-Only Adapter (PR #143, merged)
+- 🚧 **Phase 2**: Prompt Send + Streaming (planned)
+- 📋 **Phase 3**: Home UI Grouping (planned)
+- 📋 **Phase 4**: Capability Matrix (planned)
+- 📋 **Phase 5**: Hardening (planned)
 
 ## Summary
 
@@ -172,17 +181,48 @@ All providers declare capabilities via `ProviderCapabilities`:
 
 **Next phase:** Phase 1 — Read-Only ACP Session Ingestion
 
-### Phase 1 — Read-Only ACP Session Ingestion
+## Phase 1: Registry & Read-Only Adapter ✅
 
-- spawn Copilot ACP server
-- ingest/list sessions into Home provider groups
-- no write actions yet
+**Completed:** 2026-02-16
+**PR:** #143
+**Scope:** Copilot ACP session listing in Home UI (read-only)
 
-### Phase 2 — ACP Prompt + Stream
+### Implemented
 
-- open session and send prompt
-- stream updates into normalized timeline
-- basic interruption/error surfacing
+- ✅ ProviderRegistry with lifecycle management
+- ✅ CopilotAcpAdapter with process spawning and health checks
+- ✅ AcpClient for JSON-RPC communication
+- ✅ ACPSessionNormalizer for session transformation
+- ✅ Thread list augmentation with ACP sessions
+- ✅ Read-only enforcement at relay layer
+- ✅ Home UI provider grouping (Codex vs Copilot sections)
+- ✅ Action gating (archive/rename disabled for Copilot)
+- ✅ Unit tests for registry, client, and normalizers
+
+### Validation
+
+- Copilot sessions visible in Home UI with `provider: 'copilot-acp'`
+- Provider sections display correctly with read-only badges
+- Write operations blocked with JSON-RPC error
+- Graceful degradation when Copilot CLI not installed
+- All tests passing, TypeScript compilation clean
+- No regressions to existing Codex functionality
+
+### Key Files
+
+- `services/local-orbit/src/providers/registry.ts` - Provider registry
+- `services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts` - Copilot adapter
+- `services/local-orbit/src/providers/adapters/acp-client.ts` - JSON-RPC client
+- `services/local-orbit/src/providers/normalizers/session-normalizer.ts` - Session normalization
+- `services/local-orbit/src/index.ts` - Registry integration, thread augmentation, read-only guards
+- `src/routes/Home.svelte` - Provider grouping UI
+
+## Phase 2: Prompt Send + Streaming
+
+**Prerequisites:** Phase 1 complete ✅
+**Goal:** Enable sending prompts to Copilot sessions and streaming responses
+
+Builds on Phase 1 provider infrastructure to add write capabilities...
 
 ### Phase 3 — Unified Grouping + Filters
 
@@ -224,7 +264,7 @@ Create one epic and staged implementation issues:
 
 1. Epic: ACP + Codex multi-provider integration (#128)
 2. Provider adapter contracts + normalized schemas (#129) ✅ COMPLETED
-3. Copilot ACP adapter process and read-only session ingestion (#130)
+3. Copilot ACP adapter process and read-only session ingestion (#130) ✅ COMPLETED
 4. ACP prompt/send + stream update mapping (#131)
 5. Home UI provider grouping (Codex Sessions/Copilot Sessions) (#132)
 6. Capability matrix and graceful degrade handling (#133)
