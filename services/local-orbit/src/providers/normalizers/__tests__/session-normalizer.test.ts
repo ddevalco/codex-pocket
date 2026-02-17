@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { ACPSessionNormalizer } from "../session-normalizer";
-import type { NormalizedSession } from "../../provider-types.js";
+import type { NormalizedSession, SessionStatus } from "../../provider-types.js";
 
 describe("ACPSessionNormalizer", () => {
   const normalizer = new ACPSessionNormalizer();
@@ -78,7 +78,7 @@ describe("ACPSessionNormalizer", () => {
   });
 
   it("maps status values", async () => {
-    const statuses = [
+    const statuses: Array<{ input: string; expected: SessionStatus }> = [
       { input: "active", expected: "active" },
       { input: "completed", expected: "completed" },
       { input: "error", expected: "error" },
