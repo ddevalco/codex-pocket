@@ -29,6 +29,7 @@ import type {
   NormalizedEvent,
 } from "../provider-types.js";
 import { AcpClient } from "./acp-client.js";
+import { ACPEventNormalizer } from "../normalizers/acp-event-normalizer.js";
 import { findExecutable, spawnProcess, killProcess, processHealth } from "./process-utils.js";
 
 /**
@@ -57,7 +58,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
     listSessions: true,
     openSession: false, // Phase 2
     sendPrompt: true, // Phase 2 - Issue #144
-    streaming: false, // Phase 2
+    streaming: true, // Phase 2 - Issue #145
     attachments: false, // Phase 2
     approvals: false, // Phase 2
     multiTurn: false, // Phase 2
@@ -69,12 +70,15 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   private process: ChildProcess | null = null;
   private client: AcpClient | null = null;
   private executablePath: string | null = null;
+  private normalizer: ACPEventNormalizer;
+  private subscriptions = new Map<string, EventSubscription>();
 
   constructor(config: CopilotAcpConfig = {}) {
     this.config = {
       timeout: 5000,
       ...config,
     };
+    this.normalizer = new ACPEventNormalizer();
   }
 
   /**
@@ -306,26 +310,71 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   }
 
   /**
-   * Subscribe to events (no-op for Phase 1).
+   * Subscribe to events for a specific session (Phase 2 - Issue #145).
+   *
+   * @param sessionId - The session to subscribe to
+   * @param callback - Callback invoked for each normalized event
+   * @returns EventSubscription with unsubscribe method
    */
   async subscribe(
     sessionId: string,
-    _callback: (event: NormalizedEvent) => void,
+    callback: (event: NormalizedEvent) => void,
   ): Promise<EventSubscription> {
-    console.warn("[copilot-acp] subscribe is a no-op in Phase 1");
-    return {
-      id: `copilot-acp-${sessionId}-${Date.now()}`,
+    if (!this.client) {
+      throw new Error("Copilot adapter not started or not available");
+    }
+
+    const subscriptionId = `copilot-acp-${sessionId}-${Date.now()}`;
+
+    // Create event handler that processes notifications through normalizer
+    const handler = (notification: any) => {
+      try {
+        // Pass notification to normalizer
+        const normalizedEvent = this.normalizer.handleUpdate(notification);
+        // If event was flushed, invoke callback
+        if (normalizedEvent) {
+          callback(normalizedEvent);
+        }
+      } catch (err) {
+        console.error("[copilot-acp] Error processing notification:", err);
+      }
+    };
+
+    // Also subscribe to normalizer's event emitter for flushed events
+    const normalizerHandler = (event: NormalizedEvent) => {
+      if (event.sessionId === sessionId) {
+        callback(event);
+      }
+    };
+    this.normalizer.on('event', normalizerHandler);
+
+    // Register handler with client
+    this.client.onSessionEvent(sessionId, handler);
+
+    // Create subscription object
+    const subscription: EventSubscription = {
+      id: subscriptionId,
       sessionId,
       provider: this.providerId,
-      unsubscribe: async () => {},
+      unsubscribe: async () => {
+        if (this.client) {
+          this.client.offSessionEvent(sessionId, handler);
+        }
+        this.normalizer.off('event', normalizerHandler);
+        this.subscriptions.delete(subscriptionId);
+      },
     };
+
+    this.subscriptions.set(subscriptionId, subscription);
+
+    return subscription;
   }
 
   /**
-   * Unsubscribe from events (no-op for Phase 1).
+   * Unsubscribe from events (Phase 2 - Issue #145).
    */
-  async unsubscribe(_subscription: EventSubscription): Promise<void> {
-    console.warn("[copilot-acp] unsubscribe is a no-op in Phase 1");
+  async unsubscribe(subscription: EventSubscription): Promise<void> {
+    await subscription.unsubscribe();
   }
 
   /**

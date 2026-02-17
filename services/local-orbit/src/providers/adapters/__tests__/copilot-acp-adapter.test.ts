@@ -241,7 +241,7 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
 
     it("maintains other capability flags", () => {
       expect(adapter.capabilities.listSessions).toBe(true);
-      expect(adapter.capabilities.streaming).toBe(false);
+      expect(adapter.capabilities.streaming).toBe(true); // Issue #145 - streaming now supported
       expect(adapter.capabilities.openSession).toBe(false);
     });
   });

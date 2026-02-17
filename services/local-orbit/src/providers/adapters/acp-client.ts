@@ -63,6 +63,11 @@ interface PendingRequest {
 }
 
 /**
+ * Session-specific event handler
+ */
+type SessionEventHandler = (notification: JsonRpcNotification) => void;
+
+/**
  * ACP JSON-RPC client for stdio communication.
  *
  * Manages request/response correlation, timeout handling, and NDJSON parsing.
@@ -72,6 +77,7 @@ export class AcpClient {
   private nextId = 1;
   private pendingRequests = new Map<number | string, PendingRequest>();
   private notificationHandlers: Array<(notification: JsonRpcNotification) => void> = [];
+  private sessionEventHandlers = new Map<string, SessionEventHandler[]>();
   private readline: ReadlineInterface | null = null;
   private defaultTimeout: number;
 
@@ -171,6 +177,24 @@ export class AcpClient {
    * Handle a JSON-RPC notification
    */
   private handleNotification(notification: JsonRpcNotification): void {
+    // Route to session-specific handlers if sessionId is present
+    if (notification.method === "update" && notification.params) {
+      const params = notification.params as any;
+      if (params.sessionId) {
+        const sessionHandlers = this.sessionEventHandlers.get(params.sessionId);
+        if (sessionHandlers) {
+          for (const handler of sessionHandlers) {
+            try {
+              handler(notification);
+            } catch (err) {
+              console.error("[acp-client] Session event handler error:", err);
+            }
+          }
+        }
+      }
+    }
+
+    // Also call global notification handlers
     for (const handler of this.notificationHandlers) {
       try {
         handler(notification);
@@ -247,6 +271,40 @@ export class AcpClient {
    */
   onNotification(handler: (notification: JsonRpcNotification) => void): void {
     this.notificationHandlers.push(handler);
+  }
+
+  /**
+   * Register a handler for specific session's events.
+   * These handlers receive only notifications for the specified sessionId.
+   *
+   * @param sessionId - Session ID to subscribe to
+   * @param handler - Callback to invoke for session events
+   */
+  onSessionEvent(sessionId: string, handler: SessionEventHandler): void {
+    if (!this.sessionEventHandlers.has(sessionId)) {
+      this.sessionEventHandlers.set(sessionId, []);
+    }
+    this.sessionEventHandlers.get(sessionId)!.push(handler);
+  }
+
+  /**
+   * Remove a session event handler.
+   *
+   * @param sessionId - Session ID to unsubscribe from
+   * @param handler - Handler to remove
+   */
+  offSessionEvent(sessionId: string, handler: SessionEventHandler): void {
+    const handlers = this.sessionEventHandlers.get(sessionId);
+    if (handlers) {
+      const idx = handlers.indexOf(handler);
+      if (idx !== -1) {
+        handlers.splice(idx, 1);
+      }
+      // Clean up empty handler arrays
+      if (handlers.length === 0) {
+        this.sessionEventHandlers.delete(sessionId);
+      }
+    }
   }
 
   /**
