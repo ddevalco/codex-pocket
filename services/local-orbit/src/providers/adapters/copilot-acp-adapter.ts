@@ -329,24 +329,20 @@ export class CopilotAcpAdapter implements ProviderAdapter {
     // Create event handler that processes notifications through normalizer
     const handler = (notification: any) => {
       try {
-        // Pass notification to normalizer
-        const normalizedEvent = this.normalizer.handleUpdate(notification);
-        // If event was flushed, invoke callback
-        if (normalizedEvent) {
-          callback(normalizedEvent);
-        }
+        // Pass notification to normalizer (events will be emitted via normalizer's emitter)
+        this.normalizer.handleUpdate(notification);
       } catch (err) {
         console.error("[copilot-acp] Error processing notification:", err);
       }
     };
 
-    // Also subscribe to normalizer's event emitter for flushed events
+    // Subscribe to normalizer's event emitter for flushed events
     const normalizerHandler = (event: NormalizedEvent) => {
       if (event.sessionId === sessionId) {
         callback(event);
       }
     };
-    this.normalizer.on('event', normalizerHandler);
+    this.normalizer.on("event", normalizerHandler);
 
     // Register handler with client
     this.client.onSessionEvent(sessionId, handler);
@@ -360,7 +356,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
         if (this.client) {
           this.client.offSessionEvent(sessionId, handler);
         }
-        this.normalizer.off('event', normalizerHandler);
+        this.normalizer.off("event", normalizerHandler);
         this.subscriptions.delete(subscriptionId);
       },
     };

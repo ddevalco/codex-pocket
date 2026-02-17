@@ -106,8 +106,8 @@ export class ACPEventNormalizer {
   /**
    * Register event handler
    */
-  on(event: 'event', handler: (event: NormalizedEvent) => void): void {
-    if (event === 'event') {
+  on(event: "event", handler: (event: NormalizedEvent) => void): void {
+    if (event === "event") {
       this.eventHandlers.push(handler);
     }
   }
@@ -115,8 +115,8 @@ export class ACPEventNormalizer {
   /**
    * Remove event handler
    */
-  off(event: 'event', handler: (event: NormalizedEvent) => void): void {
-    if (event === 'event') {
+  off(event: "event", handler: (event: NormalizedEvent) => void): void {
+    if (event === "event") {
       const idx = this.eventHandlers.indexOf(handler);
       if (idx !== -1) {
         this.eventHandlers.splice(idx, 1);
@@ -144,7 +144,8 @@ export class ACPEventNormalizer {
 
     // Check for type switch - flush old context and create new one
     const newCategory = this.mapUpdateTypeToCategory(update.type);
-    if (ctx.category !== newCategory && ctx.chunks.length > 0) {
+    const hasContent = ctx.chunks.length > 0 || Object.keys(ctx.payload || {}).length > 0;
+    if (ctx.category !== newCategory && hasContent) {
       const flushedEvent = this.flushContext(ctx, notification);
       // Create new context for the new type
       ctx = this.createContext(sessionId, turnId, update.type);
@@ -275,7 +276,7 @@ export class ACPEventNormalizer {
     // Set new timeout
     ctx.timeoutHandle = setTimeout(() => {
       console.warn(
-        `[ACPEventNormalizer] Stream timeout for ${key} after ${this.streamTimeout}ms`,
+        `[copilot-acp] Stream timeout for ${key} after ${this.streamTimeout}ms`,
       );
       // Flush incomplete stream and cleanup
       const context = this.contexts.get(key);
@@ -314,7 +315,7 @@ export class ACPEventNormalizer {
       try {
         handler(event);
       } catch (err) {
-        console.error('[ACPEventNormalizer] Event handler error:', err);
+        console.error("[copilot-acp] Event handler error:", err);
       }
     }
   }
