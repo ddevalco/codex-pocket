@@ -5,5 +5,9 @@
   "scripts": {
     "dev": "bun run src/index.ts"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "bun-types": "^1.0.0"
+  }
 }
