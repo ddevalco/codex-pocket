@@ -913,6 +913,7 @@
     </div>
 
     <PromptInput
+        draftKey={threadId}
         {model}
         {reasoningEffort}
         {mode}

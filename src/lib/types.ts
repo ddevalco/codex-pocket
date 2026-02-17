@@ -42,6 +42,14 @@ export interface ThreadSettings {
   developerInstructions: string;
 }
 
+export interface ImageAttachment {
+  kind: "image";
+  filename: string;
+  mime: string;
+  localPath: string;
+  viewUrl: string;
+}
+
 export interface AgentPreset {
   id: string;
   name: string;
