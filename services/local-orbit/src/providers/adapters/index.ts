@@ -5,5 +5,6 @@
  */
 
 export { CopilotAcpAdapter, type CopilotAcpConfig } from "./copilot-acp-adapter.js";
+export { CodexAdapter, type CodexConfig } from "./codex-adapter.js";
 export { AcpClient } from "./acp-client.js";
 export { findExecutable, spawnProcess, killProcess, processHealth } from "./process-utils.js";

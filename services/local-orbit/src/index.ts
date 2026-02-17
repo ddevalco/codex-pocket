@@ -5,6 +5,8 @@ import { dirname, join, basename } from "node:path";
 import { createHash } from "node:crypto";
 import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
+import { createRegistry } from "./providers/registry.js";
+import { CodexAdapter, CopilotAcpAdapter } from "./providers/adapters/index.js";
 
 // Local Orbit: a minimal replacement for the Cloudflare Orbit/Auth stack.
 //
@@ -161,6 +163,26 @@ function uploadConfigFromConfigJson(json: Record<string, unknown> | null): void 
 
 const loadedConfig = loadConfigJson();
 uploadConfigFromConfigJson(loadedConfig);
+
+// Initialize provider registry
+const registry = createRegistry();
+
+// Register Codex adapter (placeholder)
+registry.register("codex", (cfg) => new CodexAdapter(cfg.extra), {
+  enabled: true,
+});
+
+// Register Copilot ACP adapter
+const providersConfig = (loadedConfig?.providers as Record<string, any>) || {};
+const copilotCfg = providersConfig["copilot-acp"] || {};
+registry.register(
+  "copilot-acp",
+  (cfg) => new CopilotAcpAdapter(cfg.extra),
+  {
+    enabled: copilotCfg.enabled !== false,
+    extra: copilotCfg,
+  },
+);
 
 // Prefer config.json (so token rotation persists across restarts), fall back to env.
 AUTH_TOKEN = tokenFromConfigJson(loadedConfig) ?? AUTH_TOKEN;
@@ -1660,6 +1682,9 @@ async function relay(fromRole: Role, msgText: string): Promise<void> {
   for (const ws of all.keys()) send(ws, msgOut);
 }
 
+// Start all enabled providers
+await registry.startAll();
+
 const server = Bun.serve<WsData>({
   hostname: HOST,
   port: PORT,
@@ -1724,6 +1749,7 @@ const server = Bun.serve<WsData>({
         },
         reliability: reliabilitySnapshot(),
         version: { appCommit: APP_COMMIT },
+        providers: await registry.healthAll(),
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
     }
@@ -2493,3 +2519,13 @@ if (AUTOSTART_ANCHOR) {
     console.warn(`[local-orbit] failed to autostart anchor: ${res.error ?? "unknown error"}`);
   }
 }
+
+// Graceful shutdown
+const shutdown = async () => {
+  console.log("[local-orbit] Shutting down providers...");
+  await registry.stopAll();
+  process.exit(0);
+};
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
