@@ -42,12 +42,16 @@ CI automatically checks the size of the production build against a committed bas
 
 ### When CI Fails
 
-The check will fail if:
+The check evaluates thresholds for both warnings and hard failures:
 
-- Total bundle size increases by more than **5%**.
-- Any individual chunk increases by more than **10%** (for chunks > 1KB).
+- **Total Bundle Size**:
+  - **Warning**: Increases by more than **15%**.
+  - **Failure**: Increases by more than **30%**.
+- **Individual Chunks**:
+  - **Warning**: Any chunk increases by more than **20%**.
+  - **Failure**: Any chunk increases by more than **50%**.
 
-These thresholds prevent accidental "bundle bloat" from new dependencies or logic while allowing for minor fluctuations.
+These thresholds prevent accidental "bundle bloat" from new dependencies or logic while allowing for minor fluctuations. Warning levels highlight significant growth, while failure levels block the build until the baseline is reviewed and updated.
 
 ### Updating the Baseline
 
