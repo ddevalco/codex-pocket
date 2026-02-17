@@ -110,30 +110,92 @@ Settings/Admin:
 
 ## Phased Rollout
 
-### Phase 0 — Design + Contracts
-- finalize adapter interface
-- define normalized session/event schemas
-- list unsupported feature degradations explicitly
+### Phase 0 — Design + Contracts ✅ COMPLETED (#129)
+
+**Status:** Implementation complete (2026-02-16)
+
+**Implemented:**
+
+- Provider adapter interface (`ProviderAdapter`) with full lifecycle management
+- Normalized session model (`NormalizedSession`) with all required fields
+- Normalized event model (`NormalizedEvent`) with comprehensive event taxonomy
+- Base normalizer classes (`BaseSessionNormalizer`, `BaseEventNormalizer`)
+- Reference Codex implementations demonstrating the normalization pattern
+- Utility functions for session/event manipulation, filtering, grouping
+- Validation functions ensuring data integrity
+- Full TypeScript definitions and documentation
+
+**Files created:**
+
+- `services/local-orbit/src/providers/contracts.ts` - Core adapter interfaces
+- `services/local-orbit/src/providers/provider-types.ts` - Type definitions
+- `services/local-orbit/src/providers/normalized-session.ts` - Session utilities
+- `services/local-orbit/src/providers/normalized-event.ts` - Event utilities
+- `services/local-orbit/src/providers/normalizers/session-normalizer.ts` - Session normalization
+- `services/local-orbit/src/providers/normalizers/event-normalizer.ts` - Event normalization
+- `services/local-orbit/src/providers/index.ts` - Barrel export
+
+**Event taxonomy finalized:**
+
+- `user_message` - User input/prompts
+- `agent_message` - Agent/LLM response text
+- `reasoning` - Agent reasoning/thinking steps
+- `plan` - Agent planning output
+- `tool_command` - Tool/command execution
+- `file_diff` - File changes/diffs
+- `approval_request` - Requires user approval
+- `user_input_request` - Requires user input (not just approval)
+- `lifecycle_status` - Session lifecycle events
+- `metadata` - Metadata updates
+
+**Capability degradation matrix:**
+
+All providers declare capabilities via `ProviderCapabilities`:
+
+- `listSessions`, `openSession`, `sendPrompt`
+- `streaming`, `attachments`, `approvals`
+- `multiTurn`, `filtering`, `pagination`
+- Custom capabilities per provider
+
+**Design principles validated:**
+
+- Raw provider payloads always preserved in `rawSession`/`rawEvent` fields
+- Provider-agnostic core with extensibility for future providers
+- No breaking changes to existing functionality
+- No UI changes (purely backend contracts)
+
+**Validation:**
+
+- ✅ `bunx tsc --noEmit` passes
+- ✅ `bun run build` succeeds
+- ✅ All interfaces thoroughly documented
+
+**Next phase:** Phase 1 — Read-Only ACP Session Ingestion
 
 ### Phase 1 — Read-Only ACP Session Ingestion
+
 - spawn Copilot ACP server
 - ingest/list sessions into Home provider groups
 - no write actions yet
 
 ### Phase 2 — ACP Prompt + Stream
+
 - open session and send prompt
 - stream updates into normalized timeline
 - basic interruption/error surfacing
 
 ### Phase 3 — Unified Grouping + Filters
+
 - provider grouping UX
 - provider filter chips and persisted view preferences
 
 ### Phase 4 — Capability Matrix + Graceful Degrade
+
 - provider capability matrix in client
 - disable unsupported actions safely (with hints)
 
 ### Phase 5 — Hardening
+
 - reliability/reconnect behavior for ACP adapter
 - metrics and admin observability
 - CI smoke for both providers
@@ -159,10 +221,12 @@ Settings/Admin:
 ## Initial Issue Breakdown
 
 Create one epic and staged implementation issues:
+
 1. Epic: ACP + Codex multi-provider integration (#128)
-2. Provider adapter contracts + normalized schemas (#129)
+2. Provider adapter contracts + normalized schemas (#129) ✅ COMPLETED
 3. Copilot ACP adapter process and read-only session ingestion (#130)
 4. ACP prompt/send + stream update mapping (#131)
 5. Home UI provider grouping (Codex Sessions/Copilot Sessions) (#132)
 6. Capability matrix and graceful degrade handling (#133)
 7. Hardening: reliability, metrics, CI smoke for dual-provider mode (#134)
+

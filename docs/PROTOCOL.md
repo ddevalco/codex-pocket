@@ -1,11 +1,90 @@
 # Codex Pocket Protocol (local-orbit)
 
 This document describes the lightweight protocol used between:
+
 - **Client**: the web UI (Mac/iPhone browser)
 - **local-orbit**: the local server (`services/local-orbit/src/index.ts`)
 - **Anchor**: the Mac agent (`services/anchor/src/index.ts`) which spawns `codex app-server`
 
 Codex Pocket aims to be permissive about upstream `codex app-server` response shapes, but this document captures what Codex Pocket itself sends and expects.
+
+## Provider Abstraction Layer (New in #129)
+
+Codex Pocket now supports multi-provider integration through a unified adapter system. This enables integration with Codex app-server, GitHub Copilot ACP, and future agent providers.
+
+### Normalized Event Model
+
+All provider events are normalized into a unified `NormalizedEvent` envelope before storage and UI rendering:
+
+```typescript
+{
+  provider: "codex" | "copilot-acp" | string,
+  sessionId: string,
+  eventId: string,
+  category: EventCategory,
+  timestamp: string, // ISO 8601
+  text?: string,
+  payload?: Record<string, unknown>,
+  parentEventId?: string,
+  rawEvent: unknown // Always preserved
+}
+```
+
+### Event Categories
+
+Events are categorized for consistent timeline rendering across providers:
+
+- `user_message` - User input/prompts
+- `agent_message` - Agent/LLM response text
+- `reasoning` - Agent reasoning/thinking steps
+- `plan` - Agent planning output
+- `tool_command` - Tool/command execution
+- `file_diff` - File changes/diffs
+- `approval_request` - Requires user approval
+- `user_input_request` - Requires user input
+- `lifecycle_status` - Session lifecycle events (started, completed, error)
+- `metadata` - Metadata updates (title change, etc.)
+
+### Normalized Session Model
+
+Sessions/threads are normalized for cross-provider UI rendering:
+
+```typescript
+{
+  provider: string,
+  sessionId: string,
+  title: string,
+  project?: string,
+  repo?: string,
+  status: "active" | "idle" | "completed" | "error" | "interrupted",
+  createdAt: string, // ISO 8601
+  updatedAt: string, // ISO 8601
+  preview?: string,
+  metadata?: Record<string, unknown>,
+  rawSession?: unknown // Always preserved
+}
+```
+
+### Provider Capabilities
+
+Each provider declares its capabilities for graceful feature degradation:
+
+```typescript
+{
+  listSessions: boolean,
+  openSession: boolean,
+  sendPrompt: boolean,
+  streaming: boolean,
+  attachments: boolean,
+  approvals: boolean,
+  multiTurn: boolean,
+  filtering: boolean,
+  pagination: boolean,
+  custom?: Record<string, boolean>
+}
+```
+
+The UI uses these flags to hide/disable unsupported features per provider.
 
 ## Transports
 
@@ -19,6 +98,7 @@ Codex Pocket aims to be permissive about upstream `codex app-server` response sh
 - `GET /ws/anchor`
 
 All WS endpoints require auth:
+
 - `?token=<access-token>` query param, or
 - `Authorization: Bearer <access-token>` header
 
@@ -65,6 +145,7 @@ These are JSON objects with a `type` field.
 After subscription, the web UI sends JSON-RPC messages (e.g. `thread/list`, `thread/resume`, `turn/start`) over the WS.
 
 local-orbit does not implement the full RPC surface. Instead, it:
+
 - stores selected events in SQLite
 - relays client JSON-RPC to Anchor
 - relays Anchor/app-server output back to subscribed clients
