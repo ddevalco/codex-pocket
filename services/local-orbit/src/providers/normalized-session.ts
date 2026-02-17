@@ -23,6 +23,17 @@ export function createNormalizedSession(partial: Partial<NormalizedSession>): No
     project: partial.project,
     repo: partial.repo,
     preview: partial.preview,
+    capabilities: partial.capabilities ?? {
+      listSessions: false,
+      openSession: false,
+      sendPrompt: false,
+      streaming: false,
+      attachments: false,
+      approvals: false,
+      multiTurn: false,
+      filtering: false,
+      pagination: false,
+    },
     metadata: partial.metadata,
     rawSession: partial.rawSession,
   };
@@ -82,6 +93,10 @@ export function validateNormalizedSession(session: unknown): string[] {
 
   if (s.preview !== undefined && typeof s.preview !== "string") {
     errors.push("preview must be a string");
+  }
+
+  if (!s.capabilities || typeof s.capabilities !== "object") {
+    errors.push("capabilities is required and must be an object");
   }
 
   if (s.metadata !== undefined && (typeof s.metadata !== "object" || s.metadata === null)) {

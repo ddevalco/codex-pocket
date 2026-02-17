@@ -437,6 +437,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
       createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
       updatedAt: raw.updatedAt || raw.updated_at || new Date().toISOString(),
       preview: raw.preview || raw.lastMessage,
+      capabilities: this.capabilities,
       metadata: raw.metadata,
       rawSession: raw,
     };

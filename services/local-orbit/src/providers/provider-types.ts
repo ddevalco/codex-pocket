@@ -71,6 +71,12 @@ export interface NormalizedSession {
   preview?: string;
 
   /**
+   * Provider capabilities declaration for this specific session.
+   * UI uses these to enable/disable features (attachments, approvals, etc.)
+   */
+  capabilities: ProviderCapabilities;
+
+  /**
    * Custom metadata (provider-specific flags, tags, etc.)
    */
   metadata?: Record<string, unknown>;

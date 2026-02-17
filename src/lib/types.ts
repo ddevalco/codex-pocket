@@ -23,6 +23,16 @@ export interface ThreadInfo {
   modelProvider?: string;
   provider?: string;
   status?: string;
+  capabilities?: ThreadCapabilities;
+}
+
+export interface ThreadCapabilities {
+  attachments: boolean;
+  approvals: boolean;
+  streaming: boolean;
+  filtering: boolean;
+  multiTurn: boolean;
+  sendPrompt: boolean;
 }
 
 export type ApprovalPolicy = "on-request" | "never";
