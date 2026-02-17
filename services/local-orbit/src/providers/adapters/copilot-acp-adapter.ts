@@ -56,7 +56,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   readonly capabilities: ProviderCapabilities = {
     listSessions: true,
     openSession: false, // Phase 2
-    sendPrompt: false, // Phase 2
+    sendPrompt: true, // Phase 2 - Issue #144
     streaming: false, // Phase 2
     attachments: false, // Phase 2
     approvals: false, // Phase 2
@@ -244,14 +244,69 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   }
 
   /**
-   * Send a prompt (not implemented in Phase 1).
+   * Send a prompt to a Copilot session (Phase 2 - Issue #144).
+   *
+   * @param sessionId - The session to send the prompt to
+   * @param input - The prompt input (text and optional attachments)
+   * @param options - Optional prompt options (mode, model, etc.)
+   * @returns Promise resolving to { turnId, status } on success
+   * @throws Error if validation fails, client not available, or JSON-RPC error
    */
   async sendPrompt(
-    _sessionId: string,
-    _input: PromptInput,
-    _options?: PromptOptions,
-  ): Promise<{ turnId?: string; requestId?: string; [key: string]: unknown }> {
-    throw new Error("sendPrompt not implemented in Phase 1 (read-only)");
+    sessionId: string,
+    input: PromptInput,
+    options?: PromptOptions,
+  ): Promise<{ turnId?: string; requestId?: string; status?: string; [key: string]: unknown }> {
+    // Input validation
+    if (!sessionId || typeof sessionId !== "string" || sessionId.trim() === "") {
+      throw new Error("Invalid sessionId: must be a non-empty string");
+    }
+
+    if (!input || !input.text || typeof input.text !== "string" || input.text.trim() === "") {
+      throw new Error("Invalid input: text must be a non-empty string");
+    }
+
+    if (!this.client) {
+      throw new Error("Copilot adapter not started or not available");
+    }
+
+    try {
+      // Construct JSON-RPC request per PHASE2_PLAN.md
+      const params = {
+        sessionId,
+        input: {
+          text: input.text,
+          attachments: input.attachments || [],
+        },
+        options: {
+          mode: options?.mode || "auto",
+          model: options?.model,
+          ...options,
+        },
+      };
+
+      // Send request with 5-second timeout
+      const result = await this.client.sendRequest(
+        "sendPrompt",
+        params,
+        5000,
+      );
+
+      // Extract turnId and status from response
+      const response = result as any;
+      return {
+        turnId: response.turnId,
+        status: response.status || "streaming",
+        ...response,
+      };
+    } catch (err) {
+      console.error("[copilot-acp] Failed to send prompt:", err);
+      // Re-throw with structured error
+      if (err instanceof Error) {
+        throw new Error(`Failed to send prompt: ${err.message}`);
+      }
+      throw err;
+    }
   }
 
   /**
