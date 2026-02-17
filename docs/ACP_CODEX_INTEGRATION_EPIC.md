@@ -241,9 +241,9 @@ Builds on Phase 1 provider infrastructure to add write capabilities:
 
 **⚠️ Entry Gate:** All issues must be reviewed against [`PHASE2_PLAN.md`](PHASE2_PLAN.md) before code execution.
 
-#### Issue #131: ACP Write Capability - sendPrompt Method
+#### Phase 2 Task 1: ACP Write Capability - sendPrompt Method
 
-Implementation tracking: #144
+GitHub Issue: #144 (originally planned as #131)
 
 **Scope:** Implement `CopilotAcpAdapter.sendPrompt()` method with request/response handling.
 
@@ -260,9 +260,9 @@ Implementation tracking: #144
 
 **Dependencies:** Phase 1 complete ✅
 
-#### Issue #133: Streaming Response Handling
+#### Phase 2 Task 2: Streaming Response Handling
 
-Implementation tracking: #145
+GitHub Issue: #145 (originally planned as #133)
 
 **Scope:** Parse ACP update notifications, aggregate chunks, emit normalized events.
 
@@ -281,9 +281,9 @@ Implementation tracking: #145
 
 **Dependencies:** #131 (requires sendPrompt to generate turnIds)
 
-#### Issue #134: UI Prompt Input for Copilot Sessions
+#### Phase 2 Task 3: UI Prompt Input for Copilot Sessions
 
-Implementation tracking: #146
+GitHub Issue: #146 (originally planned as #134)
 
 **Scope:** Enable prompt composer for Copilot sessions with streaming response display.
 
@@ -388,15 +388,21 @@ Phase 2 complete when:
 - Core timeline remains stable and understandable across providers
 - Provider-specific failures are isolated and observable
 
-## Initial Issue Breakdown
+## Issue History & Breakdown
 
-Create one epic and staged implementation issues:
-
+**Original Planning** (initial numbering):
 1. Epic: ACP + Codex multi-provider integration (#128)
-2. Provider adapter contracts + normalized schemas (#129) ✅ COMPLETED
-3. Copilot ACP adapter process and read-only session ingestion (#130) ✅ COMPLETED
-4. ACP prompt/send + stream update mapping (#131)
-5. Home UI provider grouping (Codex Sessions/Copilot Sessions) (completed in PR #143; #132 superseded)
-6. Capability matrix and graceful degrade handling (#133)
-7. Hardening: reliability, metrics, CI smoke for dual-provider mode (#134)
+2. Provider adapter contracts + normalized schemas (#129) ✅ COMPLETED (PR #138)
+3. Copilot ACP adapter process and read-only session ingestion (#130) ✅ COMPLETED (PR #143)
+4. ACP prompt/send + stream update mapping (planned as #131)
+5. Home UI provider grouping (planned as #132, superseded - completed in PR #143)
+6. Capability matrix and graceful degrade handling (planned as #133)
+7. Hardening: reliability, metrics, CI smoke (planned as #134)
+
+**Current Implementation Issues** (Phase 2):
+- #144: ACP write capability - sendPrompt method
+- #145: Streaming response handling
+- #146: UI prompt input for Copilot sessions
+
+**Note**: Issues #131-#134 were originally planned but implementation proceeded directly to #144-#146. Phase 3 grouping work was completed within Phase 1 (PR #143).
 
