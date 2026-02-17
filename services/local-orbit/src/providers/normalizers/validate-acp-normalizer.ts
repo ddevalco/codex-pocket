@@ -23,8 +23,8 @@ const validSession = {
   id: "session-123",
   title: "Test Session",
   status: "active",
-  created_at: "2026-02-16T10:00:00Z",
-  updated_at: "2026-02-16T11:00:00Z",
+  created_at: new Date().toISOString(),
+  updated_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   metadata: {
     project: "codex-pocket",
     repo: "github.com/example/codex-pocket",
