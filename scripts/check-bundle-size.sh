@@ -39,7 +39,7 @@ baseline_chunks_raw = baseline.get("chunks", {})
 
 def normalize(name: str) -> str:
     base, ext = os.path.splitext(name)
-    match = re.match(r"^(.*)-[A-Za-z0-9_-]{6,}$", base)
+    match = re.match(r"^(.*?)(?:-[A-Z0-9])?-[A-Za-z0-9_-]{6,}$", base)
     if match:
         base = match.group(1)
     return base + ext
