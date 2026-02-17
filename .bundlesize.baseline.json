@@ -1,5 +1,4 @@
 {
-  "generatedAt": "2026-02-17T00:34:59Z",
   "chunks": {
     "Admin.css": 10750,
     "Admin.js": 36340,
@@ -326,5 +325,6 @@
     "zenscript.js": 3912,
     "zig.js": 5340
   },
-  "totalBytes": 10029271
+  "generatedAt": "2026-02-17T00:42:55.317507Z",
+  "total": 10029271
 }
