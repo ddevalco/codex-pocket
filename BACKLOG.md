@@ -99,37 +99,11 @@ Epic tracking: [`docs/ACP_CODEX_INTEGRATION_EPIC.md`](docs/ACP_CODEX_INTEGRATION
 - Provider adapter contracts + normalized schemas (#129) ✅
 - Copilot ACP adapter process and read-only session ingestion (#130) ✅
 
-**Phase 2: Prompt Send + Streaming** 🚧 PLANNING (Entry Gate)
+**Phase 2: Prompt Send + Streaming** ✅ COMPLETED (2026-02-17)
 
-Detailed plan: [`docs/PHASE2_PLAN.md`](docs/PHASE2_PLAN.md)
-
-- **#144**: ACP write capability - sendPrompt method
-  - Implement `CopilotAcpAdapter.sendPrompt()` with JSON-RPC request handling
-  - Input validation, timeout handling, error parsing
-  - Unit tests for success/error/timeout scenarios
-  - **Status**: Awaiting Phase 2 plan approval
-  - **Dependencies**: Phase 1 complete ✅
-  - **Acceptance**: See [`PHASE2_PLAN.md#issue-131`](docs/PHASE2_PLAN.md#issue-131-acp-write-capability---sendprompt-method)
-
-- **#145**: Streaming response handling
-  - `AcpClient` notification routing to session handlers
-  - `ACPEventNormalizer` for chunk aggregation and category mapping
-  - Streaming context management (turnId correlation, timeout cleanup)
-  - Implement `CopilotAcpAdapter.subscribe()` method
-  - Unit tests for aggregation, flushing, category mapping
-  - **Status**: Awaiting Phase 2 plan approval
-  - **Dependencies**: #144 (requires sendPrompt to generate turnIds)
-  - **Acceptance**: See [`PHASE2_PLAN.md#issue-133`](docs/PHASE2_PLAN.md#issue-133-streaming-response-handling)
-
-- **#146**: UI prompt input for Copilot sessions
-  - Remove read-only guard for ACP sessions in relay layer
-  - Enable composer in ThreadDetail based on provider capabilities
-  - Wire streaming events to WebSocket subscribers
-  - Display incremental updates in timeline
-  - Error handling UI (validation, rate limits, timeouts)
-  - **Status**: Awaiting Phase 2 plan approval
-  - **Dependencies**: #144, #145 (requires backend streaming support)
-  - **Acceptance**: See [`PHASE2_PLAN.md#issue-134`](docs/PHASE2_PLAN.md#issue-134-ui-prompt-input-for-copilot-sessions)
+- **#144**: ACP write capability - sendPrompt method ✅
+- **#145**: Streaming response handling ✅
+- **#146**: UI prompt input for Copilot sessions ✅
 
 **Phase 3: Unified Grouping + Filters** ✅ MOSTLY COMPLETED
 

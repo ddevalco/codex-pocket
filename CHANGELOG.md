@@ -4,19 +4,6 @@ All notable changes to **Codex Pocket** will be documented here.
 
 This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. See `docs/ATTRIBUTION.md`.
 
-## Unreleased
-
-### Reliability
-
-- Reliability: added durable client outbox with idempotency keys for mutating RPCs to prevent lost/duplicated user actions on reconnects (PR #111, P1 #105).
-- Observability: added server-side run timeline and failure reason counters exposed in `/admin/status` and Admin UI for improved remote debugging (PR #112, P1 #106).
-
-### Providers (Phase 2)
-
-- Copilot ACP: added write capability with `sendPrompt()` method for sending prompts to sessions (#144)
-- Copilot ACP: added streaming response handling with incremental UI updates and chunk aggregation (#145)
-- UI: enabled prompt composer for Copilot sessions with automatic capability detection (#146)
-
 - Core/Multi-provider: implemented Phase 1 of multi-provider support with a provider registry and lifecycle management (PR #143).
 - Providers: added read-only Copilot ACP (Agent Control Plane) adapter to surface active Copilot sessions (PR #143).
 - API: added unified provider and session listing endpoints to support discovery across different backend adapters (PR #143).
@@ -94,6 +81,17 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - CI now also verifies pair codes are one-time consumable and revoked session tokens immediately lose auth.
 
 ## 2026-02-17
+
+### Providers (Phase 2)
+
+- Copilot ACP: added write capability with `sendPrompt()` method for sending prompts to sessions (#144)
+- Copilot ACP: added streaming response handling with incremental UI updates and chunk aggregation (#145)
+- UI: enabled prompt composer for Copilot sessions with automatic capability detection (#146)
+
+### Reliability
+
+- Reliability: added durable client outbox with idempotency keys for mutating RPCs to prevent lost/duplicated user actions on reconnects (PR #111, P1 #105).
+- Observability: added server-side run timeline and failure reason counters exposed in `/admin/status` and Admin UI for improved remote debugging (PR #112, P1 #106).
 
 ### Orchestration UX
 
