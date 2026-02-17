@@ -2,15 +2,20 @@
 
 This file mirrors the canonical backlog, which lives in **GitHub Projects**:
 
-- https://github.com/users/ddevalco/projects/2
+- [GitHub Project 2](https://github.com/users/ddevalco/projects/2)
 
 If the two ever disagree, treat GitHub Projects as the source of truth and update this file to match.
 
 Issues are canonical for work items:
 
-- https://github.com/ddevalco/codex-pocket/issues
+- [GitHub Issues](https://github.com/ddevalco/codex-pocket/issues)
 
 ## Recently Done
+
+- **#130 / #143**: ACP Phase 1: Registry & Read-Only Adapter.
+  - Provider adapter contracts + normalized schemas (#129).
+  - Copilot ACP adapter process and read-only session ingestion (#130).
+- **#115**: Multi-agent workflows: helper-agent actions with reusable profiles (P3, #109).
 
 - CI: added an explicit `/admin/validate` smoke check (auth required).
 - CI: added small regression guards to prevent known UI footguns (e.g. thread list subscription loop).
@@ -74,7 +79,72 @@ Issues are canonical for work items:
 
 ## Active Items
 
-- ACP + Codex multi-provider integration epic (see `docs/ACP_CODEX_INTEGRATION_EPIC.md`).
-- Track staged implementation issues in GitHub Project 2 before code execution.
+### Security/Dependencies (2026-02-17)
+
+- ✅ Resolved via `npm audit fix` (automatic remediation succeeded).
+- Resolved advisories:
+  - `devalue` DoS (`GHSA-g2pg-6438-jwpf`, `GHSA-vw5p-8cq8-m7mv`) — no longer reported.
+  - `svelte` XSS (`GHSA-6738-r8g5-qwp3`) — no longer reported.
+- Validation completed post-remediation:
+  - `bun test` → pass (23/23).
+  - `npm run build` → pass (build succeeded; existing Svelte a11y warnings unchanged).
+  - `npm audit --audit-level=moderate` → pass (`found 0 vulnerabilities`).
+
+### ACP + Codex Multi-Provider Integration
+
+Epic tracking: [`docs/ACP_CODEX_INTEGRATION_EPIC.md`](docs/ACP_CODEX_INTEGRATION_EPIC.md)
+
+**Phase 1: Registry & Read-Only Adapter** ✅ COMPLETED (PR #143)
+
+- Provider adapter contracts + normalized schemas (#129) ✅
+- Copilot ACP adapter process and read-only session ingestion (#130) ✅
+
+**Phase 2: Prompt Send + Streaming** 🚧 PLANNING (Entry Gate)
+
+Detailed plan: [`docs/PHASE2_PLAN.md`](docs/PHASE2_PLAN.md)
+
+- **#144**: ACP write capability - sendPrompt method
+  - Implement `CopilotAcpAdapter.sendPrompt()` with JSON-RPC request handling
+  - Input validation, timeout handling, error parsing
+  - Unit tests for success/error/timeout scenarios
+  - **Status**: Awaiting Phase 2 plan approval
+  - **Dependencies**: Phase 1 complete ✅
+  - **Acceptance**: See [`PHASE2_PLAN.md#issue-131`](docs/PHASE2_PLAN.md#issue-131-acp-write-capability---sendprompt-method)
+
+- **#145**: Streaming response handling
+  - `AcpClient` notification routing to session handlers
+  - `ACPEventNormalizer` for chunk aggregation and category mapping
+  - Streaming context management (turnId correlation, timeout cleanup)
+  - Implement `CopilotAcpAdapter.subscribe()` method
+  - Unit tests for aggregation, flushing, category mapping
+  - **Status**: Awaiting Phase 2 plan approval
+  - **Dependencies**: #144 (requires sendPrompt to generate turnIds)
+  - **Acceptance**: See [`PHASE2_PLAN.md#issue-133`](docs/PHASE2_PLAN.md#issue-133-streaming-response-handling)
+
+- **#146**: UI prompt input for Copilot sessions
+  - Remove read-only guard for ACP sessions in relay layer
+  - Enable composer in ThreadDetail based on provider capabilities
+  - Wire streaming events to WebSocket subscribers
+  - Display incremental updates in timeline
+  - Error handling UI (validation, rate limits, timeouts)
+  - **Status**: Awaiting Phase 2 plan approval
+  - **Dependencies**: #144, #145 (requires backend streaming support)
+  - **Acceptance**: See [`PHASE2_PLAN.md#issue-134`](docs/PHASE2_PLAN.md#issue-134-ui-prompt-input-for-copilot-sessions)
+
+**Phase 3: Unified Grouping + Filters** ✅ MOSTLY COMPLETED
+
+- Provider grouping UX ✅ completed in Phase 1 (PR #143)
+- Provider filter chips and persisted view preferences (optional enhancements, deferred)
+
+**Phase 4: Capability Matrix + Graceful Degrade** 📋 PLANNED
+
+- Provider capability matrix in client
+- Disable unsupported actions safely (with hints)
+
+**Phase 5: Hardening** 📋 PLANNED
+
+- Reliability/reconnect behavior for ACP adapter
+- Metrics and admin observability
+- CI smoke for both providers
 
 Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATIONS.md)

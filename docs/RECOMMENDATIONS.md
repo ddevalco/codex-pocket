@@ -20,46 +20,46 @@ This document lays out recommended work from the architecture and protocol revie
 
 ### 1) Durable outbox + idempotency for mutating RPCs
 
-Issue: #105
+Issue: #105 — ✅ COMPLETED (PR #111)
 
 Issue title:
 - `Reliability: durable outbox + idempotency keys for mutating RPCs`
 
 Why:
-- Prevent lost/duplicated user actions on reconnects (turn start, approvals, user-input responses).
+- Prevented lost/duplicated user actions on reconnects (turn start, approvals, user-input responses).
 
 Scope:
-- Add a client outbox persisted locally.
-- Tag mutating RPCs with idempotency keys.
-- Replay safely after reconnect.
-- Suppress duplicate application on server/relay side.
+- Added a client outbox persisted locally.
+- Tagged mutating RPCs with idempotency keys.
+- Replayed safely after reconnect.
+- Suppressed duplicate application on server/relay side.
 
 Acceptance criteria:
-- Disconnect/reconnect during `turn/start` does not lose or duplicate turn start.
-- Disconnect/reconnect during approval response does not send conflicting decisions.
-- Disconnect/reconnect during user-input response preserves submitted answers exactly once.
+- Disconnect/reconnect during `turn/start` did not lose or duplicate turn start.
+- Disconnect/reconnect during approval response did not send conflicting decisions.
+- Disconnect/reconnect during user-input response preserved submitted answers exactly once.
 
 Suggested labels:
 - `type:reliability`, `priority:p1`, `area:protocol`, `area:local-orbit`, `area:ui`
 
 ### 2) Run timeline + failure reason counters
 
-Issue: #106
+Issue: #106 — ✅ COMPLETED (PR #112)
 
 Issue title:
 - `Observability: admin run timeline and failure reason counters`
 
 Why:
-- Improve remote debugging confidence while away from keyboard.
+- Improved remote debugging confidence while away from keyboard.
 
 Scope:
-- Add server-side counters for common failures/timeouts/reconnects.
-- Expose in `/admin/status` and UI status cards.
-- Include recent run timeline snippets from event log.
+- Added server-side counters for common failures/timeouts/reconnects.
+- Exposed in `/admin/status` and UI status cards.
+- Included recent run timeline snippets from event log.
 
 Acceptance criteria:
-- Admin shows counts for recent failures by class (auth, network, timeout, process exit).
-- Admin timeline shows recent operational milestones and errors with timestamps.
+- Admin showed counts for recent failures by class (auth, network, timeout, process exit).
+- Admin timeline showed recent operational milestones and errors with timestamps.
 
 Suggested labels:
 - `type:feature`, `priority:p1`, `area:local-orbit`, `area:ui`

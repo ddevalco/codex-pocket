@@ -6,6 +6,12 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ## Unreleased
 
+### Reliability
+
+- Security/dependencies: ran `npm audit fix` to remediate `devalue` DoS advisories (`GHSA-g2pg-6438-jwpf`, `GHSA-vw5p-8cq8-m7mv`) and `svelte` XSS advisory (`GHSA-6738-r8g5-qwp3`); `npm audit --audit-level=moderate` now reports 0 vulnerabilities.
+- Reliability: added durable client outbox with idempotency keys for mutating RPCs to prevent lost/duplicated user actions on reconnects (PR #111, P1 #105).
+- Observability: added server-side run timeline and failure reason counters exposed in `/admin/status` and Admin UI for improved remote debugging (PR #112, P1 #106).
+
 - Core/Multi-provider: implemented Phase 1 of multi-provider support with a provider registry and lifecycle management (PR #143).
 - Providers: added read-only Copilot ACP (Agent Control Plane) adapter to surface active Copilot sessions (PR #143).
 - API: added unified provider and session listing endpoints to support discovery across different backend adapters (PR #143).

@@ -2,7 +2,31 @@
 
 Issue: #130 - Multi-provider support with Copilot ACP adapter (read-only)  
 Branch: `codex/130-acp-phase1-registry`  
-Date: 2026-02-16
+Date: 2026-02-17
+
+## Validation Results (2026-02-17)
+
+### Automated Test Outcomes
+
+- `npm run build` — **PASS**
+- `bunx tsc --noEmit` (root) — **PASS**
+- `bunx tsc --noEmit` (`services/local-orbit`) — **PASS**
+- `bun test` — **PASS** (23 pass, 0 fail)
+
+### Acceptance Status Snapshot
+
+- TypeScript compilation passes with no errors — **PASS**
+- All unit tests pass (registry, acp-client, normalizers) — **PASS**
+- Bundle size within thresholds (15%/30% total, 20%/50% per-chunk) — **NEEDS_MANUAL**
+- Copilot sessions visible in Home UI (Scenario 1) — **NEEDS_MANUAL**
+- Provider sections display with correct labels and badges — **NEEDS_MANUAL**
+- Read-only enforcement works (disabled buttons, tooltip, JSON-RPC error) — **NEEDS_MANUAL**
+- Graceful degradation when Copilot CLI missing (Scenario 2) — **NEEDS_MANUAL**
+- No regressions to Codex functionality (create, send, archive work) — **NEEDS_MANUAL**
+- Provider registry starts and stops cleanly (Scenario 3) — **NEEDS_MANUAL**
+- Health endpoint returns correct status for all providers — **NEEDS_MANUAL**
+- No console errors during normal operation — **NEEDS_MANUAL**
+- Documentation updated (Epic, Architecture, Providers, README) — **NEEDS_MANUAL**
 
 ## Automated Checks ✓
 

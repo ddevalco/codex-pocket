@@ -9,6 +9,12 @@ This project is designed to be local-first and tailnet-only. When something goes
 3. `codex-pocket logs server`
 4. `codex-pocket logs anchor`
 
+## Provider-Specific Issues
+
+For issues related to provider adapters (Copilot ACP, Codex, etc.), see:
+
+- **[Provider Troubleshooting Guide](TROUBLESHOOTING_PROVIDERS.md)** - Startup failures, degraded mode, read-only enforcement, health endpoints, and diagnostic commands
+
 ## Common Issues
 
 ### `codex-pocket: command not found`

@@ -7,7 +7,7 @@ Date: 2026-02-16
 - ✅ **Phase 0**: Contracts & Schemas (PR #138, merged)
 - ✅ **Phase 1**: Registry & Read-Only Adapter (PR #143, merged)
 - 🚧 **Phase 2**: Prompt Send + Streaming (planned)
-- 📋 **Phase 3**: Home UI Grouping (planned)
+- ✅ **Phase 3**: Home UI Grouping (completed in Phase 1 / PR #143)
 - 📋 **Phase 4**: Capability Matrix (planned)
 - 📋 **Phase 5**: Hardening (planned)
 
@@ -219,15 +219,133 @@ All providers declare capabilities via `ProviderCapabilities`:
 
 ## Phase 2: Prompt Send + Streaming
 
-**Prerequisites:** Phase 1 complete ✅
-**Goal:** Enable sending prompts to Copilot sessions and streaming responses
+**Status:** Planning (Entry Gate - Approval Required)  
+**Prerequisites:** Phase 1 complete ✅  
+**Goal:** Enable sending prompts to Copilot sessions and streaming responses  
+**Detailed Plan:** [`docs/PHASE2_PLAN.md`](PHASE2_PLAN.md)
 
-Builds on Phase 1 provider infrastructure to add write capabilities...
+### Overview
 
-### Phase 3 — Unified Grouping + Filters
+Builds on Phase 1 provider infrastructure to add write capabilities:
 
-- provider grouping UX
-- provider filter chips and persisted view preferences
+- **Send prompts** to Copilot ACP sessions via JSON-RPC `sendPrompt` method
+- **Stream responses** incrementally as ACP emits update notifications
+- **Parse and aggregate** streaming chunks into unified timeline events
+- **Handle errors** gracefully with ACP-specific failure modes (rate limits, timeouts, interruptions)
+
+### Implementation Issues
+
+**⚠️ Entry Gate:** All issues must be reviewed against [`PHASE2_PLAN.md`](PHASE2_PLAN.md) before code execution.
+
+#### Issue #131: ACP Write Capability - sendPrompt Method
+
+**Scope:** Implement `CopilotAcpAdapter.sendPrompt()` method with request/response handling.
+
+**Key deliverables:**
+- JSON-RPC `sendPrompt` request builder with input validation
+- Response parsing to extract `turnId` for correlation
+- Error handling for JSON-RPC protocol errors
+- Timeout handling (5s default)
+- Unit test coverage (90%+ for sendPrompt logic)
+
+**Files:**
+- `services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts`
+- `services/local-orbit/src/providers/adapters/__tests__/copilot-acp-adapter.test.ts`
+
+**Dependencies:** Phase 1 complete ✅
+
+#### Issue #133: Streaming Response Handling
+
+**Scope:** Parse ACP update notifications, aggregate chunks, emit normalized events.
+
+**Key deliverables:**
+- `AcpClient` notification routing to session-specific handlers
+- `ACPEventNormalizer` class for chunk aggregation and category mapping
+- Streaming context management (turnId correlation, timeout cleanup)
+- Flush strategies (done marker, type transitions)
+- Unit test coverage (95%+ for aggregation logic)
+
+**Files:**
+- `services/local-orbit/src/providers/adapters/acp-client.ts`
+- `services/local-orbit/src/providers/normalizers/acp-event-normalizer.ts` (NEW)
+- `services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts` (subscribe method)
+- `services/local-orbit/src/providers/normalizers/__tests__/acp-event-normalizer.test.ts` (NEW)
+
+**Dependencies:** #131 (requires sendPrompt to generate turnIds)
+
+#### Issue #134: UI Prompt Input for Copilot Sessions
+
+**Scope:** Enable prompt composer for Copilot sessions with streaming response display.
+
+**Key deliverables:**
+- Remove read-only guard for ACP sessions in relay layer
+- Enable composer in `ThreadDetail.svelte` based on provider capabilities
+- Wire streaming events to WebSocket subscribers
+- Display incremental updates in timeline
+- Error handling UI (validation, rate limits, timeouts)
+
+**Files:**
+- `services/local-orbit/src/index.ts` (relay routing)
+- `src/routes/ThreadDetail.svelte`
+- `src/lib/components/Composer.svelte` (loading states)
+
+**Dependencies:** #131, #133 (requires backend streaming support)
+
+### Sequencing and Dependencies
+
+```
+Phase 1 ✅
+    ↓
+#131: sendPrompt Method
+    ↓
+#133: Streaming Handling
+    ↓
+#134: UI Prompt Input
+```
+
+**Critical path:** Issues must be implemented in strict sequence (no parallelization).
+
+### Risk Mitigation
+
+| Risk | Mitigation |
+|------|------------|
+| Protocol drift (ACP updates) | Pin CLI versions, version detection in health checks |
+| Partial capability support | Capability flags prevent UI from exposing unsupported features |
+| Provider failure isolation | Process supervision, graceful degradation preserves Codex sessions |
+| Streaming errors mid-response | Timeout-based cleanup (30s), emit partial content + error event |
+| Rate limiting from backend | Parse rate limit errors, surface to user with retry guidance |
+
+See [`PHASE2_PLAN.md`](PHASE2_PLAN.md) for complete risk table and mitigation strategies.
+
+### Success Criteria
+
+Phase 2 complete when:
+
+1. ✅ All unit tests pass (`bun test`)
+2. ✅ TypeScript compilation clean (`bunx tsc --noEmit`)
+3. ✅ Integration tests pass (mock ACP streaming)
+4. ✅ Manual E2E test script passes with live Copilot CLI
+5. ✅ User can send prompt to Copilot session and receive streaming response
+6. ✅ Error cases handled gracefully
+7. ✅ No regressions to Phase 1 or Codex functionality
+
+### Post-Phase 2 Capabilities
+
+**Enabled:**
+- ✅ Read Copilot sessions (Phase 1)
+- ✅ Send prompts to Copilot (Phase 2)
+- ✅ Stream responses incrementally (Phase 2)
+
+**Deferred:**
+- ⏸️ Attachments, approvals, advanced filtering (Phase 4)
+- ⏸️ Multi-provider reliability hardening (Phase 5)
+
+### Phase 3 — Unified Grouping + Filters ✅ COMPLETED
+
+**Status:** Completed in Phase 1 (PR #143). Advanced features (filter chips, view persistence) deferred as optional enhancements.
+
+- provider grouping UX ✅ completed in Phase 1
+- provider filter chips and persisted view preferences (optional enhancements, deferred)
 
 ### Phase 4 — Capability Matrix + Graceful Degrade
 
@@ -266,7 +384,7 @@ Create one epic and staged implementation issues:
 2. Provider adapter contracts + normalized schemas (#129) ✅ COMPLETED
 3. Copilot ACP adapter process and read-only session ingestion (#130) ✅ COMPLETED
 4. ACP prompt/send + stream update mapping (#131)
-5. Home UI provider grouping (Codex Sessions/Copilot Sessions) (#132)
+5. Home UI provider grouping (Codex Sessions/Copilot Sessions) (completed in PR #143; #132 superseded)
 6. Capability matrix and graceful degrade handling (#133)
 7. Hardening: reliability, metrics, CI smoke for dual-provider mode (#134)
 

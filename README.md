@@ -43,11 +43,13 @@ If anything doesn’t work, run:
 - CLI: [`docs/CLI.md`](docs/CLI.md)
 - Admin: [`docs/ADMIN.md`](docs/ADMIN.md)
 - Troubleshooting/FAQ: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- Provider Troubleshooting: [`docs/TROUBLESHOOTING_PROVIDERS.md`](docs/TROUBLESHOOTING_PROVIDERS.md)
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - CI: [`docs/CI.md`](docs/CI.md)
 - Native iOS roadmap: [`docs/NATIVE_IOS_ROADMAP.md`](docs/NATIVE_IOS_ROADMAP.md)
 - Differences from Zane: [`docs/DIFFERENCES_FROM_ZANE.md`](docs/DIFFERENCES_FROM_ZANE.md)
 - Development: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
+- Testing playbook: [`docs/TESTING.md`](docs/TESTING.md)
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ### Backlog (Canonical)
