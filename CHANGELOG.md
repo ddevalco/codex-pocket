@@ -4,6 +4,10 @@ All notable changes to **Codex Pocket** will be documented here.
 
 This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. See `docs/ATTRIBUTION.md`.
 
+## 2026-01 to 2026-02-16 - Early Development
+
+The following features were added during early development:
+
 - Core/Multi-provider: ACP write capability implementation via `sendPrompt` (PR #147).
 - Providers: streaming response handling for ACP sessions (PR #148).
 - UI: prompt input and session interaction for Copilot sessions (PR #149).
@@ -102,7 +106,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - CI now smoke-tests token-session security behavior (pairing returns per-device token, read-only session write/WS mutating guards).
 - CI now also verifies pair codes are one-time consumable and revoked session tokens immediately lose auth.
 
-## 2026-02-17
+## 2026-02-17 - Phase 2: Multi-provider & Reliability
 
 ### Providers (Phase 2)
 
@@ -130,7 +134,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Pairing/Security: `/admin/pair/new` now mints a unique token session per pairing code instead of reusing the legacy shared token.
 - Security: read-only token sessions can now connect to WebSocket for live reads, while mutating client RPC methods are denied with explicit errors.
 
-## 2026-02-08
+## 2026-02-08 - Stability & Documentation
 
 ### Stability
 
@@ -141,7 +145,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Expanded CLI and troubleshooting docs.
 - Added `BACKLOG.md` and `docs/DIFFERENCES_FROM_ZANE.md`.
 
-## 2026-02-07
+## 2026-02-07 - Thread Management & Attachments
 
 ### Thread Titles / Rename Sync
 
