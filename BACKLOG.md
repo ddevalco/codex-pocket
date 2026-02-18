@@ -12,6 +12,20 @@ Issues are canonical for work items:
 
 ## Recently Done
 
+### 2026-02-18: Phase 4.1 - Capability Matrix Plumbing
+
+- [x] P4-01: Provider capability detection system (#151)
+- [x] Backend: ProviderCapabilities interface with 4 flags
+- [x] Backend: getProviderCapabilities() normalization helper
+- [x] Backend: injectThreadCapabilities() API payload augmentation
+- [x] Frontend: ProviderCapabilities interface in types.ts
+- [x] Frontend: parseCapabilities() and normalizeThreadInfo updates
+- [x] Capability flags: CAN_ATTACH_FILES, CAN_FILTER_HISTORY, SUPPORTS_APPROVALS, SUPPORTS_STREAMING
+- [x] Provider defaults: codex (all true), copilot-acp (limited)
+- [x] Validation: Type-check pass, build pass (689 modules), E2E chain verified
+- PR: codex/phase4-p4-01-capability-matrix
+- Next: P4-02 (Graceful Degrade UX), P4-03 (ACP Attachments), P4-04 (ACP Approvals)
+
 - **#130 / #143**: ACP Phase 1: Registry & Read-Only Adapter.
   - Provider adapter contracts + normalized schemas (#129).
   - Copilot ACP adapter process and read-only session ingestion (#130).
@@ -125,9 +139,11 @@ Epic tracking: [`docs/ACP_CODEX_INTEGRATION_EPIC.md`](docs/ACP_CODEX_INTEGRATION
 - Provider grouping UX ✅ completed in Phase 1 (PR #143)
 - Provider filter chips and persisted view preferences (optional enhancements, deferred)
 
-**Phase 4: Capability Matrix + Graceful Degrade** 📋 PLANNED
+**Phase 4: Capability Matrix + Graceful Degrade** 🏗️ IN PROGRESS
 
-- Provider capability matrix in client
-- Disable unsupported actions safely (with hints)
+- [x] P4-01: Provider capability detection system (#151) ✅
+- [ ] P4-02: Graceful Degrade UX
+- [ ] P4-03: ACP Attachments
+- [ ] P4-04: ACP Approvals
 
 Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATIONS.md)
