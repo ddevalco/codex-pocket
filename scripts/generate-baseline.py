@@ -11,7 +11,7 @@ def normalize(name: str) -> str:
     """Normalize filename by removing hash."""
     base, ext = os.path.splitext(name)
     # Match pattern: basename-HASH.ext -> basename.ext
-    match = re.match(r"^(.*)-[A-Za-z0-9_-]{6,}$", base)
+    match = re.match(r"^(.*?)(?:-[A-Z0-9])?-[A-Za-z0-9_-]{6,}$", base)
     if match:
         base = match.group(1)
     return base + ext
