@@ -48,6 +48,19 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ## Unreleased
 
+### Added
+
+- **ACP Phase 5 Hardening:** 30-second timeout enforcement for `sendPrompt` operations with performance telemetry
+- **Automatic Retry Logic:** Exponential backoff retry (up to 3 attempts) for transient ACP failures
+- **Health Tracking:** Provider health monitoring with consecutive failure detection
+- **Test Coverage Expansion:** Comprehensive reliability tests for timeout behavior, retry logic, session isolation, and error recovery (ECONNRESET, EPIPE)
+- **CI Capability Smoke Tests:** Added `capability-smoke` job to validate provider capability matrix in CI pipeline
+- **Regression Guards:** Automated capability matrix regression checks in CI
+
+### Changed
+
+- **CI Pipeline:** Enhanced with capability validation and regression detection (codex/phase3-integration)
+
 ### UX
 
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).

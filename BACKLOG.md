@@ -17,6 +17,18 @@ Issues are canonical for work items:
   - Copilot ACP adapter process and read-only session ingestion (#130).
 - **#115**: Multi-agent workflows: helper-agent actions with reusable profiles (P3, #109).
 
+- **#147 / #148 / #149**: ACP Phase 2: Prompt Send + Streaming.
+  - ACP write capability - `sendPrompt` method (#144).
+  - Streaming response handling (#145).
+  - UI prompt input for Copilot sessions (#146).
+
+### 2026-02-17: Phase 3 - ACP Phase 5 Hardening
+
+- [x] Runtime hardening - 30s timeout, exponential backoff retry (max 3 attempts), health tracking (#163)
+- [x] Test coverage expansion - Timeout, retry, isolation, degraded state tests (#164)  
+- [x] CI enhancements - Capability smoke tests, regression guards for capability matrix (#165)
+- Type-check: ✅ 0 errors | Tests: ✅ 73 pass | Build: ✅ 689 modules (2.0s)
+
 - CI: added an explicit `/admin/validate` smoke check (auth required).
 - CI: added small regression guards to prevent known UI footguns (e.g. thread list subscription loop).
 - CLI: `start` now falls back to background mode if the launchd plist is missing.
@@ -99,12 +111,6 @@ Epic tracking: [`docs/ACP_CODEX_INTEGRATION_EPIC.md`](docs/ACP_CODEX_INTEGRATION
 - Provider adapter contracts + normalized schemas (#129) ✅
 - Copilot ACP adapter process and read-only session ingestion (#130) ✅
 
-**Phase 2: Prompt Send + Streaming** ✅ COMPLETED (PRs #147, #148, #149 • 2026-02-17)
-
-- **#144**: ACP write capability - sendPrompt method ✅
-- **#145**: Streaming response handling ✅
-- **#146**: UI prompt input for Copilot sessions ✅
-
 **Phase 3: Unified Grouping + Filters** ✅ MOSTLY COMPLETED
 
 - Provider grouping UX ✅ completed in Phase 1 (PR #143)
@@ -114,11 +120,5 @@ Epic tracking: [`docs/ACP_CODEX_INTEGRATION_EPIC.md`](docs/ACP_CODEX_INTEGRATION
 
 - Provider capability matrix in client
 - Disable unsupported actions safely (with hints)
-
-**Phase 5: Hardening** 📋 PLANNED
-
-- Reliability/reconnect behavior for ACP adapter
-- Metrics and admin observability
-- CI smoke for both providers
 
 Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATIONS.md)
