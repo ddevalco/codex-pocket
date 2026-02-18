@@ -1,6 +1,0 @@
-Overall status: fail
-Total baseline: 10,029,271 bytes
-Total current: 10,029,271 bytes
-Total delta: 0 bytes (0.0%)
-
-Failing/Warning chunks:

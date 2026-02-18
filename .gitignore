@@ -46,3 +46,20 @@ docs/AGENT_RULES.local.md
 # temp scratch
 .tmp
 .vscode-agent-orchestration/
+
+# Agent validation artifacts (prevent commit)
+val_*.txt
+val_*.log
+temp_*.sh
+ls_*.sh
+packet_*.yaml
+packet_*.yml
+analysis.txt
+validation_output/
+
+# Bundlesize reports (generated, not source)
+.bundlesize.report.json
+
+# OS files
+.DS_Store
+Thumbs.db

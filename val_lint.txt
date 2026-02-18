@@ -1,4 +1,0 @@
-markdownlint-cli2 v0.21.0 (markdownlint v0.40.0)
-Finding: **/*.md !node_modules **/*.md !node_modules/** !.vscode-agent-orchestration/** !.agent-local/** !dist/** !build/** !**/node_modules/**
-Linting: 31 file(s)
-Summary: 0 error(s)
