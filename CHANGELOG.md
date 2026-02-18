@@ -46,7 +46,10 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Admin: added token session management UI in `/admin` (create/list/revoke session tokens) with one-time token display/copy and active/revoked status.
 - Docs: updated README/Admin/Security/Protocol docs to reflect token-session auth, read-only mode, and per-device pairing tokens.
 
+## Unreleased
+
 ### UX
+
 - UI: on mobile, the thread status legend is now available via a `?` button (iOS doesn't reliably show `title` tooltips).
 - UX: thread list ordering now preserves upstream activity timestamps (updatedAt/lastActivity) and uses a deterministic tie-breaker (less reorder-on-refresh).
 - Thread list is now sorted by most recent activity (Pocket-observed activity first, then upstream timestamps, then createdAt fallback).
@@ -57,6 +60,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Admin UI polish: reorganized `/admin` into a cleaner top-to-bottom flow (core + pairing, uploads, then stacked advanced tools) and refreshed control styling for a more modern, consistent look.
 
 ### CLI / Update
+
 - CLI: `start` now falls back to background mode if the launchd plist is missing (keeps update/restart usable even if the agent file is deleted).
 - CLI: improved owned-process detection by also checking process CWD (helps kill stale listeners from older installs where the command line is just `bun run src/index.ts`).
 - `codex-pocket update` stop/restart now more aggressively cleans up *owned* stale listeners and orphaned anchors before rebuilding/restarting.
@@ -71,10 +75,12 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Installer now writes `~/.codex-pocket/bin/codex-pocket` as a small wrapper that delegates to `~/.codex-pocket/app/bin/codex-pocket` to avoid stale CLI copies after updates.
 
 ### Cache / Versioning
+
 - `index.html` is now served with `Cache-Control: no-store` to reduce cached broken bundle issues after updates.
 - Settings and Admin now show UI build commit/time plus server app commit (from `/health` and `/admin/status`).
 
 ### CI
+
 - Added GitHub Actions workflow to build the UI and run a local-orbit smoke test (health, admin status, cache headers, events endpoint).
 - CI now also smoke-tests the WebSocket relay path (client ↔ anchor) to catch blank-thread regressions.
 - CI now also smoke-tests `POST /admin/repair` using safe actions (`ensureUploadDir`, `pruneUploads`) to catch regressions in the self-heal path.
@@ -114,39 +120,49 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 ## 2026-02-08
 
 ### Stability
+
 - Fixed a web UI runtime crash where the message “copy” button referenced an undefined `copyState`, causing blank threads and broken navigation. (commit `9513c3c`)
 
 ### Docs
+
 - Expanded CLI and troubleshooting docs.
 - Added `BACKLOG.md` and `docs/DIFFERENCES_FROM_ZANE.md`.
 
 ## 2026-02-07
 
 ### Thread Titles / Rename Sync
+
 - Thread list titles now match Codex Desktop renamed titles by reading `~/.codex/.codex-global-state.json` and injecting `title/name/displayName` into `thread/list` + `thread/read` payloads. (commits `74db0ba`, `93c2702`)
 - Added a thread rename action in Codex Pocket that updates Codex Desktop's title store (Admin token required). (commit `133d3da`)
 
 ### Vision / Attachments
+
 - **Vision attachments**: image uploads are passed to Codex app-server as structured `input` items (in addition to rendering inline in the UI), making attached images available to vision-capable models. (commit `5d58e60`)
 - Uploads API returns `localPath`, `filename`, and `mime` (authorised only) to support attachment wiring. (commit `5d58e60`)
 
 ### Branding
+
 - Replaced the legacy Zane favicon with a Codex Pocket icon (`/icons/icon.svg`). (commit `01ba786`)
 
 ### iOS Upload UX
+
 - iOS Safari shows the Photo Library picker for attachments by removing the `capture` attribute that forced camera-only. (commit `dc14c32`)
 
 ### Admin: Upload Retention & Ops
+
 - Admin UI includes an Uploads section for retention config + manual prune, with status refresh after actions. (commits `e0247e1`, `a02f3eb`)
 
 ### Concurrency
+
 - Fixed a global “turn in progress” state that blocked composing in other threads while one thread was running. Thread input is now tracked per-thread. (commit `e58cdd6`)
 
 ### CLI / Lifecycle
+
 - Added `codex-pocket update`: pulls latest app, installs deps, rebuilds UI, restarts service. (commit `a2b4450`)
 - Improved `start/stop/restart` reliability: auto-kill stale Codex Pocket listeners, wait for `/health`, and handle common port conflict cases. (commits `27aa998`, `6d2c959`)
 
 ### Installer UX & Reliability
+
 - Installer improved to handle port conflicts more safely and persist port changes across config + launchd. (commit `a02f3eb`)
 - Installer copies the access token to clipboard (best effort). (commit `defd262`)
 - Pairing: QR served as an authenticated blob so the token doesn’t appear in image URLs. (commit `f462238`)

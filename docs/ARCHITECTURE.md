@@ -48,7 +48,7 @@ Codex Pocket supports multiple AI provider backends through a unified adapter in
 
 ### Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │                    UI (Svelte)                      │
 │          Home.svelte, Thread.svelte                 │
@@ -175,4 +175,3 @@ Codex Pocket can also rename threads by updating the same title store file (Admi
 - Admin can mint a short-lived, one-time pairing link (`/admin/pair/new`).
 - iPhone opens `/pair?code=...` which exchanges the code for the bearer token via `/pair/consume`.
 - The code is one-time-use and expires.
-

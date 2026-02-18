@@ -38,8 +38,8 @@ git config --global fetch.prune true
 ## Backlog + Issue Tracking (Required)
 
 - GitHub is the canonical system for planning and tracking:
-	- Issues: https://github.com/ddevalco/codex-pocket/issues
-	- Project board: https://github.com/users/ddevalco/projects/2
+  - Issues: <https://github.com/ddevalco/codex-pocket/issues>
+  - Project board: <https://github.com/users/ddevalco/projects/2>
 - Every feature/bug/chore starts as a GitHub issue (use templates).
 - Every PR must reference its issue (`Fixes #<id>` or `Refs #<id>`).
 - Every open issue should be assigned to exactly one status column in Project 2.
@@ -58,6 +58,7 @@ Project hygiene cadence:
 - After merge: close issue and move to `Done`.
 
 PR description should include:
+
 - what/why
 - how to test
 - risk assessment

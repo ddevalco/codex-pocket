@@ -1,0 +1,25 @@
+{
+  "config": {
+    "MD013": false,
+    "MD024": {
+      "siblings_only": true
+    },
+    "MD032": {
+      "ul_multi": 3
+    },
+    "MD036": false,
+    "MD041": false,
+    "MD060": false
+  },
+  "globs": [
+    "**/*.md"
+  ],
+  "ignores": [
+    "node_modules/**",
+    ".vscode-agent-orchestration/**",
+    ".agent-local/**",
+    "dist/**",
+    "build/**",
+    "**/node_modules/**"
+  ]
+}

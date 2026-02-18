@@ -5,6 +5,7 @@ This doc contains concrete steps to reduce risk beyond the default configuration
 ## 1) Keep It On The Tailnet
 
 Recommended exposure pattern:
+
 - local-orbit binds to `127.0.0.1`
 - you expose it via:
 
@@ -19,10 +20,12 @@ Do not bind local-orbit to `0.0.0.0` unless you are intentionally serving it on 
 If you have Tailscale ACLs enabled (Tailnet admin console), restrict access to the Mac’s serve port.
 
 Example ACL idea (conceptual):
+
 - allow only your iPhone device/user to reach the Mac on HTTPS
 - deny other tailnet devices
 
 Because ACL syntax varies with tailnet setup, the easiest approach is:
+
 - put the Mac in a restricted tag/group
 - allow inbound only from your user or a specific device group
 
@@ -31,6 +34,7 @@ Because ACL syntax varies with tailnet setup, the easiest approach is:
 If any device is lost/compromised, rotate the token.
 
 Fast rotate (re-run installer) or manually:
+
 1. Stop the service.
 2. Edit `~/Library/LaunchAgents/com.codex.pocket.plist` and change `ZANE_LOCAL_TOKEN`.
 3. Restart the service.
