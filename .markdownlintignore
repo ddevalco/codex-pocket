@@ -1,0 +1,5 @@
+node_modules/
+.vscode-agent-orchestration/
+.agent-local/
+dist/
+build/

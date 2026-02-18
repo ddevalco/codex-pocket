@@ -7,14 +7,18 @@ This implements packet P1.2 for issue #130: Copilot ACP process/client utilities
 ## Files Created
 
 ### 1. `process-utils.ts`
+
 Process management utilities:
+
 - `findExecutable(name)` - Search for executables in PATH
 - `spawnProcess(command, args)` - Spawn child processes with stdio pipes
 - `killProcess(pid)` - Graceful process termination with SIGTERM/SIGKILL fallback
 - `processHealth(pid)` - Check if a process is running
 
 ### 2. `acp-client.ts`
+
 JSON-RPC 2.0 client for stdio communication:
+
 - NDJSON parsing line-by-line
 - Request/response correlation with unique IDs
 - Timeout handling (default: 5 seconds)
@@ -22,7 +26,9 @@ JSON-RPC 2.0 client for stdio communication:
 - Automatic cleanup on process exit
 
 ### 3. `copilot-acp-adapter.ts`
+
 ProviderAdapter implementation for GitHub Copilot:
+
 - Spawns `copilot --acp` or `gh copilot --acp`
 - Implements graceful degradation when Copilot not installed
 - Health checks with detailed diagnostics
@@ -30,17 +36,20 @@ ProviderAdapter implementation for GitHub Copilot:
 - Phase 2+ stubs: openSession, sendPrompt, subscribe (throw "not implemented")
 
 ### 4. `index.ts`
+
 Export barrel for all adapter modules
 
 ## Implementation Details
 
 ### Process Spawning
+
 - Searches PATH for `copilot` executable first
 - Falls back to `gh` (GitHub CLI) if available
 - Command: `copilot --acp` (spawns in ACP mode)
 - Stdio configuration: pipes for stdin/stdout/stderr
 
 ### JSON-RPC Protocol
+
 - Format: `{"jsonrpc":"2.0","id":1,"method":"name","params":{}}`
 - NDJSON: newline-delimited JSON over stdio
 - Request correlation: sequential ID counter
@@ -48,13 +57,16 @@ Export barrel for all adapter modules
 - Error handling: JSON-RPC error responses mapped to exceptions
 
 ### Graceful Degradation
+
 When Copilot is not installed or unavailable:
+
 - `start()` succeeds but logs warning
 - `health()` returns `{status: "degraded", message: "Copilot CLI not found"}`
 - `listSessions()` throws descriptive error
 - Server can start and run without Copilot
 
 ### Health States
+
 - **healthy**: Process running and responsive to JSON-RPC
 - **degraded**: Executable not found OR process not responding
 - **unhealthy**: Process not running
@@ -71,6 +83,7 @@ When Copilot is not installed or unavailable:
 ## Testing
 
 Tested scenarios:
+
 1. Non-existent executable path → degraded health
 2. Copilot executable found but not supporting ACP → degraded health
 3. Process spawning → successful start + stop
@@ -79,6 +92,7 @@ Tested scenarios:
 ## Phase 2 Requirements (Future)
 
 Not implemented in Phase 1:
+
 - `openSession()` - throws "not implemented"
 - `sendPrompt()` - throws "not implemented"
 - `subscribe()` - returns no-op subscription
@@ -87,6 +101,7 @@ Not implemented in Phase 1:
 ## Interface Compliance
 
 Implements all required methods from `ProviderAdapter`:
+
 - ✅ `start()` - with graceful failure
 - ✅ `stop()` - with cleanup
 - ✅ `health()` - with diagnostics
@@ -100,6 +115,7 @@ Implements all required methods from `ProviderAdapter`:
 ## Error Handling
 
 All errors are handled gracefully:
+
 - Spawn failures logged, don't crash adapter
 - JSON parse errors logged, don't crash client
 - Timeout errors reject promises cleanly

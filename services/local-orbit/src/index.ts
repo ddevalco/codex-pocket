@@ -1647,6 +1647,7 @@ async function augmentThreadList(response: any): Promise<any> {
       project: session.project,
       repo: session.repo,
       preview: session.preview,
+      capabilities: session.capabilities,
       created_at: Math.floor(new Date(session.createdAt).getTime() / 1000),
       updated_at: Math.floor(new Date(session.updatedAt).getTime() / 1000),
     }));

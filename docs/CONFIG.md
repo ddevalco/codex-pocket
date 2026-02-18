@@ -5,12 +5,15 @@ Codex Pocket is configured primarily via environment variables (set by the insta
 ## Config File
 
 Path:
+
 - `~/.codex-pocket/config.json` (default for Codex Pocket)
 
 Written by:
+
 - `scripts/install-local.sh`
 
 Fields:
+
 - `token` (string): bearer token used by the web UI and admin API.
 - `host` (string): host local-orbit listens on (default `127.0.0.1`).
 - `port` (number): port local-orbit listens on (default `8790`).
@@ -36,10 +39,12 @@ These are read by `services/local-orbit/src/index.ts`:
 - `ZANE_LOCAL_UI_DIST_DIR` (default `<repo>/dist`)
 
 Persistence:
+
 - `ZANE_LOCAL_DB` (default `~/.codex-pocket/codex-pocket.db`)
 - `ZANE_LOCAL_RETENTION_DAYS` (default `14`)
 
 Anchor management:
+
 - `ZANE_LOCAL_AUTOSTART_ANCHOR` (default `1`)
   - Set to `0` to disable auto-start.
 - `ZANE_LOCAL_ANCHOR_CWD` (default `<repo>/services/anchor`)
@@ -53,4 +58,5 @@ Anchor management:
   - Example: `/opt/homebrew/bin/codex` or `$HOME/.bun/bin/codex`.
 
 Pairing:
+
 - `ZANE_LOCAL_PAIR_TTL_SEC` (default `300`)

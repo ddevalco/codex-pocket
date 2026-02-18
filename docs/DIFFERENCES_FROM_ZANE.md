@@ -3,6 +3,7 @@
 Codex Pocket started as a local-only fork inspired by Zane (credit: Z. Siddiqi).
 
 Codex Pocket’s goal is narrower and more opinionated:
+
 - Run Codex locally on macOS.
 - Access it from iPhone (and other devices) securely.
 - Avoid public internet exposure.

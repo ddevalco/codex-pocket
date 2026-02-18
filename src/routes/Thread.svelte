@@ -742,7 +742,7 @@
     >
         {#snippet actions()}
             <a href={`/thread/${threadId}/review`}>review</a>
-            <div class="more-menu" onpointerdown={(e) => e.stopPropagation()}>
+            <div class="more-menu" role="group" onpointerdown={(e) => e.stopPropagation()}>
                 <button
                     type="button"
                     class="more-btn"
@@ -784,7 +784,7 @@
             <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
                 {themeIcons[theme.current]}
             </button>
-            <div class="more-menu" onpointerdown={(e) => e.stopPropagation()}>
+            <div class="more-menu" role="group" onpointerdown={(e) => e.stopPropagation()}>
                 <button
                     type="button"
                     class="more-btn"

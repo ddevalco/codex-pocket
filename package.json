@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bunx --bun vite",
+    "type-check": "svelte-check --tsconfig ./tsconfig.json",
     "build": "VITE_ZANE_LOCAL=1 VITE_CODEX_POCKET_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo unknown) VITE_CODEX_POCKET_BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ) bunx --bun vite build",
     "preview": "bunx --bun vite preview --port 4173",
     "check:clean-tree": "./scripts/ci/check-clean-tree.sh",
@@ -36,6 +37,7 @@
     "husky": "^9.1.7",
     "jiti": "^2.6.1",
     "lint-staged": "^15.2.11",
+    "svelte-check": "^4.0.0",
     "svelte-eslint-parser": "^1.4.1",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",

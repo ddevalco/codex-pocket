@@ -21,13 +21,13 @@
 
 ### Files Updated
 
-2. **`docs/ACP_CODEX_INTEGRATION_EPIC.md`**
+1. **`docs/ACP_CODEX_INTEGRATION_EPIC.md`**
    - Expanded Phase 2 section with detailed issue descriptions
    - Added implementation sequencing diagram
    - Added risk mitigation table
    - Added success criteria and post-phase capabilities
 
-3. **`BACKLOG.md`**
+2. **`BACKLOG.md`**
    - Added Phase 2 issue breakdown (#131, #133, #134)
    - Linked to detailed implementation plan
    - Added dependencies and acceptance criteria references
@@ -42,12 +42,14 @@
 **Scope:** Implement `CopilotAcpAdapter.sendPrompt()` method
 
 **Files Touched:**
+
 - `services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts`
 - `services/local-orbit/src/providers/adapters/__tests__/copilot-acp-adapter.test.ts`
 
 **Dependencies:** Phase 1 complete ✅
 
 **Acceptance Criteria:**
+
 1. ✅ `adapter.sendPrompt(sessionId, input, options)` sends JSON-RPC request
 2. ✅ Returns `{ turnId, status }` on successful acknowledgment
 3. ✅ Throws structured error on JSON-RPC error response
@@ -64,6 +66,7 @@
 **Scope:** Parse ACP update notifications, aggregate chunks, emit normalized events
 
 **Files Touched:**
+
 - `services/local-orbit/src/providers/adapters/acp-client.ts`
 - `services/local-orbit/src/providers/normalizers/acp-event-normalizer.ts` (NEW)
 - `services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts`
@@ -72,6 +75,7 @@
 **Dependencies:** #131 (requires sendPrompt to generate turnIds)
 
 **Acceptance Criteria:**
+
 1. ✅ `AcpClient` routes notifications to session-specific handlers
 2. ✅ `ACPEventNormalizer` aggregates streaming chunks by turnId
 3. ✅ Emits `NormalizedEvent` on `done` marker or flush trigger
@@ -89,6 +93,7 @@
 **Scope:** Enable prompt composer for Copilot sessions with streaming display
 
 **Files Touched:**
+
 - `services/local-orbit/src/index.ts`
 - `src/routes/ThreadDetail.svelte`
 - `src/lib/components/Composer.svelte`
@@ -96,6 +101,7 @@
 **Dependencies:** #131, #133 (requires backend streaming support)
 
 **Acceptance Criteria:**
+
 1. ✅ Prompt composer enabled for Copilot sessions (if capability true)
 2. ✅ Send button triggers `rpc.sendPrompt()` via relay
 3. ✅ Streaming responses appear in timeline incrementally
@@ -131,6 +137,7 @@
 ### Completeness Check
 
 **Required sections in PHASE2_PLAN.md:**
+
 - ✅ Entry gate with approval checklist
 - ✅ Executive summary
 - ✅ Architecture changes (4 subsections)
@@ -151,11 +158,13 @@
 **Type:** Non-blocking style warnings
 
 **Files:**
+
 - `docs/PHASE2_PLAN.md`
 - `docs/ACP_CODEX_INTEGRATION_EPIC.md`
 - `BACKLOG.md`
 
 **Examples:**
+
 - Missing blank lines around lists
 - Missing blank lines around code fences
 - Table column spacing
@@ -198,12 +207,12 @@
 
 ### Post-Approval
 
-4. **Begin implementation** (strict dependency sequence)
+1. **Begin implementation** (strict dependency sequence)
    - Implement #131 → PR + review
    - Implement #133 → PR + review
    - Implement #134 → PR + review
 
-5. **Validation gates** (after each PR)
+2. **Validation gates** (after each PR)
    - Unit tests pass
    - TypeScript compilation clean
    - No regressions to existing functionality
@@ -214,18 +223,21 @@
 ## Handoff Notes
 
 **For Orchestrator:**
+
 - Phase 2 plan is complete and ready for review
 - No code execution occurred (planning phase only)
 - All prerequisites satisfied (Phase 1 complete)
 - Entry gate enforced (approval required before implementation)
 
 **For Reviewer:**
+
 - Review comprehensive plan in `docs/PHASE2_PLAN.md` (725 lines)
 - Validate architecture changes against provider contracts
 - Confirm risk mitigations are adequate
 - Approve or request revisions before implementation begins
 
 **For Implementation Team:**
+
 - Do not begin coding until plan is approved
 - Follow strict dependency sequence: #131 → #133 → #134
 - Reference acceptance criteria in each issue
@@ -238,6 +250,7 @@
 **HIGH** ✅
 
 **Rationale:**
+
 - Builds on proven Phase 1 architecture
 - Clear separation of concerns (sendPrompt → streaming → UI)
 - Risk mitigations address all identified failure modes
