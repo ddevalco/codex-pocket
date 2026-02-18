@@ -1,225 +1,65 @@
-# ============================================================================
-# UNIVERSAL .GITIGNORE TEMPLATE
-# For all agent-managed and human-managed repositories
-# ============================================================================
+# dependencies
+node_modules
 
-# ============================================================================
-# Operating System Artifacts
-# ============================================================================
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-.Spotlight-V100
-.Trashes
-.fseventsd
-.TemporaryItems
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-*.lnk
-
-# Linux
-.directory
-.Trash-*/
-*~
-
-# ============================================================================
-# Editor and IDE Artifacts
-# ============================================================================
-
-# Vim
-*.swp
-*.swo
-*.swn
-.*.sw?
-*~
-
-# Emacs
-\#*\#
-.\#*
-
-# VS Code (workspace-specific settings; may keep .vscode/settings.json per-project)
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# JetBrains IDEs (IntelliJ, WebStorm, PyCharm, etc.)
-.idea/
-*.iml
-*.iws
-*.ipr
-
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
-
-# ============================================================================
-# Agent-Generated Artifacts (CRITICAL - Highest Priority)
-# ============================================================================
-
-# Validation outputs
-val_*.txt
-val_*.log
-validation_output/
-validation_results/
-
-# Temporary scripts
-temp_*.sh
-temp_*.py
-temp_*.js
-temp_*.ts
-ls_*.sh
-ls_*.txt
-
-# Agent tracking and coordination
-packet_*.yaml
-packet_*.yml
-analysis.txt
-analysis_*.txt
-agent_status.yaml
-agent_report.yaml
-
-# Agent workspaces (NEVER allow)
-.agent-local/
-.agent-workspace/
-.agent-*/
-.vscode-agent-orchestration/
-.orchestrator-workspace/
-.orchestrator-*/
-
-# Generated reports
-.bundlesize.report.json
-.bundlesize.baseline.json
-coverage.json
-test-report.json
-
-# ============================================================================
-# Build and Dependency Artifacts
-# ============================================================================
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.npm/
-.yarn/
-.pnp.*
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.Python
-build/
-develop-eggs/
-dist/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Rust
-target/
-Cargo.lock
-
-# Go
-bin/
-pkg/
-
-# Build outputs (general)
-dist/
-out/
-build/
-
-# ============================================================================
-# Environment and Secrets
-# ============================================================================
-
-.env
-.env.local
-.env.*.local
-*.pem
-*.key
-*.cert
-
-# Allow .env.example (template)
-!.env.example
-
-# ============================================================================
-# Testing and Coverage
-# ============================================================================
-
-coverage/
-.nyc_output/
-*.lcov
-
-# ============================================================================
-# Logs
-# ============================================================================
-
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# ============================================================================
-# Temporary files
-# ============================================================================
-
-tmp/
-temp/
-*.tmp
-
-# ============================================================================
-# Codex Pocket Specific
-# ============================================================================
-
-# Output archives
+# output
+out
+dist
 *.tgz
 
-# Caches
+# code coverage
+coverage
+*.lcov
+
+# logs
+logs
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# caches
 .eslintcache
 .cache
 *.tsbuildinfo
 
-# Misc
+# misc
+.DS_Store
 .ideas
 .docs
 
-# Reports
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-# Agent artifacts (local-only)
+# agent artifacts (local-only)
 .agents/
 AGENT*.md
 agent*.md
 .agent/
+.agent-local/
 prompts/
 notes/
 docs/*AGENT*.local.md
 docs/HANDOFF.local.md
 docs/NEXT_AGENT_PROMPT.local.md
 docs/AGENT_RULES.local.md
+
+# temp scratch
+.tmp
+.vscode-agent-orchestration/
+
+# Agent validation artifacts (prevent commit)
+val_*.txt
+val_*.log
+temp_*.sh
+ls_*.sh
+packet_*.yaml
+packet_*.yml
+analysis.txt
+validation_output/
+
+# Bundlesize reports (generated, not source)
+.bundlesize.report.json
+
+# OS files
+.DS_Store
+Thumbs.db
