@@ -91,17 +91,17 @@ Notice: "These preferences are stored on this device only."
 
 **Phase 2 - Coverage** (Parallel)
 
-6. Thread View toggles
-7. Thread List remaining
-8. Composer remaining
-9. Messages matrix
-10. Expand Settings UI
+1. Thread View toggles
+2. Thread List remaining
+3. Composer remaining
+4. Messages matrix
+5. Expand Settings UI
 
 **Phase 3 - Polish** (Sequential)
 
-11. Empty states + guardrails
-12. Documentation
-13. QA validation
+1. Empty states + guardrails
+2. Documentation
+3. QA validation
 
 ## Testing Strategy
 
