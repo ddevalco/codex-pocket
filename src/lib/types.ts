@@ -33,6 +33,16 @@ export interface ProviderCapabilities {
   SUPPORTS_STREAMING: boolean;
 }
 
+// Legacy interface - kept for backward compatibility
+export interface ThreadCapabilities {
+  attachments: boolean;
+  approvals: boolean;
+  streaming: boolean;
+  filtering: boolean;
+  multiTurn: boolean;
+  sendPrompt: boolean;
+}
+
 export type ApprovalPolicy = "on-request" | "never";
 
 export interface ModelOption {
