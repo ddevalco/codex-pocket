@@ -23,9 +23,17 @@ export interface ThreadInfo {
   modelProvider?: string;
   provider?: string;
   status?: string;
-  capabilities?: ThreadCapabilities;
+  capabilities?: ProviderCapabilities;
 }
 
+export interface ProviderCapabilities {
+  CAN_ATTACH_FILES: boolean;
+  CAN_FILTER_HISTORY: boolean;
+  SUPPORTS_APPROVALS: boolean;
+  SUPPORTS_STREAMING: boolean;
+}
+
+// Legacy interface - kept for backward compatibility
 export interface ThreadCapabilities {
   attachments: boolean;
   approvals: boolean;

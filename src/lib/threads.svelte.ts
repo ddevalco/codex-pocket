@@ -1,4 +1,4 @@
-import type { ApprovalPolicy, CollaborationMode, CollaborationModeMask, ModeKind, ReasoningEffort, SandboxMode, ThreadInfo, RpcMessage, ThreadSettings } from "./types";
+import type { ApprovalPolicy, CollaborationMode, CollaborationModeMask, ModeKind, ProviderCapabilities, ReasoningEffort, SandboxMode, ThreadCapabilities, ThreadInfo, RpcMessage, ThreadSettings } from "./types";
 import { socket } from "./socket.svelte";
 import { messages } from "./messages.svelte";
 import { navigate } from "../router";
@@ -12,6 +12,20 @@ const DEFAULT_SETTINGS: ThreadSettings = {
   sandbox: "workspace-write",
   mode: "code",
   developerInstructions: "",
+};
+
+// Include legacy keys for CI regressions and older compatibility checks.
+const DEFAULT_CAPABILITIES: ProviderCapabilities & ThreadCapabilities = {
+  CAN_ATTACH_FILES: true,
+  CAN_FILTER_HISTORY: true,
+  SUPPORTS_APPROVALS: true,
+  SUPPORTS_STREAMING: true,
+  attachments: true,
+  approvals: true,
+  streaming: true,
+  filtering: true,
+  multiTurn: true,
+  sendPrompt: true,
 };
 
 function lastPathSegment(input: string | undefined): string | undefined {
@@ -48,8 +62,32 @@ function repoNameFromOrigin(origin: string | undefined): string | undefined {
 }
 
 
-function normalizeThreadInfo(input: any): ThreadInfo {
+function parseCapabilities(input: any): ProviderCapabilities | null {
   const thread = input && typeof input === "object" ? input : {};
+  const source = thread.capabilities && typeof thread.capabilities === "object" ? thread.capabilities : thread;
+  const canAttachFiles = typeof source?.CAN_ATTACH_FILES === "boolean" ? source.CAN_ATTACH_FILES : null;
+  const canFilterHistory = typeof source?.CAN_FILTER_HISTORY === "boolean" ? source.CAN_FILTER_HISTORY : null;
+  const supportsApprovals = typeof source?.SUPPORTS_APPROVALS === "boolean" ? source.SUPPORTS_APPROVALS : null;
+  const supportsStreaming = typeof source?.SUPPORTS_STREAMING === "boolean" ? source.SUPPORTS_STREAMING : null;
+  const hasAny =
+    canAttachFiles != null ||
+    canFilterHistory != null ||
+    supportsApprovals != null ||
+    supportsStreaming != null;
+  if (!hasAny) return null;
+  return {
+    CAN_ATTACH_FILES: canAttachFiles ?? DEFAULT_CAPABILITIES.CAN_ATTACH_FILES,
+    CAN_FILTER_HISTORY: canFilterHistory ?? DEFAULT_CAPABILITIES.CAN_FILTER_HISTORY,
+    SUPPORTS_APPROVALS: supportsApprovals ?? DEFAULT_CAPABILITIES.SUPPORTS_APPROVALS,
+    SUPPORTS_STREAMING: supportsStreaming ?? DEFAULT_CAPABILITIES.SUPPORTS_STREAMING,
+  };
+}
+
+function normalizeThreadInfo(input: any, options?: { applyDefaultCapabilities?: boolean }): ThreadInfo {
+  const thread = input && typeof input === "object" ? input : {};
+  const applyDefaultCapabilities = options?.applyDefaultCapabilities ?? true;
+  const parsedCapabilities = parseCapabilities(thread);
+  const capabilities = parsedCapabilities ?? (applyDefaultCapabilities ? DEFAULT_CAPABILITIES : null);
   // Thread id key varies across upstream versions (and sometimes snake_case).
   const id = String(thread.id ?? thread.threadId ?? thread.thread_id ?? "");
   // Codex app-server thread objects vary across versions. Titles may appear under different keys.
@@ -155,14 +193,7 @@ function normalizeThreadInfo(input: any): ThreadInfo {
     ...(lastActiveAt != null ? { lastActiveAt } : {}),
     ...(modelProvider ? { modelProvider } : {}),
     ...(status ? { status } : {}),
-    capabilities: thread.capabilities ?? {
-      attachments: true,
-      approvals: true,
-      streaming: true,
-      filtering: true,
-      multiTurn: true,
-      sendPrompt: true,
-    },
+    ...(capabilities ? { capabilities } : {}),
   };
 }
 
@@ -381,7 +412,7 @@ class ThreadsStore {
           : Array.isArray(result?.data?.items) ? result.data.items
           : Array.isArray(result) ? result
           : [];
-        this.list = rawList.map(normalizeThreadInfo).filter((t) => t.id);
+        this.list = rawList.map((item) => normalizeThreadInfo(item)).filter((t) => t.id);
         this.loading = false;
         // Best-effort: fetch thread metadata for visible threads so renamed titles show up.
         // Keep this lightweight by omitting turns.
@@ -435,7 +466,7 @@ class ThreadsStore {
           result?.thread ??
           result?.data?.thread ??
           (result && typeof result === "object" && "id" in result ? result : null);
-        const thread = threadObj ? normalizeThreadInfo(threadObj) : null;
+        const thread = threadObj ? normalizeThreadInfo(threadObj, { applyDefaultCapabilities: false }) : null;
         if (thread?.id) {
           // Merge into list without losing preview/createdAt if missing.
           this.list = this.list.map((t) => (t.id === thread.id ? { ...t, ...thread } : t));

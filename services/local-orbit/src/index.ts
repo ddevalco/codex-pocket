@@ -277,6 +277,30 @@ type CliCommand = {
   risky?: boolean;
 };
 
+// Provider Capability Contract (Phase 4.1: P4-01-A)
+interface ProviderCapabilities {
+  CAN_ATTACH_FILES: boolean;
+  CAN_FILTER_HISTORY: boolean;
+  SUPPORTS_APPROVALS: boolean;
+  SUPPORTS_STREAMING: boolean;
+}
+
+// Default capability sets per provider
+const PROVIDER_CAPABILITIES: Record<string, ProviderCapabilities> = {
+  codex: {
+    CAN_ATTACH_FILES: true,
+    CAN_FILTER_HISTORY: true,
+    SUPPORTS_APPROVALS: true,
+    SUPPORTS_STREAMING: true,
+  },
+  "copilot-acp": {
+    CAN_ATTACH_FILES: false,
+    CAN_FILTER_HISTORY: false,
+    SUPPORTS_APPROVALS: true,
+    SUPPORTS_STREAMING: true,
+  },
+};
+
 function okJson(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
     ...init,
@@ -1567,6 +1591,59 @@ async function injectThreadTitles(msg: Record<string, unknown>): Promise<void> {
   }
 }
 
+// Helper: Inject capabilities into thread payloads (Phase 4.1: P4-01-B)
+async function injectThreadCapabilities(msg: Record<string, unknown>): Promise<void> {
+  const method = typeof (msg as any).method === "string" ? ((msg as any).method as string) : null;
+  const params = (msg as any).params && typeof (msg as any).params === "object" ? (msg as any).params : null;
+  const result = (msg as any).result && typeof (msg as any).result === "object" ? (msg as any).result : null;
+
+  const applyToThread = (t: any) => {
+    if (!t || typeof t !== "object") return;
+    
+    // Skip if capabilities already present (don't override ACP capabilities)
+    if (t.capabilities !== undefined) return;
+    
+    // Determine provider from thread id or provider field
+    const providerId = typeof t.provider === "string" ? t.provider : "codex";
+    const threadId = typeof t.id === "string" ? t.id : typeof t.threadId === "string" ? t.threadId : null;
+    
+    // For copilot-acp threads identified by id prefix, use copilot-acp capabilities
+    const effectiveProvider = threadId?.startsWith("copilot-acp:") ? "copilot-acp" : providerId;
+    
+    // Inject appropriate capabilities
+    t.capabilities = getProviderCapabilities(effectiveProvider);
+  };
+
+  // Handle thread/started notification
+  if (method === "thread/started" && params?.thread) {
+    applyToThread(params.thread);
+    return;
+  }
+
+  // Handle thread/list responses (multiple thread list shapes)
+  if (method === "thread/list" || !method) {
+    const rawList: any[] = Array.isArray(result?.data)
+      ? result.data
+      : Array.isArray(result?.threads)
+        ? result.threads
+        : Array.isArray(result?.items)
+          ? result.items
+          : Array.isArray(result)
+            ? result
+            : [];
+    for (const t of rawList) applyToThread(t);
+    return;
+  }
+
+  // Handle thread/read and thread/get responses
+  if ((method === "thread/get" || method === "thread/read" || !method) && result) {
+    if (result.thread) applyToThread(result.thread);
+    // Some upstream shapes return the thread object directly
+    if (typeof result.id === "string") applyToThread(result);
+    return;
+  }
+}
+
 // State
 const clientSockets = new Map<WebSocket, Set<string>>();
 const anchorSockets = new Map<WebSocket, Set<string>>();
@@ -1637,7 +1714,8 @@ async function augmentThreadList(response: any): Promise<any> {
     const result = await (adapter as any).listSessions();
     if (!result.sessions || result.sessions.length === 0) return response;
 
-    // Map NormalizedSession to thread format
+    // Map NormalizedSession to thread format with ACP capabilities
+    const acpCapabilities = getProviderCapabilities("copilot-acp");
     const acpThreads = result.sessions.map((session: any) => ({
       id: `copilot-acp:${session.sessionId}`,
       provider: "copilot-acp",
@@ -1647,7 +1725,7 @@ async function augmentThreadList(response: any): Promise<any> {
       project: session.project,
       repo: session.repo,
       preview: session.preview,
-      capabilities: session.capabilities,
+      capabilities: acpCapabilities,
       created_at: Math.floor(new Date(session.createdAt).getTime() / 1000),
       updated_at: Math.floor(new Date(session.updatedAt).getTime() / 1000),
     }));
@@ -1685,6 +1763,18 @@ function isAcpSendPromptOperation(msg: any): boolean {
 
 function acpSessionIdFromThreadId(threadId: string): string {
   return threadId.replace(/^copilot-acp:/, "").trim();
+}
+
+// Capability Normalization Helper (Phase 4.1: P4-01-A)
+// Maps provider id/session source to canonical capability payload
+function getProviderCapabilities(providerId: string): ProviderCapabilities {
+  // Normalize provider ID (strip session prefix if present)
+  const normalizedId = providerId.startsWith("copilot-acp:") 
+    ? "copilot-acp" 
+    : providerId;
+  
+  // Return known provider capabilities, fallback to codex defaults
+  return PROVIDER_CAPABILITIES[normalizedId] ?? PROVIDER_CAPABILITIES.codex;
 }
 
 function extractPromptText(msg: any): string {
@@ -1866,6 +1956,7 @@ async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
     try {
       let cloned = JSON.parse(msgText) as any;
       await injectThreadTitles(cloned);
+      await injectThreadCapabilities(cloned);
 
       if (isThreadListResponse(cloned, true)) {
         cloned = await augmentThreadList(cloned);
