@@ -1,0 +1,13 @@
+packet_id: P2-frontend-graceful-degrade
+decision: done
+touched_files:
+  - src/lib/types.ts
+  - src/lib/threads.svelte.ts
+  - src/routes/Home.svelte
+  - src/routes/Thread.svelte
+validation:
+  - command: npm run type-check
+    result: pass
+  - command: npm run build
+    result: pass
+next_action: handoff_to_reviewer
