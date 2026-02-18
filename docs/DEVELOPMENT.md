@@ -1,6 +1,7 @@
 # Development
 
 This repo contains:
+
 - A Svelte (Vite) web UI in `src/`.
 - A Bun-based local server (`local-orbit`) in `services/local-orbit/`.
 - A Bun-based local agent (`anchor`) in `services/anchor/`.
@@ -89,6 +90,7 @@ bun run services/local-orbit/src/index.ts
 ```
 
 Notes:
+
 - By default, local-orbit attempts to autostart the Anchor. To disable that while working on server-only behavior:
 
 ```bash
@@ -98,6 +100,7 @@ export ZANE_LOCAL_AUTOSTART_ANCHOR='0'
 ## CI
 
 GitHub Actions runs on every push/PR:
+
 - installs deps
 - builds UI
 - starts local-orbit with a dummy token (Anchor autostart disabled)

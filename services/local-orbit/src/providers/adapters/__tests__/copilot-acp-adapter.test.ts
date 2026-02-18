@@ -57,7 +57,7 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
             model: "gpt-4",
           },
         },
-        5000, // 5-second timeout
+        30000, // Default prompt timeout
       );
     });
 
@@ -192,7 +192,7 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
       await adapter.sendPrompt("session-123", { text: "Test" });
 
       const callArgs = mockClient.sendRequest.mock.calls[0];
-      expect(callArgs[2]).toBe(5000); // Third argument is timeout
+      expect(callArgs[2]).toBe(30000); // Third argument is timeout
     });
   });
 
@@ -231,6 +231,31 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
       mockClient.sendRequest.mockRejectedValue("String error");
 
       await expect(adapter.sendPrompt("session-123", { text: "Test" })).rejects.toThrow();
+    });
+  });
+
+  describe("error handling and retries", () => {
+    it("retries on transient failure up to maxRetries", async () => {
+      // First attempt fails, second succeeds
+      mockClient.sendRequest
+        .mockRejectedValueOnce(new Error("Network unavailable")) // transient
+        .mockResolvedValueOnce({ turnId: "retry-success" });
+
+      const result = await adapter.sendPrompt("session-retry", { text: "Retry me" });
+      
+      expect(mockClient.sendRequest).toHaveBeenCalledTimes(2);
+      expect(result.turnId).toBe("retry-success");
+    });
+
+    it("fails after exhausting maxRetries", async () => {
+      // All attempts fail with transient error
+      mockClient.sendRequest.mockRejectedValue(new Error("Network unavailable"));
+
+      // Default maxRetries is 2, so 3 attempts total
+      await expect(adapter.sendPrompt("session-fail", { text: "Fail me" }))
+        .rejects.toThrow("Network unavailable");
+      
+      expect(mockClient.sendRequest).toHaveBeenCalledTimes(3); 
     });
   });
 

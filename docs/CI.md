@@ -15,6 +15,7 @@ The workflow is defined in:
 - Starts `local-orbit` in CI mode (no Anchor autostart)
 - Verifies:
   - `GET /health` returns OK
+  - Capability-aware ACP errors return structured metadata (`capability` + `provider`)
   - `GET /admin/validate` returns sane JSON (auth required)
   - `POST /admin/repair` with safe actions (`ensureUploadDir`, `pruneUploads`) returns sane JSON and no errors
   - `GET /admin/uploads/stats` returns upload footprint stats (auth required)
@@ -35,6 +36,9 @@ The workflow also runs `scripts/ci/regression-guards.ts`.
 These are intentionally small, targeted checks that catch regressions that are easy to reintroduce but hard to
 detect with a generic smoke test. Example: a past thread-list regression where reactive state bookkeeping inside
 an effect created a feedback loop and made the thread list appear empty/unusable.
+
+Capability regression guards additionally ensure the thread/UI capability matrix stays complete, and that
+composer gating continues to honor `capabilities.sendPrompt` so unsupported actions are disabled.
 
 ## Bundle Size Guardrails
 

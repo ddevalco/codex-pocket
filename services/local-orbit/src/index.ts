@@ -1647,6 +1647,7 @@ async function augmentThreadList(response: any): Promise<any> {
       project: session.project,
       repo: session.repo,
       preview: session.preview,
+      capabilities: session.capabilities,
       created_at: Math.floor(new Date(session.createdAt).getTime() / 1000),
       updated_at: Math.floor(new Date(session.updatedAt).getTime() / 1000),
     }));
@@ -1747,10 +1748,25 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
     return;
   }
 
+  const startTime = Date.now();
   try {
     const adapter = registry.get("copilot-acp") as any;
     const sessionId = acpSessionIdFromThreadId(threadId);
     const result = await adapter.sendPrompt(sessionId, { text });
+    
+    const elapsed = Date.now() - startTime;
+    
+    // Log telemetry for relay performance
+    if (elapsed > 15000) {
+      console.warn(
+        `[local-orbit] Slow ACP sendPrompt relay: ${elapsed}ms (degraded, thread: ${threadId})`
+      );
+    } else {
+      console.log(
+        `[local-orbit] ACP sendPrompt relay completed in ${elapsed}ms (thread: ${threadId})`
+      );
+    }
+    
     send(ws, {
       jsonrpc: "2.0",
       id: requestId,
@@ -1762,13 +1778,32 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
       },
     });
   } catch (err) {
+    const elapsed = Date.now() - startTime;
+    const errorMessage = err instanceof Error ? err.message : "Failed to send prompt";
+    
+    // Enhanced error message for timeout scenarios
+    const isTimeout = errorMessage.toLowerCase().includes("timeout");
+    const displayMessage = isTimeout
+      ? `Request timed out after ${elapsed}ms. The ACP provider may be slow or unresponsive.`
+      : errorMessage;
+    
+    console.error(
+      `[local-orbit] ACP sendPrompt failed after ${elapsed}ms (thread: ${threadId}):`,
+      errorMessage
+    );
+    
     send(ws, {
       jsonrpc: "2.0",
       id: requestId,
       error: {
-        code: -32001,
-        message: err instanceof Error ? err.message : "Failed to send prompt",
-        data: { provider: "copilot-acp", threadId },
+        code: isTimeout ? -32001 : -32002,
+        message: displayMessage,
+        data: { 
+          provider: "copilot-acp", 
+          threadId,
+          elapsed,
+          timeout: isTimeout,
+        },
       },
     });
   }

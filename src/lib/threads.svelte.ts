@@ -155,6 +155,14 @@ function normalizeThreadInfo(input: any): ThreadInfo {
     ...(lastActiveAt != null ? { lastActiveAt } : {}),
     ...(modelProvider ? { modelProvider } : {}),
     ...(status ? { status } : {}),
+    capabilities: thread.capabilities ?? {
+      attachments: true,
+      approvals: true,
+      streaming: true,
+      filtering: true,
+      multiTurn: true,
+      sendPrompt: true,
+    },
   };
 }
 

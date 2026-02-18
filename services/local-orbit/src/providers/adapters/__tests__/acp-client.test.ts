@@ -82,7 +82,8 @@ describe("AcpClient", () => {
       expect(true).toBe(false); // Should not reach
     } catch (err: any) {
       const elapsed = Date.now() - start;
-      expect(err.message).toContain("timed out");
+      expect(err.message).toContain("ACP operation timed out");
+      expect(err.message).toContain("slow/method");
       expect(elapsed).toBeGreaterThanOrEqual(100);
       expect(elapsed).toBeLessThan(500); // Allow some buffer
     }

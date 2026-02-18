@@ -20,6 +20,7 @@ Phase 2 implementation is authorized. Phase 2 introduces write operations and bi
 ## Executive Summary
 
 Phase 2 extends the read-only Copilot ACP integration (Phase 1) with write capabilities:
+
 - **Send prompts** to Copilot sessions via JSON-RPC `sendPrompt` method
 - **Stream responses** incrementally as ACP emits update events
 - **Parse and aggregate** streaming chunks into timeline events
@@ -34,6 +35,7 @@ This enables a full conversation loop: users can send prompts to Copilot session
 ### 1. JSON-RPC Method Mapping
 
 **Current state (Phase 1):**
+
 - `AcpClient` implements generic JSON-RPC request/response patterns
 - Only `listSessions` method tested and wired
 - Notifications handled but not routed
@@ -41,6 +43,7 @@ This enables a full conversation loop: users can send prompts to Copilot session
 **Phase 2 additions:**
 
 #### `sendPrompt` Method
+
 ```typescript
 // JSON-RPC structure
 {
@@ -62,6 +65,7 @@ This enables a full conversation loop: users can send prompts to Copilot session
 ```
 
 **Response:**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -74,6 +78,7 @@ This enables a full conversation loop: users can send prompts to Copilot session
 ```
 
 **Design notes:**
+
 - Response is synchronous (request acknowledgment)
 - Actual content arrives via **notifications** (streaming chunks)
 - Must correlate notifications with turnId for multi-session support
@@ -81,6 +86,7 @@ This enables a full conversation loop: users can send prompts to Copilot session
 ### 2. Bidirectional Streaming Architecture
 
 **Current AcpClient streaming:**
+
 - Reads NDJSON from `process.stdout` ✅
 - Writes requests to `process.stdin` ✅
 - Notification handler registration exists but unused
@@ -88,6 +94,7 @@ This enables a full conversation loop: users can send prompts to Copilot session
 **Phase 2 enhancements:**
 
 #### Notification Router
+
 ```typescript
 class AcpClient {
   private eventHandlers = new Map<string, EventHandler[]>();
@@ -116,6 +123,7 @@ class AcpClient {
 ```
 
 **Notification flow:**
+
 1. `sendPrompt()` call returns `turnId`
 2. Client subscribes to session events via `onSessionEvent(sessionId, callback)`
 3. ACP emits notifications: `{"jsonrpc":"2.0","method":"update","params":{"sessionId":"...","update":...}}`
@@ -125,6 +133,7 @@ class AcpClient {
 ### 3. Response Chunk Parsing and Aggregation
 
 **ACP update notification structure (inferred from protocol):**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -142,6 +151,7 @@ class AcpClient {
 ```
 
 **Update types (expected):**
+
 - `content` - Text delta (agent message)
 - `reasoning` - Reasoning/thinking delta
 - `tool` - Tool invocation/result
@@ -214,6 +224,7 @@ class ACPEventNormalizer {
 ```
 
 **Design decisions:**
+
 - **Flush strategy:** Flush on `done` marker OR when switching between content types (e.g., content → reasoning)
 - **Category mapping:**
   - `content` → `agent_message`
@@ -227,6 +238,7 @@ class ACPEventNormalizer {
 **Error categories:**
 
 #### Protocol errors (JSON-RPC level)
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -242,6 +254,7 @@ class ACPEventNormalizer {
 **Handling:** Reject promise with structured error
 
 #### Session-level errors (notification)
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -263,16 +276,19 @@ class ACPEventNormalizer {
 **Handling:** Emit `lifecycle_status` event with error category
 
 #### Streaming interruption (mid-response)
+
 - TCP connection drops
 - Process crash
 - Timeout waiting for chunks
 
 **Handling:**
+
 - Set timeout for final `done` marker (30s default)
 - On timeout, flush partial context and emit error event
 - Mark session as `interrupted` status
 
 **Error normalization:**
+
 ```typescript
 function normalizeError(error: AcpError): NormalizedEvent {
   return {
@@ -307,6 +323,7 @@ function classifyError(code: string): string {
 ## Issue Breakdown
 
 Issue mapping clarification:
+
 - Umbrella/planning container: #131
 - Detailed planning references: #133, #134
 - Implementation task tracking: #144 (`sendPrompt`), #145 (streaming), #146 (UI prompt input)
@@ -318,6 +335,7 @@ Implementation tracking issue: #144
 **Scope:** Implement `sendPrompt()` method in `CopilotAcpAdapter` with basic request/response handling.
 
 **Acceptance Criteria:**
+
 1. ✅ `adapter.sendPrompt(sessionId, input, options)` sends JSON-RPC request
 2. ✅ Returns `{ turnId, status }` on successful acknowledgment
 3. ✅ Throws structured error on JSON-RPC error response
@@ -326,7 +344,8 @@ Implementation tracking issue: #144
 6. ✅ Unit tests cover success, validation errors, timeout, JSON-RPC errors
 
 **File Blast Radius:**
-```
+
+```text
 services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts
   - Implement sendPrompt() method body
   - Add input validation helper
@@ -340,10 +359,12 @@ services/local-orbit/src/providers/adapters/__tests__/copilot-acp-adapter.test.t
 ```
 
 **Dependencies:**
+
 - Phase 1 complete ✅
 - No blockers
 
 **Testing Strategy:**
+
 ```typescript
 describe("CopilotAcpAdapter.sendPrompt", () => {
   it("sends valid prompt and returns turnId", async () => {
@@ -370,6 +391,7 @@ describe("CopilotAcpAdapter.sendPrompt", () => {
 ```
 
 **Non-Goals:**
+
 - Streaming response handling (see #133)
 - UI integration (separate PR)
 - Retry logic (Phase 5)
@@ -383,6 +405,7 @@ Implementation tracking issue: #145
 **Scope:** Parse ACP update notifications, aggregate chunks, and emit normalized events to subscribers.
 
 **Acceptance Criteria:**
+
 1. ✅ `AcpClient` routes notifications to session-specific handlers
 2. ✅ `ACPEventNormalizer` aggregates streaming chunks by turnId
 3. ✅ Emits `NormalizedEvent` on `done` marker or flush trigger
@@ -392,7 +415,8 @@ Implementation tracking issue: #145
 7. ✅ Unit tests for aggregation, flushing, timeout, category mapping
 
 **File Blast Radius:**
-```
+
+```text
 services/local-orbit/src/providers/adapters/acp-client.ts
   - Add onSessionEvent(sessionId, handler)
   - Add offSessionEvent(sessionId, handler)
@@ -417,9 +441,11 @@ services/local-orbit/src/providers/normalizers/__tests__/acp-event-normalizer.te
 ```
 
 **Dependencies:**
+
 - #131 (sendPrompt must be functional to generate turnIds)
 
 **Testing Strategy:**
+
 ```typescript
 describe("ACPEventNormalizer", () => {
   it("aggregates content deltas into single event", () => {
@@ -458,6 +484,7 @@ describe("ACPEventNormalizer", () => {
 ```
 
 **Non-Goals:**
+
 - Optimistic UI updates (out of scope)
 - Advanced partial rendering (Phase 4)
 - Backpressure/flow control (Phase 5)
@@ -471,6 +498,7 @@ Implementation tracking issue: #146
 **Scope:** Enable prompt composer for Copilot sessions in thread detail view, with appropriate UX affordances for write operations.
 
 **Acceptance Criteria:**
+
 1. ✅ Prompt composer enabled when viewing Copilot session (if `sendPrompt` capability true)
 2. ✅ Send button triggers `rpc.sendPrompt(sessionId, { text })` via relay
 3. ✅ Streaming responses appear in timeline incrementally
@@ -479,7 +507,8 @@ Implementation tracking issue: #146
 6. ✅ Read-only badge/notice hidden when write enabled
 
 **File Blast Radius:**
-```
+
+```text
 services/local-orbit/src/index.ts
   - Remove read-only guard for ACP sessions (keep guard structure for other checks)
   - Route sendPrompt RPC to provider adapter
@@ -496,10 +525,12 @@ src/lib/components/Composer.svelte
 ```
 
 **Dependencies:**
+
 - #131 (sendPrompt backend)
 - #133 (streaming support)
 
 **Testing Strategy:**
+
 - Manual E2E test script:
   1. Open Copilot session in Home UI
   2. Verify composer is enabled
@@ -510,6 +541,7 @@ src/lib/components/Composer.svelte
   7. Rate limit test (send 10 prompts rapidly) → verify graceful error
 
 **Non-Goals:**
+
 - Attachment support (Phase 4)
 - Multi-turn context management (Phase 4)
 - Advanced composer features (templates, etc.)
@@ -537,6 +569,7 @@ graph TD
 **Implementation issue critical path:** #144 → #145 → #146
 
 **Rationale:**
+
 - #131 must work before streaming tests can verify turnId correlation
 - #133 must work before UI can display incremental updates
 - #134 is pure UI integration, safe to implement last
@@ -562,6 +595,7 @@ graph TD
 ### Unit Tests
 
 **Coverage targets:**
+
 - `CopilotAcpAdapter.sendPrompt()`: 90%+ (input validation, error cases, timeout)
 - `ACPEventNormalizer`: 95%+ (aggregation logic, category mapping, flush triggers)
 - `AcpClient` notification routing: 85%+
@@ -644,6 +678,7 @@ echo "✅ All E2E tests passed"
 3. **Graceful degradation:** Read-only guard remains in place as fallback (can be toggled via config)
 
 **Health check additions:**
+
 ```typescript
 async health(): Promise<ProviderHealthStatus> {
   // Existing checks...
@@ -689,11 +724,13 @@ async health(): Promise<ProviderHealthStatus> {
 ## Post-Phase 2 State
 
 **Capabilities enabled:**
+
 - ✅ Read Copilot sessions (Phase 1)
 - ✅ Send prompts to Copilot (Phase 2)
 - ✅ Stream responses incrementally (Phase 2)
 
 **Capabilities deferred:**
+
 - ⏸️ Attachments (Phase 4)
 - ⏸️ Approvals/user input requests (Phase 4)
 - ⏸️ Advanced filtering and view persistence (Phase 4)
@@ -719,4 +756,3 @@ Implementation may begin on issues #144, #145, #146 in sequence.
 - **ACP Protocol:** (GitHub Copilot CLI documentation - to be linked when available)
 - **Provider Contracts:** `services/local-orbit/src/providers/contracts.ts`
 - **Integration Epic:** `docs/ACP_CODEX_INTEGRATION_EPIC.md`
-

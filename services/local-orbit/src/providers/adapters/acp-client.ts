@@ -60,6 +60,8 @@ interface PendingRequest {
   resolve: (result: unknown) => void;
   reject: (error: Error) => void;
   timer: ReturnType<typeof setTimeout>;
+  method: string;
+  startTime: number;
 }
 
 /**
@@ -159,6 +161,20 @@ export class AcpClient {
       return;
     }
 
+    // Calculate elapsed time for telemetry
+    const elapsed = Date.now() - pending.startTime;
+    
+    // Log slow responses (>3s) for performance monitoring
+    if (elapsed > 3000) {
+      console.warn(
+        `[acp-client] Slow response: ${pending.method} took ${elapsed}ms (degraded performance)`
+      );
+    } else if (elapsed > 1000) {
+      console.log(
+        `[acp-client] ${pending.method} completed in ${elapsed}ms`
+      );
+    }
+
     // Clear timeout
     clearTimeout(pending.timer);
     this.pendingRequests.delete(response.id);
@@ -219,6 +235,7 @@ export class AcpClient {
     timeout?: number,
   ): Promise<unknown> {
     const id = this.nextId++;
+    const startTime = Date.now();
     const request: JsonRpcRequest = {
       jsonrpc: "2.0",
       id,
@@ -229,14 +246,23 @@ export class AcpClient {
     return new Promise((resolve, reject) => {
       const timeoutMs = timeout ?? this.defaultTimeout;
 
-      // Setup timeout
+      // Setup timeout with enhanced error message
       const timer = setTimeout(() => {
         this.pendingRequests.delete(id);
-        reject(new Error(`Request ${id} (${method}) timed out after ${timeoutMs}ms`));
+        const elapsed = Date.now() - startTime;
+        console.warn(
+          `[acp-client] Timeout: ${method} (id=${id}) exceeded ${timeoutMs}ms (actual: ${elapsed}ms)`
+        );
+        reject(
+          new Error(
+            `ACP operation timed out: ${method} exceeded ${timeoutMs}ms. ` +
+            `The provider may be slow or unresponsive.`
+          )
+        );
       }, timeoutMs);
 
-      // Track pending request
-      this.pendingRequests.set(id, { resolve, reject, timer });
+      // Track pending request with telemetry metadata
+      this.pendingRequests.set(id, { resolve, reject, timer, method, startTime });
 
       // Send request
       if (!this.process.stdin) {

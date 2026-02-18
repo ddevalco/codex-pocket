@@ -426,3 +426,91 @@ jobs:
           fi
           echo "---- server log (tail) ----"
           tail -n 200 /tmp/codex-pocket-ci.log || true
+
+  capability-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build-and-smoke
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+
+      - name: Install deps
+        run: bun install
+
+      - name: Build UI
+        run: bun run build
+
+      - name: Start server (local-orbit)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Provide a config.json so local-orbit doesn't accidentally read a token
+          # from a runner's default home dir config (which would break auth in CI).
+          cat > /tmp/codex-pocket-ci-config.json <<'JSON'
+          { "token": "ci-token" }
+          JSON
+
+          export ZANE_LOCAL_TOKEN='ci-token'
+          export ZANE_LOCAL_CONFIG_JSON='/tmp/codex-pocket-ci-config.json'
+          export ZANE_LOCAL_HOST='127.0.0.1'
+          export ZANE_LOCAL_PORT='8790'
+          export ZANE_LOCAL_DB='/tmp/codex-pocket-ci.db'
+          export ZANE_LOCAL_UI_DIST_DIR='${{ github.workspace }}/dist'
+          export ZANE_LOCAL_AUTOSTART_ANCHOR='0'
+          export ZANE_LOCAL_UPLOAD_DIR='/tmp/codex-pocket-ci-uploads'
+          export ZANE_LOCAL_UPLOAD_RETENTION_DAYS='0'
+          export ZANE_LOCAL_PAIR_RATE_LIMIT_MAX='2'
+          export ZANE_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC='120'
+          export ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX='2'
+          export ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC='120'
+
+          mkdir -p "$ZANE_LOCAL_UPLOAD_DIR"
+
+          bun run services/local-orbit/src/index.ts > /tmp/codex-pocket-ci.log 2>&1 &
+          echo $! > /tmp/codex-pocket-ci.pid
+
+      - name: Wait for /health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for i in {1..60}; do
+            if curl -fsS "http://127.0.0.1:8790/health" >/tmp/health.json; then
+              break
+            fi
+            sleep 0.25
+          done
+
+          # basic sanity: JSON contains status ok
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/health.json'))
+          assert d.get('status')=='ok', d
+          assert d.get('port')==8790, d
+          print('health ok')
+          PY
+
+      - name: Capability smoke tests (ACP)
+        shell: bash
+        run: |
+          set -euo pipefail
+          CI_BASE_URL="http://127.0.0.1:8790" CI_TOKEN="ci-token" CI_WS_SMOKE_MODE="capabilities" bun scripts/ci/ws-smoke.ts
+
+      - name: Stop server
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/codex-pocket-ci.pid ]; then
+            kill "$(cat /tmp/codex-pocket-ci.pid)" || true
+          fi
+          echo "---- server log (tail) ----"
+          tail -n 200 /tmp/codex-pocket-ci.log || true

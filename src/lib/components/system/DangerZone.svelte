@@ -1,5 +1,9 @@
+<script lang="ts">
+  const { children } = $props();
+</script>
+
 <div class="danger-zone stack">
-  <slot />
+  {@render children()}
 </div>
 
 <style>

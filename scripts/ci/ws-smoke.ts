@@ -2,6 +2,12 @@ import WebSocket from "ws";
 
 const BASE = process.env.CI_BASE_URL || "http://127.0.0.1:8790";
 const TOKEN = process.env.CI_TOKEN || "ci-token";
+const MODE = (process.env.CI_WS_SMOKE_MODE || "all").toLowerCase();
+
+function shouldRun(section: "relay" | "capabilities"): boolean {
+  if (!MODE || MODE === "all") return true;
+  return MODE.split(",").map((part) => part.trim()).includes(section);
+}
 
 function wsUrl(path: string): string {
   const u = new URL(BASE);
@@ -59,40 +65,85 @@ async function waitForMessage(ws: WebSocket, pred: (msg: any) => boolean, label:
   });
 }
 
+async function sendRpc(ws: WebSocket, msg: any, label: string) {
+  ws.send(JSON.stringify(msg));
+  return await waitForMessage(ws, (m) => m?.id === msg.id, label);
+}
+
+async function runCapabilityChecks(ws: WebSocket) {
+  const requestId = Date.now();
+  const threadId = `copilot-acp:ci-capability-${requestId}`;
+  const resp = await sendRpc(
+    ws,
+    {
+      jsonrpc: "2.0",
+      id: requestId,
+      method: "thread/delete",
+      params: { threadId },
+    },
+    "capability error response",
+  );
+
+  if (!resp?.error || typeof resp.error !== "object") {
+    throw new Error("capability check: expected error response");
+  }
+
+  if (resp.error.code !== -32000) {
+    throw new Error(`capability check: expected code -32000, got ${resp.error.code}`);
+  }
+
+  const data = resp.error.data || {};
+  if (data.provider !== "copilot-acp") {
+    throw new Error(`capability check: expected provider copilot-acp, got ${String(data.provider)}`);
+  }
+  if (data.capability !== "sendPrompt") {
+    throw new Error(`capability check: expected capability sendPrompt, got ${String(data.capability)}`);
+  }
+  console.log("capability error response ok");
+}
+
 async function main() {
   const threadId = `ci-thread-${Date.now()}`;
 
   const client = await openWS("/ws/client", "client");
-  const anchor = await openWS("/ws/anchor", "anchor");
-  // Give the server a moment to finish post-upgrade bookkeeping.
-  await sleep(25);
+  let anchor: WebSocket | null = null;
 
-  // 1) Client -> Anchor routing (threadId-specific, no prior subscription)
-  const ping = { type: "ci.ping", id: 1, threadId };
-  client.send(JSON.stringify(ping));
+  if (shouldRun("relay")) {
+    anchor = await openWS("/ws/anchor", "anchor");
+    // Give the server a moment to finish post-upgrade bookkeeping.
+    await sleep(25);
 
-  await waitForMessage(
-    anchor,
-    (m) => m?.type === "ci.ping" && m?.id === 1 && m?.threadId === threadId,
-    "anchor receive ping",
-  );
+    // 1) Client -> Anchor routing (threadId-specific, no prior subscription)
+    const ping = { type: "ci.ping", id: 1, threadId };
+    client.send(JSON.stringify(ping));
 
-  // 2) Anchor -> Client routing (RPC-style response w/ id should not be dropped)
-  const pong = { type: "ci.pong", id: 1, threadId };
-  anchor.send(JSON.stringify(pong));
+    await waitForMessage(
+      anchor,
+      (m) => m?.type === "ci.ping" && m?.id === 1 && m?.threadId === threadId,
+      "anchor receive ping",
+    );
 
-  await waitForMessage(
-    client,
-    (m) => m?.type === "ci.pong" && m?.id === 1 && m?.threadId === threadId,
-    "client receive pong",
-  );
+    // 2) Anchor -> Client routing (RPC-style response w/ id should not be dropped)
+    const pong = { type: "ci.pong", id: 1, threadId };
+    anchor.send(JSON.stringify(pong));
+
+    await waitForMessage(
+      client,
+      (m) => m?.type === "ci.pong" && m?.id === 1 && m?.threadId === threadId,
+      "client receive pong",
+    );
+    console.log("ws relay ok");
+  }
+
+  if (shouldRun("capabilities")) {
+    await runCapabilityChecks(client);
+  }
 
   client.close();
-  anchor.close();
+  anchor?.close();
 
   // Give the runtime a moment to flush close frames.
   await sleep(50);
-  console.log("ws relay ok");
 }
 
 main().catch((err) => {
