@@ -3,6 +3,7 @@
 The `codex-pocket` CLI manages the service and talks to the local Admin API.
 
 Binary location after install:
+
 - `~/.codex-pocket/bin/codex-pocket` (wrapper that delegates to the repo copy in `~/.codex-pocket/app/bin/codex-pocket`)
 
 ## Running the CLI
@@ -113,4 +114,5 @@ $CODEX_POCKET_HOME/bin/codex-pocket summary
 ## Config
 
 The CLI reads:
+
 - `~/.codex-pocket/config.json`

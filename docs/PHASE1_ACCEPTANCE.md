@@ -69,7 +69,7 @@ npm run lint
    cd services/local-orbit
    bun run src/index.ts
    ```
-   
+
    **Expected:**
    - Console shows "Starting all providers..."
    - "[copilot-acp] Starting adapter" logged
@@ -81,7 +81,7 @@ npm run lint
    ```bash
    curl http://localhost:3030/admin/health
    ```
-   
+
    **Expected:**
 
    ```json
@@ -96,7 +96,7 @@ npm run lint
 3. **Open Home UI on iPhone/browser:**
    - Navigate to Codex Pocket app
    - Go to Home screen
-   
+
    **Expected:**
    - Two provider sections visible:
      - "Codex" with "New task" button
@@ -107,7 +107,7 @@ npm run lint
 4. **Verify read-only enforcement:**
    - Locate a Copilot session in the list
    - Observe action buttons (archive/rename)
-   
+
    **Expected:**
    - Archive button is visually disabled (dimmed, opacity reduced)
    - Rename button is visually disabled
@@ -130,7 +130,7 @@ npm run lint
        }
      }
      ```
-   
+
    **Expected:**
 
    - Response is JSON-RPC error:
@@ -152,7 +152,7 @@ npm run lint
    - Create a new Codex thread
    - Send a prompt
    - Archive the thread
-   
+
    **Expected:**
    - All Codex operations work normally
    - No errors related to provider system
@@ -173,7 +173,7 @@ npm run lint
    cd services/local-orbit
    bun run src/index.ts
    ```
-   
+
    **Expected:**
    - "[copilot-acp] Starting adapter" logged
    - "[copilot-acp] Executable not found, using degraded mode" logged
@@ -184,7 +184,7 @@ npm run lint
    ```bash
    curl http://localhost:3030/admin/health
    ```
-   
+
    **Expected:**
 
    ```json
@@ -198,7 +198,7 @@ npm run lint
 
 3. **Open Home UI:**
    - Navigate to Home screen
-   
+
    **Expected:**
    - Codex section displays normally
    - GitHub Copilot section shows empty state:
@@ -208,7 +208,7 @@ npm run lint
 
 4. **Verify Codex still works:**
    - Create and interact with Codex threads
-   
+
    **Expected:**
    - Full Codex functionality intact
    - Copilot section remains empty but doesn't break UI
@@ -220,7 +220,7 @@ npm run lint
 1. **Graceful shutdown:**
    - Start local-orbit
    - Send SIGTERM: `kill -TERM <pid>` or Ctrl+C
-   
+
    **Expected:**
    - "Shutting down providers..." logged
    - "[copilot-acp] Stopping adapter" logged
@@ -229,7 +229,7 @@ npm run lint
 
 2. **Restart:**
    - Restart local-orbit
-   
+
    **Expected:**
    - Providers initialize successfully
    - Previous sessions visible in UI

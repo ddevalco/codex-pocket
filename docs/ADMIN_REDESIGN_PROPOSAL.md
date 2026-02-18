@@ -38,12 +38,14 @@ Owner: Codex Pocket maintainers
 ## `/admin`
 
 Top summary strip (always visible):
+
 - Server endpoint
 - Anchor status
 - Auth status
 - Last validate/repair result + timestamp
 
 Primary sections:
+
 1. System Overview
 2. Operations
 3. Access & Pairing
@@ -54,6 +56,7 @@ Primary sections:
 ## `/settings`
 
 Sections:
+
 1. Connection
 2. Devices
 3. Composer
@@ -131,20 +134,25 @@ Structure and components should match Admin card system.
 ## Implementation Plan (Small PRs)
 
 1. Shared UI primitives + token tune-up (no behavior changes)
+
 - Add reusable components: `Card`, `SectionHeader`, `StatusChip`, `DangerZone`, `LogPanel`.
 - Ensure theme token coverage for these primitives.
 
-2. Admin IA/layout refactor
+1. Admin IA/layout refactor
+
 - Rebuild Admin into grid/card structure.
 - Keep all existing endpoints/flows unchanged.
 
-3. Admin interaction polish
+1. Admin interaction polish
+
 - Add confirmations, action feedback states, collapsible advanced sections.
 
-4. Settings visual alignment
+1. Settings visual alignment
+
 - Migrate settings sections to shared primitives and spacing rules.
 
-5. Accessibility + docs + screenshots
+1. Accessibility + docs + screenshots
+
 - Keyboard/focus/contrast pass.
 - Update docs and changelog with before/after screenshots.
 

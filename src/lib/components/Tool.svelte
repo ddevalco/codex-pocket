@@ -155,8 +155,6 @@
       const html = marked.parse(raw, {
         async: false,
         breaks: true,
-        headerIds: false,
-        mangle: false,
       }) as string;
       return DOMPurify.sanitize(html, {
         ALLOWED_TAGS: [

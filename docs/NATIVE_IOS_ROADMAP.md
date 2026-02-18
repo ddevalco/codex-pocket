@@ -3,6 +3,7 @@
 This roadmap defines a phased path for a native iOS client while keeping current web reliability first.
 
 Status:
+
 - Web reliability/docs/CI are currently green.
 - Native iOS work remains optional (`P4`) and should stay incremental.
 
@@ -28,6 +29,7 @@ Status:
 ## Milestones
 
 ### M0: Discovery + Contract Freeze (Docs/Test Only)
+
 - Confirm API contract used by iOS:
   - `/pair/consume`
   - `/admin/status` (device/server health)
@@ -42,6 +44,7 @@ Status:
   - frozen API checklist + smoke test matrix for iOS parity.
 
 ### M1: Pairing + Session Bootstrap (SwiftUI Skeleton)
+
 - Build initial app shell with:
   - QR scanner for pair URL/code
   - pair consume call
@@ -52,6 +55,7 @@ Status:
   - app can fetch authenticated `/admin/status`.
 
 ### M2: Read Path Parity
+
 - Implement:
   - thread list
   - thread history view backed by events replay
@@ -62,6 +66,7 @@ Status:
   - read-only token mode behavior is explicit in UI.
 
 ### M3: Write Path Parity
+
 - Implement:
   - composer send flow
   - write actions through websocket/API path
@@ -72,6 +77,7 @@ Status:
   - errors are surfaced with actionable retry messaging.
 
 ### M4: Native Value Additions
+
 - Implement iOS-specific improvements:
   - notifications for:
     - approval required
@@ -85,6 +91,7 @@ Status:
 ## Ask-Me-First Decision Gates
 
 Pause and confirm before implementing any of the following:
+
 - changes to auth/token model or approval gating behavior
 - backend API changes that break existing web clients
 - new external integrations/services for notifications or relay

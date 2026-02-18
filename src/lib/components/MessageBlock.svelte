@@ -77,8 +77,6 @@
           const html = marked.parse(raw, {
             async: false,
             breaks: true,
-            headerIds: false,
-            mangle: false,
           }) as string;
           const safe = DOMPurify.sanitize(html, { ALLOWED_TAGS: ["p", "br", "strong", "em", "code", "pre", "blockquote", "ul", "ol", "li", "hr", "h1", "h2", "h3", "h4", "h5", "h6", "img", "a"], ALLOWED_ATTR: ["href", "title", "src", "alt"] });
 

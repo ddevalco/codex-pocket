@@ -99,7 +99,7 @@ Epic tracking: [`docs/ACP_CODEX_INTEGRATION_EPIC.md`](docs/ACP_CODEX_INTEGRATION
 - Provider adapter contracts + normalized schemas (#129) ✅
 - Copilot ACP adapter process and read-only session ingestion (#130) ✅
 
-**Phase 2: Prompt Send + Streaming** ✅ COMPLETED (2026-02-17)
+**Phase 2: Prompt Send + Streaming** ✅ COMPLETED (PRs #147, #148, #149 • 2026-02-17)
 
 - **#144**: ACP write capability - sendPrompt method ✅
 - **#145**: Streaming response handling ✅

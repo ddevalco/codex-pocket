@@ -6,7 +6,7 @@ Date: 2026-02-16
 
 - ✅ **Phase 0**: Contracts & Schemas (PR #138, merged)
 - ✅ **Phase 1**: Registry & Read-Only Adapter (PR #143, merged)
-- ✅ **Phase 2**: Prompt Send + Streaming (Completed 2026-02-17)
+- ✅ **Phase 2**: Prompt Send + Streaming (PRs #147, #148, #149 • 2026-02-17)
 - ✅ **Phase 3**: Home UI Grouping (completed in Phase 1 / PR #143)
 - 📋 **Phase 4**: Capability Matrix (planned)
 - 📋 **Phase 5**: Hardening (planned)
@@ -16,6 +16,7 @@ Date: 2026-02-16
 Codex Pocket currently integrates deeply with Codex app-server. This epic defines how to add an additional provider path based on ACP (starting with GitHub Copilot CLI ACP server) so users can view and operate both sources in one UI.
 
 Desired UX:
+
 - Home shows provider groups (collapsed/expanded):
   - Codex Sessions
   - Copilot Sessions
@@ -33,18 +34,21 @@ Desired UX:
 Codex app-server and ACP are compatible in spirit, but not equivalent 1:1.
 
 Shared traits:
+
 - Agent-client protocol transport model (often stdio subprocess + streamed events)
 - Session/conversation concept
 - Prompt/request execution lifecycle
 - Incremental updates and tool/event reporting
 
 Important differences:
+
 - Lifecycle and naming: ACP session/prompt/update vs Codex thread/turn/item
 - Event taxonomy: ACP update variants vs Codex `turn/*` and `item/*`
 - Capabilities surface: Codex has rich review/thread/filter primitives; ACP is provider-agnostic and evolving
 - Auth/runtime setup differs per provider implementation (e.g., `copilot --acp` modes)
 
 Conclusion:
+
 - Implement an adapter model, not protocol conflation.
 
 ## Proposed Architecture
@@ -52,10 +56,12 @@ Conclusion:
 ### 1) Provider Adapter Boundary
 
 Add a provider abstraction inside local-orbit with two initial implementations:
+
 - `codex-app-server` adapter (existing behavior wrapped behind interface)
 - `copilot-acp` adapter (new)
 
 Provider adapter contract (conceptual):
+
 - `start()` / `stop()`
 - `health()`
 - `listSessions(cursor, filters)`
@@ -67,6 +73,7 @@ Provider adapter contract (conceptual):
 ### 2) Unified Session Model
 
 Introduce a normalized session shape used by the UI list layer:
+
 - `provider`: `codex` | `copilot`
 - `sessionId`
 - `title`
@@ -81,6 +88,7 @@ Use provider-specific adapters to map source payloads into this model.
 ### 3) Event Normalization Layer
 
 Define normalized timeline event categories (examples):
+
 - user message
 - agent message
 - reasoning
@@ -91,6 +99,7 @@ Define normalized timeline event categories (examples):
 - provider lifecycle/status
 
 Store both:
+
 - normalized envelope for shared UI rendering
 - raw provider payload for debug/replay
 
@@ -104,15 +113,18 @@ Store both:
 ### 5) UI Changes
 
 Home:
+
 - provider sections with expand/collapse state
 - each section keeps existing sort/group behavior
 - provider badges/chips on thread rows
 
 Thread/Detail:
+
 - provider identity in header
 - provider-specific capabilities hidden/disabled when unsupported
 
 Settings/Admin:
+
 - provider toggles
 - provider health/status panel
 - diagnostics for adapter startup/auth failures
@@ -225,6 +237,7 @@ All providers declare capabilities via `ProviderCapabilities`:
 **Detailed Plan:** [`docs/PHASE2_PLAN.md`](PHASE2_PLAN.md)
 
 **Issue structure clarification:**
+
 - Umbrella/planning container: #131 (with design/plan context also recorded in #133 and #134)
 - Implementation task issues: #144 (`sendPrompt`), #145 (streaming), #146 (UI prompt input)
 
@@ -248,6 +261,7 @@ GitHub Issue: #144 (originally planned as #131)
 **Scope:** Implement `CopilotAcpAdapter.sendPrompt()` method with request/response handling.
 
 **Key deliverables:**
+
 - JSON-RPC `sendPrompt` request builder with input validation
 - Response parsing to extract `turnId` for correlation
 - Error handling for JSON-RPC protocol errors
@@ -255,6 +269,7 @@ GitHub Issue: #144 (originally planned as #131)
 - Unit test coverage (90%+ for sendPrompt logic)
 
 **Files:**
+
 - `services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts`
 - `services/local-orbit/src/providers/adapters/__tests__/copilot-acp-adapter.test.ts`
 
@@ -267,6 +282,7 @@ GitHub Issue: #145 (originally planned as #133)
 **Scope:** Parse ACP update notifications, aggregate chunks, emit normalized events.
 
 **Key deliverables:**
+
 - `AcpClient` notification routing to session-specific handlers
 - `ACPEventNormalizer` class for chunk aggregation and category mapping
 - Streaming context management (turnId correlation, timeout cleanup)
@@ -274,6 +290,7 @@ GitHub Issue: #145 (originally planned as #133)
 - Unit test coverage (95%+ for aggregation logic)
 
 **Files:**
+
 - `services/local-orbit/src/providers/adapters/acp-client.ts`
 - `services/local-orbit/src/providers/normalizers/acp-event-normalizer.ts` (NEW)
 - `services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts` (subscribe method)
@@ -288,6 +305,7 @@ GitHub Issue: #146 (originally planned as #134)
 **Scope:** Enable prompt composer for Copilot sessions with streaming response display.
 
 **Key deliverables:**
+
 - Remove read-only guard for ACP sessions in relay layer
 - Enable composer in `ThreadDetail.svelte` based on provider capabilities
 - Wire streaming events to WebSocket subscribers
@@ -295,6 +313,7 @@ GitHub Issue: #146 (originally planned as #134)
 - Error handling UI (validation, rate limits, timeouts)
 
 **Files:**
+
 - `services/local-orbit/src/index.ts` (relay routing)
 - `src/routes/ThreadDetail.svelte`
 - `src/lib/components/Composer.svelte` (loading states)
@@ -303,7 +322,7 @@ GitHub Issue: #146 (originally planned as #134)
 
 ### Sequencing and Dependencies
 
-```
+```text
 Phase 1 ✅
     ↓
 #131: sendPrompt Method
@@ -344,11 +363,13 @@ Phase 2 complete when:
 ### Post-Phase 2 Capabilities
 
 **Enabled:**
+
 - ✅ Read Copilot sessions (Phase 1)
 - ✅ Send prompts to Copilot (Phase 2)
 - ✅ Stream responses incrementally (Phase 2)
 
 **Deferred:**
+
 - ⏸️ Attachments, approvals, advanced filtering (Phase 4)
 - ⏸️ Multi-provider reliability hardening (Phase 5)
 
@@ -367,35 +388,41 @@ Phase 2 complete when:
 
 ### Scope
 
-1.  **Capability Plumbing:** Surface provider capability flags in thread/session payloads.
-2.  **Graceful Degrade UX:** Disable unsupported actions with explicit hints (no hard-coded checks).
-3.  **ACP Attachments:** Extend send path to support file attachments.
-4.  **ACP Approvals:** Handle "approve/reject" events from ACP.
-5.  **Filtering:** Provider/status filtering with persistence.
+1. **Capability Plumbing:** Surface provider capability flags in thread/session payloads.
+2. **Graceful Degrade UX:** Disable unsupported actions with explicit hints (no hard-coded checks).
+3. **ACP Attachments:** Extend send path to support file attachments.
+4. **ACP Approvals:** Handle "approve/reject" events from ACP.
+5. **Filtering:** Provider/status filtering with persistence.
 
 ### Implementation Issues
 
 **P4-01: Capability Matrix Plumbing**
+
 - Surface provider capability flags in thread/session payloads and client thread model
 - Dependencies: Phase 1/2 complete
 
 **P4-02: Graceful Degrade UX**
+
 - Disable unsupported actions with explicit hints based on capability matrix
 - Dependencies: P4-01
 
 **P4-03: ACP Attachment Support**
+
 - Extend ACP send path to carry attachments with safe degradation
 - Dependencies: P4-01, P4-02
 
 **P4-04: ACP Approvals + User Input Handling**
+
 - Normalize ACP approval/input events and integrate with existing approval components
 - Dependencies: P4-03
 
 **P4-05: Advanced Filtering + View Persistence**
+
 - Add provider/status/query filtering with local persistence
 - Dependencies: P4-01
 
 **P4-06: Hardening + Release Gate**
+
 - Finalize tests, docs, CI checks following stacked PR discipline
 - Dependencies: P4-02, P4-04, P4-05
 
@@ -426,6 +453,7 @@ Phase 2 complete when:
 ## Issue History & Breakdown
 
 **Original Planning** (initial numbering):
+
 1. Epic: ACP + Codex multi-provider integration (#128)
 2. Provider adapter contracts + normalized schemas (#129) ✅ COMPLETED (PR #138)
 3. Copilot ACP adapter process and read-only session ingestion (#130) ✅ COMPLETED (PR #143)
@@ -435,9 +463,9 @@ Phase 2 complete when:
 7. Hardening: reliability, metrics, CI smoke (planned as #134)
 
 **Current Implementation Issues** (Phase 2):
+
 - #144: ACP write capability - sendPrompt method
 - #145: Streaming response handling
 - #146: UI prompt input for Copilot sessions
 
 **Note**: Issues #131-#134 were originally planned but implementation proceeded directly to #144-#146. Phase 3 grouping work was completed within Phase 1 (PR #143).
-
