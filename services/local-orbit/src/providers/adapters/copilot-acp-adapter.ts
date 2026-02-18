@@ -351,7 +351,9 @@ export class CopilotAcpAdapter implements ProviderAdapter {
             `[copilot-acp] Retrying sendPrompt for session ${sessionId} (attempt ${attempt + 1}/${maxRetries + 1})`
           );
           // Wait before retry
-          await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
+          await new Promise((resolve) =>
+            setTimeout(resolve, retryDelay * Math.pow(2, attempt - 1))
+          );
         }
 
         // Construct JSON-RPC request per PHASE2_PLAN.md
