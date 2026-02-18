@@ -271,3 +271,20 @@ describe("CopilotAcpAdapter - sendPrompt", () => {
     });
   });
 });
+
+describe("CopilotAcpAdapter - health", () => {
+  let adapter: CopilotAcpAdapter;
+
+  beforeEach(() => {
+    adapter = new CopilotAcpAdapter();
+  });
+
+  it("reports unhealthy when client is not initialized", async () => {
+    // Don't inject client, leaving it as null
+    const health = await adapter.health();
+
+    expect(health.status).toBe("unhealthy");
+    expect(health.message).toContain("client not initialized");
+    expect(health.details?.reason).toBe("client_not_initialized");
+  });
+});
