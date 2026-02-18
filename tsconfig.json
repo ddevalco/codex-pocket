@@ -6,6 +6,7 @@
     "moduleResolution": "Bundler",
     "verbatimModuleSyntax": true,
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "noEmit": true
   },
