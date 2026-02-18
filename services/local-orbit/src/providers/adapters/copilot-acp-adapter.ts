@@ -37,9 +37,24 @@ import { findExecutable, spawnProcess, killProcess, processHealth } from "./proc
  */
 export interface CopilotAcpConfig {
   /**
-   * Timeout for ACP operations in milliseconds (default: 5000)
+   * Default timeout for ACP operations in milliseconds (default: 5000)
    */
   timeout?: number;
+
+  /**
+   * Timeout for prompt operations in milliseconds (default: 30000)
+   */
+  promptTimeout?: number;
+
+  /**
+   * Number of retry attempts for transient failures (default: 2)
+   */
+  maxRetries?: number;
+
+  /**
+   * Retry delay in milliseconds (default: 1000)
+   */
+  retryDelay?: number;
 
   /**
    * Custom executable path (overrides PATH search)
@@ -72,10 +87,15 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   private executablePath: string | null = null;
   private normalizer: ACPStreamingNormalizer;
   private subscriptions = new Map<string, EventSubscription>();
+  private lastHealthCheck: ProviderHealthStatus | null = null;
+  private consecutiveFailures = 0;
 
   constructor(config: CopilotAcpConfig = {}) {
     this.config = {
       timeout: 5000,
+      promptTimeout: 30000,
+      maxRetries: 2,
+      retryDelay: 1000,
       ...config,
     };
     this.normalizer = new ACPStreamingNormalizer();
@@ -150,7 +170,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
 
     // If executable not found, return degraded
     if (!this.executablePath) {
-      return {
+      const status: ProviderHealthStatus = {
         status: "degraded",
         message: "Copilot CLI not found in PATH",
         lastCheck: now,
@@ -159,47 +179,74 @@ export class CopilotAcpAdapter implements ProviderAdapter {
           searchedPaths: process.env.PATH?.split(":") || [],
         },
       };
+      this.lastHealthCheck = status;
+      return status;
     }
 
     // If process not running, return unhealthy
     if (!this.process || !this.process.pid || !processHealth(this.process.pid)) {
-      return {
+      const status: ProviderHealthStatus = {
         status: "unhealthy",
         message: "Copilot process not running",
         lastCheck: now,
         details: {
           reason: "process_not_running",
           pid: this.process?.pid,
+          consecutiveFailures: this.consecutiveFailures,
         },
       };
+      this.lastHealthCheck = status;
+      this.consecutiveFailures++;
+      return status;
     }
 
     // Try a simple ping/health check via JSON-RPC
+    const healthCheckStart = Date.now();
     try {
-      // Attempt to list sessions as a health check
-      // If this succeeds, the process is responsive
+      // Attempt to list sessions as a health check with short timeout
       await this.client?.sendRequest("list_sessions", {}, 2000);
+      const elapsed = Date.now() - healthCheckStart;
 
-      return {
-        status: "healthy",
-        message: "Copilot ACP is running and responsive",
+      // Reset failure counter on success
+      this.consecutiveFailures = 0;
+
+      // Determine status based on response time
+      const status: ProviderHealthStatus = {
+        status: elapsed > 1500 ? "degraded" : "healthy",
+        message:
+          elapsed > 1500
+            ? `Copilot ACP is running but slow (${elapsed}ms response)`
+            : "Copilot ACP is running and responsive",
         lastCheck: now,
         details: {
           pid: this.process.pid,
           executable: this.executablePath,
+          responseTime: elapsed,
+          consecutiveFailures: this.consecutiveFailures,
         },
       };
+      this.lastHealthCheck = status;
+      return status;
     } catch (err) {
-      return {
-        status: "degraded",
-        message: "Copilot process running but not responsive",
+      this.consecutiveFailures++;
+      const elapsed = Date.now() - healthCheckStart;
+      const status: ProviderHealthStatus = {
+        status: this.consecutiveFailures > 3 ? "unhealthy" : "degraded",
+        message:
+          this.consecutiveFailures > 3
+            ? "Copilot process unresponsive (multiple failures)"
+            : "Copilot process running but not responsive",
         lastCheck: now,
         details: {
           reason: "unresponsive",
           pid: this.process.pid,
           error: err instanceof Error ? err.message : String(err),
+          responseTime: elapsed,
+          consecutiveFailures: this.consecutiveFailures,
         },
       };
+      this.lastHealthCheck = status;
+      return status;
     }
   }
 
@@ -250,11 +297,13 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   /**
    * Send a prompt to a Copilot session (Phase 2 - Issue #144).
    *
+   * Includes retry logic for transient failures and extended timeout for long-running operations.
+   *
    * @param sessionId - The session to send the prompt to
    * @param input - The prompt input (text and optional attachments)
    * @param options - Optional prompt options (mode, model, etc.)
    * @returns Promise resolving to { turnId, status } on success
-   * @throws Error if validation fails, client not available, or JSON-RPC error
+   * @throws Error if validation fails, client not available, or operation fails after retries
    */
   async sendPrompt(
     sessionId: string,
@@ -274,39 +323,94 @@ export class CopilotAcpAdapter implements ProviderAdapter {
       throw new Error("Copilot adapter not started or not available");
     }
 
-    try {
-      // Construct JSON-RPC request per PHASE2_PLAN.md
-      const params = {
-        sessionId,
-        input: {
-          text: input.text,
-          attachments: input.attachments || [],
-        },
-        options: {
-          mode: options?.mode ?? "auto",
-          ...(options?.model && { model: options.model }),
-          ...options,
-        },
-      };
+    const startTime = Date.now();
+    const maxRetries = this.config.maxRetries ?? 2;
+    const retryDelay = this.config.retryDelay ?? 1000;
+    let lastError: Error | null = null;
 
-      // Send request with 5-second timeout
-      const result = await this.client.sendRequest(
-        "sendPrompt",
-        params,
-        5000,
-      );
+    // Retry loop for transient failures
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          console.log(
+            `[copilot-acp] Retrying sendPrompt for session ${sessionId} (attempt ${attempt + 1}/${maxRetries + 1})`
+          );
+          // Wait before retry
+          await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
+        }
 
-      // Extract turnId and status from response
-      const response = result as any;
-      return {
-        turnId: response.turnId,
-        status: response.status || "streaming",
-        ...response,
-      };
-    } catch (err) {
-      // Let caller handle errors (consistent with listSessions)
-      throw err;
+        // Construct JSON-RPC request per PHASE2_PLAN.md
+        const params = {
+          sessionId,
+          input: {
+            text: input.text,
+            attachments: input.attachments || [],
+          },
+          options: {
+            mode: options?.mode ?? "auto",
+            ...(options?.model && { model: options.model }),
+            ...options,
+          },
+        };
+
+        // Send request with extended timeout for prompts (default: 30s)
+        const result = await this.client.sendRequest(
+          "sendPrompt",
+          params,
+          this.config.promptTimeout ?? 30000,
+        );
+
+        const elapsed = Date.now() - startTime;
+        
+        // Log performance telemetry
+        if (elapsed > 15000) {
+          console.warn(
+            `[copilot-acp] Slow sendPrompt: ${elapsed}ms (degraded performance, session: ${sessionId})`
+          );
+        } else {
+          console.log(
+            `[copilot-acp] sendPrompt completed in ${elapsed}ms (session: ${sessionId})`
+          );
+        }
+
+        // Reset failure counter on success
+        this.consecutiveFailures = 0;
+
+        // Extract turnId and status from response
+        const response = result as any;
+        return {
+          turnId: response.turnId,
+          status: response.status || "streaming",
+          ...response,
+        };
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        
+        // Check if error is transient and retryable
+        const isTransient = this.isTransientError(err);
+        const isLastAttempt = attempt === maxRetries;
+
+        if (!isTransient || isLastAttempt) {
+          // Log non-transient or final failure
+          const elapsed = Date.now() - startTime;
+          console.error(
+            `[copilot-acp] sendPrompt failed after ${elapsed}ms (attempt ${attempt + 1}/${maxRetries + 1}):`,
+            lastError.message
+          );
+          this.consecutiveFailures++;
+          throw lastError;
+        }
+
+        // Log transient error for retry
+        console.warn(
+          `[copilot-acp] Transient error in sendPrompt (attempt ${attempt + 1}/${maxRetries + 1}):`,
+          lastError.message
+        );
+      }
     }
+
+    // Should not reach here, but throw last error as fallback
+    throw lastError || new Error("sendPrompt failed with unknown error");
   }
 
   /**
@@ -456,5 +560,42 @@ export class CopilotAcpAdapter implements ProviderAdapter {
     if (s.includes("interrupt") || s.includes("cancel")) return "interrupted";
 
     return "idle";
+  }
+
+  /**
+   * Determine if an error is transient and should be retried.
+   * Transient errors include timeouts, network issues, and temporary unavailability.
+   */
+  private isTransientError(err: unknown): boolean {
+    if (!(err instanceof Error)) return false;
+
+    const message = err.message.toLowerCase();
+
+    // Timeout errors are retryable
+    if (message.includes("timeout") || message.includes("timed out")) {
+      return true;
+    }
+
+    // Connection/network errors are retryable
+    if (
+      message.includes("econnreset") ||
+      message.includes("econnrefused") ||
+      message.includes("epipe") ||
+      message.includes("network")
+    ) {
+      return true;
+    }
+
+    // Temporary unavailability
+    if (message.includes("unavailable") || message.includes("busy")) {
+      return true;
+    }
+
+    // Rate limiting (may be transient)
+    if (message.includes("rate limit") || message.includes("too many requests")) {
+      return true;
+    }
+
+    return false;
   }
 }

@@ -250,21 +250,39 @@ export class ProviderRegistry implements IProviderRegistry {
     providerId: string,
     adapter: ProviderAdapter,
   ): Promise<ProviderHealthStatus> {
+    const startTime = Date.now();
     try {
       const status = await adapter.health();
+      const elapsed = Date.now() - startTime;
+      
+      // Log slow health checks for monitoring
+      if (elapsed > 3000) {
+        this.logger.warn(
+          `[ProviderRegistry] Slow health check for '${providerId}': ${elapsed}ms (degraded performance)`
+        );
+      } else if (elapsed > 1000) {
+        this.logger.log(
+          `[ProviderRegistry] Provider '${providerId}' health check took ${elapsed}ms`
+        );
+      }
+      
       this.logger.debug(
         `[ProviderRegistry] Provider '${providerId}' health: ${status.status}`,
       );
       return status;
     } catch (error) {
+      const elapsed = Date.now() - startTime;
       this.logger.error(
-        `[ProviderRegistry] Health check failed for '${providerId}':`,
+        `[ProviderRegistry] Health check failed for '${providerId}' after ${elapsed}ms:`,
         error,
       );
       return {
         status: "unhealthy",
         message: error instanceof Error ? error.message : "Health check failed",
-        details: { error: String(error) },
+        details: { 
+          error: String(error),
+          checkDuration: elapsed,
+        },
         lastCheck: new Date().toISOString(),
       };
     }
