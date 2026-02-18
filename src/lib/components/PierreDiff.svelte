@@ -11,7 +11,7 @@
   let container: HTMLDivElement | null = $state(null);
   let instances: FileDiffInstance[] = [];
   let FileDiffCtor: (new (...args: any[]) => FileDiffInstance) | null = null;
-  let parsePatchFilesFn: ((input: string) => Array<{ files: unknown[] }>) | null = null;
+  let parsePatchFilesFn: ((input: string) => Array<{ files: any[] }>) | null = null;
   let loadError = false;
 
   async function ensurePierreLoaded() {
@@ -19,7 +19,7 @@
     try {
       const mod = await import("@pierre/diffs");
       FileDiffCtor = mod.FileDiff as unknown as (new (...args: any[]) => FileDiffInstance);
-      parsePatchFilesFn = mod.parsePatchFiles as unknown as (input: string) => Array<{ files: unknown[] }>;
+      parsePatchFilesFn = mod.parsePatchFiles as unknown as (input: string) => Array<{ files: any[] }>;
       return true;
     } catch {
       loadError = true;
