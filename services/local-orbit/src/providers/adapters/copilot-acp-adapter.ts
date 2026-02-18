@@ -168,6 +168,21 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   async health(): Promise<ProviderHealthStatus> {
     const now = new Date().toISOString();
 
+    // If client not initialized, return unhealthy
+    if (!this.client) {
+      const status: ProviderHealthStatus = {
+        status: "unhealthy",
+        message: "ACP client not initialized",
+        lastCheck: now,
+        details: {
+          reason: "client_not_initialized",
+          consecutiveFailures: this.consecutiveFailures,
+        },
+      };
+      this.lastHealthCheck = status;
+      return status;
+    }
+
     // If executable not found, return degraded
     if (!this.executablePath) {
       const status: ProviderHealthStatus = {

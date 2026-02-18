@@ -29,6 +29,15 @@ Issues are canonical for work items:
 - [x] CI enhancements - Capability smoke tests, regression guards for capability matrix (#165)
 - Type-check: ✅ 0 errors | Tests: ✅ 73 pass | Build: ✅ 689 modules (2.0s)
 
+### 2026-02-18: PR #166 Review Feedback
+
+- [x] CopilotAcpAdapter health check - Fail when client missing (#169)
+- [x] DangerZone typing - Optional Snippet with defensive render (#167)
+- [x] PierreDiff typing - Replace any[] with typed interfaces (#172)
+- [x] Changelog formatting - Clear release section headings (#170)
+- [x] Changelog accuracy - Confirmed exponential backoff wording (#171)
+- Type-check: ✅ 0 errors | Tests: ✅ 74 pass | Build: ✅ Pass | Markdown: ✅ 0 errors
+
 - CI: added an explicit `/admin/validate` smoke check (auth required).
 - CI: added small regression guards to prevent known UI footguns (e.g. thread list subscription loop).
 - CLI: `start` now falls back to background mode if the launchd plist is missing.
