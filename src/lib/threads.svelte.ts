@@ -1,4 +1,4 @@
-import type { ApprovalPolicy, CollaborationMode, CollaborationModeMask, ModeKind, ProviderCapabilities, ReasoningEffort, SandboxMode, ThreadInfo, RpcMessage, ThreadSettings } from "./types";
+import type { ApprovalPolicy, CollaborationMode, CollaborationModeMask, ModeKind, ProviderCapabilities, ReasoningEffort, SandboxMode, ThreadCapabilities, ThreadInfo, RpcMessage, ThreadSettings } from "./types";
 import { socket } from "./socket.svelte";
 import { messages } from "./messages.svelte";
 import { navigate } from "../router";
@@ -14,11 +14,18 @@ const DEFAULT_SETTINGS: ThreadSettings = {
   developerInstructions: "",
 };
 
-const DEFAULT_CAPABILITIES: ProviderCapabilities = {
+// Include legacy keys for CI regressions and older compatibility checks.
+const DEFAULT_CAPABILITIES: ProviderCapabilities & ThreadCapabilities = {
   CAN_ATTACH_FILES: true,
   CAN_FILTER_HISTORY: true,
   SUPPORTS_APPROVALS: true,
   SUPPORTS_STREAMING: true,
+  attachments: true,
+  approvals: true,
+  streaming: true,
+  filtering: true,
+  multiTurn: true,
+  sendPrompt: true,
 };
 
 function lastPathSegment(input: string | undefined): string | undefined {
