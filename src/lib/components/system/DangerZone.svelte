@@ -1,9 +1,17 @@
 <script lang="ts">
-  const { children } = $props();
+  import type { Snippet } from 'svelte';
+
+  interface Props {
+    children?: Snippet;
+  }
+
+  const { children }: Props = $props();
 </script>
 
 <div class="danger-zone stack">
-  {@render children()}
+  {#if children}
+    {@render children()}
+  {/if}
 </div>
 
 <style>
