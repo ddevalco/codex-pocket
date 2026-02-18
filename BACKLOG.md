@@ -25,6 +25,13 @@ Issues are canonical for work items:
 - [x] Validation: Type-check pass, build pass (689 modules), E2E chain verified
 - PR: codex/phase4-p4-01-capability-matrix
 - Next: P4-02 (Graceful Degrade UX), P4-03 (ACP Attachments), P4-04 (ACP Approvals)
+### 2026-02-18: UI Elements Toggles Planning
+
+- [x] Feature specification: UI Elements toggles for clutter reduction (#174)
+- [x] Identified 15+ toggleable non-critical features across Thread View, Thread List, Messages, Composer
+- [x] Created 3-phase implementation plan (Foundation + High-Impact → Coverage → Polish)
+- [x] Documented in docs/UI_ELEMENTS_TOGGLES.md
+- Child Issues: #175-184 (Foundation, Settings UI, Thread exports, Composer features, Copy variants, Thread View, Thread List, Messages matrix, Settings expansion, Polish)
 
 - **#130 / #143**: ACP Phase 1: Registry & Read-Only Adapter.
   - Provider adapter contracts + normalized schemas (#129).
