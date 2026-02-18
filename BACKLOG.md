@@ -27,7 +27,7 @@ Issues are canonical for work items:
 - [x] Runtime hardening - 30s timeout, exponential backoff retry (max 3 attempts), health tracking (#163)
 - [x] Test coverage expansion - Timeout, retry, isolation, degraded state tests (#164)  
 - [x] CI enhancements - Capability smoke tests, regression guards for capability matrix (#165)
-- Type-check: ✅ 0 errors | Tests: ✅ 73 pass | Build: ✅ 689 modules (2.0s)
+- Type-check: ✅ 0 errors | Tests: ✅ 74 pass | Build: ✅ 689 modules (2.0s)
 
 ### 2026-02-18: PR #166 Review Feedback
 
