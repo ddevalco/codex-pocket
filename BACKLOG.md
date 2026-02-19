@@ -12,6 +12,20 @@ Issues are canonical for work items:
 
 ## Recently Done
 
+### 2026-02-19: Phase 1 - UI Elements Toggles
+
+- [x] Phase 1: UI Elements Toggles - COMPLETE (2026-02-19)
+- [x] Implemented `uiToggles.ts` store with Svelte 5 runes and localStorage persistence.
+- [x] Added "UI Elements" section in Settings with surface-based grouping.
+- [x] Gated Thread List export/share actions behind toggles.
+- [x] Gated Composer quick replies and attachment thumbnails.
+- [x] Simplified Message copy variants with a safety guarantee (at least one enabled).
+- [x] Gated Tool output copy and Thread View header actions.
+- [x] Full audit and polish of Settings UX with help text and responsive layout.
+- [x] Resolved all 10 P0/P1 issues (#175-184).
+- [x] Validation: Type-check ✅ | Build ✅ | Reviewer ✅
+- Phase 2 (Ecosystem Foundations) ready for implementation.
+
 ### 2026-02-18: Phase 4.4 - ACP Approvals
 
 - [x] P4-04: ACP Approvals + Tool Permission Handling - IMPLEMENTED (2026-02-18)
@@ -168,14 +182,6 @@ Issues are canonical for work items:
 - Multi-agent workflows: helper-agent actions with reusable profiles (P3, #109) completed via PR #115.
 
 ## Active Items
-
-### Phase 1: UI Elements Toggles (Ready for Reviewer Gate)
-
-- Status: All 10 P0/P1 issues (#175-184) completed. Final polish and QA packet ready for review.
-- PRs (foundation + UI lanes): #207, #208, #209, #210, #211
-  - Validation: Type-check ✅ | Build ✅ (per PR verification)
-- PR (polish + QA): Pending (Phase 1 completion)
-- Notes: Settings layout finalized, documentation updated, QA checklist prepared.
 
 ### Security/Dependencies (2026-02-17)
 
