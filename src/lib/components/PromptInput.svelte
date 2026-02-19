@@ -6,6 +6,7 @@
   import { api } from "../api";
   import { loadQuickReplies, type QuickReply } from "../quickReplies";
   import { drafts } from "../drafts.svelte";
+  import { uiToggles } from "../uiToggles";
 
 	  interface Props {
     model: string;
@@ -280,7 +281,7 @@
 
 <form class="prompt-input" onsubmit={handleSubmit}>
   <div class="input-container stack">
-    {#if quickReplies.length}
+  {#if quickReplies.length && uiToggles.showComposerQuickReplies}
       <div class="quick-replies row" role="group" aria-label="Quick reply shortcuts">
         {#each quickReplies as reply, i (`${reply.label}:${reply.text}:${i}`)}
           <button
@@ -307,7 +308,9 @@
       <div class="attachment-chips" role="list" aria-label="Selected attachments">
         {#each pendingAttachments as item, i (`${item.localPath}:${item.filename}:${i}`)}
           <div class="attachment-chip" role="listitem">
-            <img class="attachment-thumb" src={item.viewUrl} alt={item.filename} loading="lazy" />
+            {#if uiToggles.showComposerThumbnails}
+              <img class="attachment-thumb" src={item.viewUrl} alt={item.filename} loading="lazy" />
+            {/if}
             <span class="attachment-name">{item.filename}</span>
             <button
               type="button"
