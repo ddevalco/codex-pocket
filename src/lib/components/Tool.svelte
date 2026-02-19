@@ -63,23 +63,23 @@
     const kind = message.kind;
     switch (kind) {
       case "command":
-        return { icon: "terminal", label: "Command", color: "var(--cli-prefix-tool)" };
+        return { icon: "terminal", label: "Command", colorVar: "--color-cli-prefix-tool" };
       case "file":
-        return { icon: "file", label: "File Change", color: "var(--cli-prefix-file)" };
+        return { icon: "file", label: "File Change", colorVar: "--color-cli-prefix-file" };
       case "mcp":
-        return { icon: "plug", label: "MCP Tool", color: "var(--cli-prefix-mcp)" };
+        return { icon: "plug", label: "MCP Tool", colorVar: "--color-cli-prefix-mcp" };
       case "web":
-        return { icon: "search", label: "Web Search", color: "var(--cli-prefix-web)" };
+        return { icon: "search", label: "Web Search", colorVar: "--color-cli-prefix-web" };
       case "image":
-        return { icon: "image", label: "Image", color: "var(--cli-prefix-image)" };
+        return { icon: "image", label: "Image", colorVar: "--color-cli-prefix-image" };
       case "review":
-        return { icon: "eye", label: "Review", color: "var(--cli-prefix-review)" };
+        return { icon: "eye", label: "Review", colorVar: "--color-cli-prefix-review" };
       case "plan":
-        return { icon: "plan", label: "Plan", color: "var(--cli-prefix-agent)" };
+        return { icon: "plan", label: "Plan", colorVar: "--color-cli-prefix-agent" };
       case "collab":
-        return { icon: "users", label: "Agent", color: "var(--cli-prefix-mcp)" };
+        return { icon: "users", label: "Agent", colorVar: "--color-cli-prefix-mcp" };
       default:
-        return { icon: "wrench", label: "Tool", color: "var(--cli-prefix-tool)" };
+        return { icon: "wrench", label: "Tool", colorVar: "--color-cli-prefix-tool" };
     }
   });
 
@@ -207,107 +207,107 @@
   const statusConfig = $derived.by(() => {
     switch (status) {
       case "success":
-        return { icon: "check", label: "Done", color: "var(--cli-success)" };
+        return { icon: "check", label: "Done", colorVar: "--color-cli-success" };
       case "running":
-        return { icon: "dot", label: "Running", color: "var(--cli-prefix-agent)" };
+        return { icon: "dot", label: "Running", colorVar: "--color-cli-prefix-agent" };
       case "error":
         return {
           icon: "x",
           label: message.kind === "collab" ? "Failed" : `Exit ${message.metadata?.exitCode}`,
-          color: "var(--cli-error)",
+          colorVar: "--color-cli-error",
         };
       default:
-        return { icon: "check", label: "Done", color: "var(--cli-success)" };
+        return { icon: "check", label: "Done", colorVar: "--color-cli-success" };
     }
   });
 
   const hasContent = $derived(toolInfo.content && toolInfo.content.trim().length > 0);
 </script>
 
-<div class="tool" class:open={isOpen}>
-  <div class="tool-header row">
-    <button class="tool-toggle row" onclick={toggle} type="button">
-    <span class="tool-icon row" style:color={toolConfig.color}>
+<div class="overflow-hidden rounded-md border border-cli-border font-mono text-sm" class:open={isOpen}>
+  <div class="relative flex w-full items-center gap-sm border-none bg-cli-bg-elevated px-md py-sm text-left font-inherit text-inherit text-cli-text transition-[background] duration-150 hover:bg-cli-bg-hover">
+    <button class="flex min-w-0 flex-1 cursor-pointer items-center gap-sm border-none bg-transparent p-0 text-left font-inherit text-inherit" onclick={toggle} type="button">
+    <span class="flex shrink-0 items-center justify-center gap-0" style:color={`oklch(var(${toolConfig.colorVar}))`}>
       {#if toolConfig.icon === "terminal"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="4 17 10 11 4 5"/>
           <line x1="12" x2="20" y1="19" y2="19"/>
         </svg>
       {:else if toolConfig.icon === "file"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
           <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
           <path d="M10 12h4"/>
           <path d="M10 16h4"/>
         </svg>
       {:else if toolConfig.icon === "plug"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 22v-5"/>
           <path d="M9 8V2"/>
           <path d="M15 8V2"/>
           <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>
         </svg>
       {:else if toolConfig.icon === "search"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/>
           <path d="m21 21-4.3-4.3"/>
         </svg>
       {:else if toolConfig.icon === "image"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
           <circle cx="9" cy="9" r="2"/>
           <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
         </svg>
       {:else if toolConfig.icon === "eye"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
           <circle cx="12" cy="12" r="3"/>
         </svg>
       {:else if toolConfig.icon === "plan"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
           <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
           <path d="M9 14h6"/>
           <path d="M9 18h6"/>
         </svg>
       {:else if toolConfig.icon === "users"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
           <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
           <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
       {:else}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
         </svg>
       {/if}
     </span>
 
-    <span class="tool-title">{toolInfo.title}</span>
+    <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-cli-text">{toolInfo.title}</span>
 
-    <span class="tool-status row" style:color={statusConfig.color}>
+    <span class="flex shrink-0 items-center gap-xs text-xs" style:color={`oklch(var(${statusConfig.colorVar}))`}>
       {#if statusConfig.icon === "check"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <svg class="h-[0.875rem] w-[0.875rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
       {:else if statusConfig.icon === "dot"}
-        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <svg class="h-[0.875rem] w-[0.875rem]" viewBox="0 0 24 24" fill="currentColor" stroke="none">
           <circle cx="12" cy="12" r="4"/>
         </svg>
       {:else if statusConfig.icon === "x"}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <svg class="h-[0.875rem] w-[0.875rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M18 6 6 18"/>
           <path d="m6 6 12 12"/>
         </svg>
       {/if}
-      <span class="status-label">{statusConfig.label}</span>
+      <span class="opacity-90">{statusConfig.label}</span>
     </span>
 
     {#if hasContent}
       <svg
-        class="chevron"
-        class:open={isOpen}
+        class="h-4 w-4 shrink-0 text-cli-text-dim transition-transform duration-200"
+        class:rotate-180={isOpen}
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -321,7 +321,7 @@
     {#if hasContent && uiToggles.showToolOutputCopy}
       <button
         type="button"
-        class="copy-btn"
+        class="copy-btn absolute right-[10px] top-2 z-[1] cursor-pointer rounded-sm border border-cli-border bg-black/25 px-[10px] py-1 font-mono text-[11px] text-cli-text-muted"
         class:copied={copyState === "copied"}
         class:error={copyState === "error"}
         onclick={(e) => {
@@ -337,134 +337,30 @@
   </div>
 
   {#if isOpen && hasContent}
-    <div class="tool-content">
+    <div class="border-t border-cli-border bg-cli-bg" style:animation="slideIn 0.2s ease">
       {#if renderMarkdown}
-        <div class="tool-output markdown">{@html renderedToolHtml}</div>
+        <div class="m-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words px-md py-sm text-xs leading-relaxed text-cli-text-dim markdown">{@html renderedToolHtml}</div>
       {:else}
-        <pre class="tool-output">{toolInfo.content}</pre>
+        <pre class="m-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words px-md py-sm text-xs leading-relaxed text-cli-text-dim">{toolInfo.content}</pre>
       {/if}
     </div>
   {/if}
 </div>
 
 <style>
-  .tool {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    border: 1px solid var(--cli-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-  }
-
-  .tool-header {
-    --row-gap: var(--space-sm);
-    width: 100%;
-    padding: var(--space-sm) var(--space-md);
-    background: var(--cli-bg-elevated);
-    border: none;
-    color: var(--cli-text);
-    text-align: left;
-    font-family: inherit;
-    font-size: inherit;
-    transition: background 0.15s ease;
-    position: relative;
-    align-items: center;
-  }
-
-  .tool-toggle {
-    --row-gap: var(--space-sm);
-    flex: 1;
-    min-width: 0;
-    padding: 0;
-    border: none;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    font-size: inherit;
-  }
-
-  .tool-header:hover {
-    background: var(--cli-bg-hover);
-  }
-
-  .tool-icon {
-    --row-gap: 0;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .tool-icon svg {
-    width: 1rem;
-    height: 1rem;
-  }
-
-  .tool-title {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--cli-text);
-  }
-
-  .tool-status {
-    --row-gap: var(--space-xs);
-    font-size: var(--text-xs);
-    flex-shrink: 0;
-  }
-
-  .tool-status svg {
-    width: 0.875rem;
-    height: 0.875rem;
-  }
-
-  .status-label {
-    opacity: 0.9;
-  }
-
-  .chevron {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-    color: var(--cli-text-dim);
-    transition: transform 0.2s ease;
-  }
-
-  .chevron.open {
-    transform: rotate(180deg);
-  }
-
-  .tool-content {
-    border-top: 1px solid var(--cli-border);
-    background: var(--cli-bg);
-    animation: slideIn 0.2s ease;
-  }
-
   .copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    padding: 4px 10px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--cli-border);
-    background: rgba(0, 0, 0, 0.25);
-    color: var(--cli-text-muted);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    cursor: pointer;
     opacity: 0;
     transition: opacity var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-    z-index: 1;
   }
 
-  .tool:hover .copy-btn,
-  .tool:focus-within .copy-btn {
+  /* .tool became the updated root div, so we select based on the root element having hover or focus-within */
+  div:hover .copy-btn,
+  div:focus-within .copy-btn {
     opacity: 1;
   }
 
   .copy-btn:hover {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
   }
 
   .copy-btn.copied {
@@ -475,8 +371,8 @@
 
   .copy-btn.error {
     opacity: 1;
-    border-color: var(--cli-error);
-    color: var(--cli-error);
+    border-color: oklch(var(--color-cli-error));
+    color: oklch(var(--color-cli-error));
   }
 
   @media (max-width: 520px) {
@@ -485,18 +381,6 @@
       padding: 6px 12px;
       font-size: 12px;
     }
-  }
-
-  .tool-output {
-    margin: 0;
-    padding: var(--space-sm) var(--space-md);
-    color: var(--cli-text-dim);
-    font-size: var(--text-xs);
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 300px;
-    overflow-y: auto;
   }
 
   @keyframes slideIn {
