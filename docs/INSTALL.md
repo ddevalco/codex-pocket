@@ -9,7 +9,7 @@ curl -fsSL https://raw.githubusercontent.com/ddevalco/coderelay/main/scripts/ins
 Use a custom install location (optional):
 
 ```bash
-CODEX_POCKET_HOME="$HOME/my-pocket" \
+CODERELAY_HOME="$HOME/my-relay" \
  curl -fsSL https://raw.githubusercontent.com/ddevalco/coderelay/main/scripts/install-local.sh | bash
 ```
 
@@ -90,7 +90,12 @@ Open it and enable Tailscale Serve for your tailnet.
 1. Stop and remove launchd agent:
 
 ```bash
-launchctl unload "$HOME/Library/LaunchAgents/com.codex.pocket.plist" || true
+# CodeRelay (new)
+launchctl unload "$HOME/Library/LaunchAgents/com.coderelay.plist" 2>/dev/null || true
+rm -f "$HOME/Library/LaunchAgents/com.coderelay.plist"
+
+# Codex Pocket (old)
+launchctl unload "$HOME/Library/LaunchAgents/com.codex.pocket.plist" 2>/dev/null || true
 rm -f "$HOME/Library/LaunchAgents/com.codex.pocket.plist"
 ```
 

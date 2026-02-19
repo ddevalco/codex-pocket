@@ -32,10 +32,10 @@ Repo-local development usage:
 
 Inside the `bin/` directory, use `./coderelay` (shells do not run `.` by default).
 
-Custom home installs (`CODEX_POCKET_HOME`) use:
+Custom home installs (`CODERELAY_HOME`) use:
 
 ```bash
-$CODEX_POCKET_HOME/bin/coderelay summary
+$CODERELAY_HOME/bin/coderelay summary
 ```
 
 ## Most-Used Commands
@@ -60,7 +60,7 @@ $CODEX_POCKET_HOME/bin/coderelay summary
   - Safe: does not modify the machine.
 
 - `coderelay start`
-  - Starts the service using `launchd` (agent: `com.codex.pocket`).
+  - Starts the service using `launchd` (agent: `com.coderelay.plist` or legacy `com.codex.pocket.plist`).
   - If `launchctl` is blocked (common on managed/MDM Macs), it falls back to a background process.
 
 - `coderelay stop`
