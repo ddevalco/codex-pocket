@@ -60,6 +60,10 @@ validation_output/
 # Bundlesize reports (generated, not source)
 .bundlesize.report.json
 
+# UI Review Documents (not for commit)
+FARFIELD_UI_REVIEW.md
+*-UI-REVIEW.md
+
 # OS files
 .DS_Store
 Thumbs.db
