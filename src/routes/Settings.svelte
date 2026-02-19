@@ -704,7 +704,7 @@ import { agents } from "../lib/agents.svelte";
                         max="50"
                         bind:value={threadsPerProjectLimit}
                         onchange={saveThreadsPerProjectLimit}
-                        style="width: 80px; padding: 4px; border: 1px solid var(--cli-border); border-radius: 4px; background: var(--cli-bg); color: var(--cli-text);"
+                        style="width: 80px; padding: 4px; border: 1px solid oklch(var(--color-cli-border)); border-radius: 4px; background: oklch(var(--color-cli-bg)); color: oklch(var(--color-cli-text));"
                       />
                     </span>
                   </label>
@@ -1111,12 +1111,12 @@ import { agents } from "../lib/agents.svelte";
   }
   
   .modal {
-    background: var(--bg-primary);
+    background: oklch(var(--color-bg));
     padding: 2rem;
     border-radius: 0.5rem;
     max-width: 400px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border-color);
+    border: 1px solid oklch(var(--color-border));
   }
   
   .modal-actions {
@@ -1145,10 +1145,10 @@ import { agents } from "../lib/agents.svelte";
     --stack-gap: 0;
     min-height: 100vh;
     background:
-      radial-gradient(920px 460px at 0% -20%, color-mix(in srgb, var(--cli-prefix-agent) 12%, transparent), transparent 72%),
-      radial-gradient(780px 360px at 100% -30%, color-mix(in srgb, var(--cli-prefix-web) 10%, transparent), transparent 74%),
-      var(--cli-bg);
-    color: var(--cli-text);
+      radial-gradient(920px 460px at 0% -20%, color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 12%, transparent), transparent 72%),
+      radial-gradient(780px 360px at 100% -30%, color-mix(in srgb, oklch(var(--color-cli-prefix-web)) 10%, transparent), transparent 74%),
+      oklch(var(--color-cli-bg));
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-sans);
     font-size: var(--text-sm);
   }
@@ -1180,8 +1180,8 @@ import { agents } from "../lib/agents.svelte";
 
   .settings :global(.section) {
     border-radius: 12px;
-    border-color: color-mix(in srgb, var(--cli-border) 86%, transparent);
-    background: color-mix(in srgb, var(--cli-bg-elevated) 86%, var(--cli-bg));
+    border-color: color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
+    background: color-mix(in srgb, oklch(var(--color-cli-bg-elevated)) 86%, oklch(var(--color-cli-bg)));
     box-shadow: 0 15px 34px -30px rgba(0, 0, 0, 0.88);
   }
 
@@ -1189,8 +1189,8 @@ import { agents } from "../lib/agents.svelte";
     padding: var(--space-md) var(--space-md) var(--space-sm);
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--cli-bg-elevated) 76%, var(--cli-bg)),
-      color-mix(in srgb, var(--cli-bg) 90%, transparent)
+      color-mix(in srgb, oklch(var(--color-cli-bg-elevated)) 76%, oklch(var(--color-cli-bg))),
+      color-mix(in srgb, oklch(var(--color-cli-bg)) 90%, transparent)
     );
   }
 
@@ -1204,27 +1204,27 @@ import { agents } from "../lib/agents.svelte";
   }
 
   .field label {
-    color: var(--cli-text-dim);
+    color: oklch(var(--color-cli-text-dim));
     font-size: var(--text-xs);
     text-transform: lowercase;
   }
 
   .field input {
     padding: var(--space-sm);
-    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
     border-radius: 8px;
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-mono);
   }
 
   .field textarea {
     width: 100%;
     padding: var(--space-sm);
-    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
     border-radius: 8px;
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     resize: vertical;
@@ -1233,9 +1233,9 @@ import { agents } from "../lib/agents.svelte";
   .field select {
     width: 100%;
     padding: var(--space-sm);
-    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
-    color: var(--cli-text);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
+    color: oklch(var(--color-cli-text));
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
     border-radius: 8px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
@@ -1243,25 +1243,25 @@ import { agents } from "../lib/agents.svelte";
 
   .field select:focus {
     outline: none;
-    border-color: var(--cli-text-muted);
+    border-color: oklch(var(--color-cli-text-muted));
     box-shadow: var(--shadow-focus);
   }
 
   .field input:focus {
     outline: none;
-    border-color: var(--cli-prefix-agent);
+    border-color: oklch(var(--color-cli-prefix-agent));
     box-shadow: var(--shadow-focus);
   }
 
   .field textarea:focus {
     outline: none;
-    border-color: var(--cli-prefix-agent);
+    border-color: oklch(var(--color-cli-prefix-agent));
     box-shadow: var(--shadow-focus);
   }
 
   .field input:disabled {
     opacity: 0.6;
-    background: var(--cli-bg-elevated);
+    background: oklch(var(--color-cli-bg-elevated));
   }
 
   .connect-actions {
@@ -1271,10 +1271,10 @@ import { agents } from "../lib/agents.svelte";
 
   .connect-btn {
     padding: 0.45rem 0.72rem;
-    background: color-mix(in srgb, var(--cli-bg-elevated) 86%, transparent);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in srgb, oklch(var(--color-cli-bg-elevated)) 86%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
     border-radius: 7px;
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-mono);
     font-size: 0.74rem;
     cursor: pointer;
@@ -1283,10 +1283,10 @@ import { agents } from "../lib/agents.svelte";
 
   .plain-btn {
     padding: 0.45rem 0.72rem;
-    background: color-mix(in srgb, var(--cli-bg-elevated) 86%, transparent);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in srgb, oklch(var(--color-cli-bg-elevated)) 86%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
     border-radius: 7px;
-    color: var(--cli-text-dim);
+    color: oklch(var(--color-cli-text-dim));
     font-family: var(--font-sans);
     font-size: 0.74rem;
     cursor: pointer;
@@ -1294,13 +1294,13 @@ import { agents } from "../lib/agents.svelte";
   }
 
   .plain-btn:hover:enabled {
-    background: var(--cli-bg-hover);
-    color: var(--cli-text);
+    background: oklch(var(--color-cli-bg-hover));
+    color: oklch(var(--color-cli-text));
   }
 
   .connect-btn:hover:enabled {
-    background: color-mix(in srgb, var(--cli-bg-hover) 60%, var(--cli-bg-elevated));
-    border-color: color-mix(in srgb, var(--cli-prefix-agent) 38%, var(--cli-border));
+    background: color-mix(in srgb, oklch(var(--color-cli-bg-hover)) 60%, oklch(var(--color-cli-bg-elevated)));
+    border-color: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 38%, oklch(var(--color-cli-border)));
   }
 
   .connect-btn:disabled {
@@ -1312,7 +1312,7 @@ import { agents } from "../lib/agents.svelte";
   .plain-btn:focus-visible,
   .sign-out-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
+    box-shadow: 0 0 0 2px color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 55%, oklch(var(--color-cli-border)));
   }
 
   .quick-reply-settings {
@@ -1339,7 +1339,7 @@ import { agents } from "../lib/agents.svelte";
   }
 
   .ui-toggle-reset {
-    border: 1px solid color-mix(in srgb, var(--cli-border) 80%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 80%, transparent);
     border-radius: 999px;
     padding: 4px 12px;
     font-weight: 600;
@@ -1357,8 +1357,8 @@ import { agents } from "../lib/agents.svelte";
 
   .ui-toggle-group {
     border-radius: 10px;
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
-    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
+    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
     padding: var(--space-sm) var(--space-md);
   }
 
@@ -1367,12 +1367,12 @@ import { agents } from "../lib/agents.svelte";
     font-size: var(--text-xs);
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--cli-text-dim);
+    color: oklch(var(--color-cli-text-dim));
   }
 
   .ui-toggle-group-help {
     margin: var(--space-xs) 0 0;
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-size: var(--text-xs);
     line-height: 1.4;
   }
@@ -1399,13 +1399,13 @@ import { agents } from "../lib/agents.svelte";
   }
 
   .ui-toggle-label {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-sans);
     font-size: var(--text-sm);
   }
 
   .ui-toggle-help {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-size: var(--text-xs);
     line-height: 1.4;
   }
@@ -1429,8 +1429,8 @@ import { agents } from "../lib/agents.svelte";
     position: absolute;
     inset: 0;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
-    background: var(--cli-bg);
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
+    background: oklch(var(--color-cli-bg));
     transition: border-color var(--transition-fast), background var(--transition-fast);
   }
 
@@ -1442,23 +1442,23 @@ import { agents } from "../lib/agents.svelte";
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: var(--cli-text-muted);
+    background: oklch(var(--color-cli-text-muted));
     transition: transform var(--transition-fast), background var(--transition-fast);
   }
 
   .ui-toggle-control input:checked + .ui-toggle-track {
-    background: color-mix(in srgb, var(--cli-prefix-agent) 25%, var(--cli-bg));
-    border-color: color-mix(in srgb, var(--cli-prefix-agent) 60%, var(--cli-border));
+    background: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 25%, oklch(var(--color-cli-bg)));
+    border-color: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 60%, oklch(var(--color-cli-border)));
   }
 
   .ui-toggle-control input:checked + .ui-toggle-track::after {
     transform: translateX(20px);
-    background: var(--cli-prefix-agent);
+    background: oklch(var(--color-cli-prefix-agent));
   }
 
   .ui-toggle-control input:focus-visible + .ui-toggle-track {
     outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
+    box-shadow: 0 0 0 2px color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 55%, oklch(var(--color-cli-border)));
   }
 
   .policy-list {
@@ -1473,9 +1473,9 @@ import { agents } from "../lib/agents.svelte";
     gap: var(--space-sm);
     align-items: center;
     padding: var(--space-xs) var(--space-sm);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
     border-radius: 10px;
-    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
+    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
   }
 
   .policy-decision {
@@ -1486,15 +1486,15 @@ import { agents } from "../lib/agents.svelte";
   }
 
   .policy-decision.allow {
-    color: var(--cli-success, #4ade80);
+    color: oklch(var(--color-cli-success, #4ade80));
   }
 
   .policy-decision.reject {
-    color: var(--cli-error);
+    color: oklch(var(--color-cli-error));
   }
 
   .policy-tool {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-mono);
     font-size: var(--text-xs);
   }
@@ -1576,7 +1576,7 @@ import { agents } from "../lib/agents.svelte";
 
   .anchor-status {
     font-size: var(--text-xs);
-    color: var(--cli-success, #4ade80);
+    color: oklch(var(--color-cli-success, #4ade80));
     margin-top: 2px;
   }
 
@@ -1588,37 +1588,37 @@ import { agents } from "../lib/agents.svelte";
   }
 
   .anchor-hostname {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-weight: 500;
   }
 
   .anchor-meta {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-size: var(--text-xs);
   }
 
   .hint {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-size: var(--text-xs);
     line-height: 1.55;
     margin: 0;
   }
 
   .hint-error {
-    color: var(--cli-error);
+    color: oklch(var(--color-cli-error));
   }
 
   .hint a {
-    color: var(--cli-prefix-agent);
+    color: oklch(var(--color-cli-prefix-agent));
   }
 
   .sign-out-btn {
     align-self: flex-start;
     padding: 0.45rem 0.72rem;
-    background: color-mix(in srgb, var(--cli-error) 10%, var(--cli-bg-elevated));
-    border: 1px solid color-mix(in srgb, var(--cli-error) 55%, var(--cli-border));
+    background: color-mix(in srgb, oklch(var(--color-cli-error)) 10%, oklch(var(--color-cli-bg-elevated)));
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-error)) 55%, oklch(var(--color-cli-border)));
     border-radius: 7px;
-    color: color-mix(in srgb, var(--cli-error) 76%, var(--cli-text));
+    color: color-mix(in srgb, oklch(var(--color-cli-error)) 76%, oklch(var(--color-cli-text)));
     font-family: var(--font-mono);
     font-size: 0.74rem;
     cursor: pointer;
@@ -1626,8 +1626,8 @@ import { agents } from "../lib/agents.svelte";
   }
 
   .sign-out-btn:hover {
-    background: color-mix(in srgb, var(--cli-error) 16%, var(--cli-bg-elevated));
-    border-color: color-mix(in srgb, var(--cli-error) 68%, var(--cli-border));
+    background: color-mix(in srgb, oklch(var(--color-cli-error)) 16%, oklch(var(--color-cli-bg-elevated)));
+    border-color: color-mix(in srgb, oklch(var(--color-cli-error)) 68%, oklch(var(--color-cli-border)));
   }
 
   @media (max-width: 660px) {
@@ -1637,7 +1637,7 @@ import { agents } from "../lib/agents.svelte";
     }
   }
   .mono { font-family: var(--font-mono); }
-  .dim { color: var(--cli-text-dim); }
+  .dim { color: oklch(var(--color-cli-text-dim)); }
 
   .custom-agents {
     gap: 0.75rem;
@@ -1649,9 +1649,9 @@ import { agents } from "../lib/agents.svelte";
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem;
-    border: 1px solid var(--cli-border);
+    border: 1px solid oklch(var(--color-cli-border));
     border-radius: 6px;
-    background: var(--cli-bg-subtle);
+    background: oklch(var(--color-cli-bg-subtle));
   }
   .agent-info {
     display: flex;
