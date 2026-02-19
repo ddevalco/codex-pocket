@@ -2,39 +2,44 @@
   export let tone: "neutral" | "success" | "warning" | "error" = "neutral";
 </script>
 
-<span class="chip" data-tone={tone}><slot /></span>
+<span
+  class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-sans text-xs font-medium leading-snug"
+  class:border-cli-border={tone === "neutral"}
+  class:text-cli-text-dim={tone === "neutral"}
+  class:bg-cli-bg-elevated={tone === "neutral"}
+  class:border-cli-success-opacity={tone === "success"}
+  class:text-cli-success={tone === "success"}
+  class:bg-cli-success-low={tone === "success"}
+  class:border-cli-warning-opacity={tone === "warning"}
+  class:text-cli-warning={tone === "warning"}
+  class:bg-cli-warning-low={tone === "warning"}
+  class:border-cli-error-opacity={tone === "error"}
+  class:text-cli-error={tone === "error"}
+  class:bg-cli-error-low={tone === "error"}
+>
+  <slot />
+</span>
 
 <style>
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: var(--text-xs);
-    line-height: 1.4;
-    border: 1px solid var(--cli-border);
-    color: var(--cli-text-dim);
-    background: var(--cli-bg-elevated);
-    font-family: var(--font-sans);
-    font-weight: 500;
+  /* Custom utility-like classes for color-mix that Tailwind doesn't support natively cleanly yet */
+  .border-cli-success-opacity {
+    border-color: color-mix(in srgb, var(--color-cli-success) 50%, var(--color-cli-border));
+  }
+  .bg-cli-success-low {
+    background: color-mix(in srgb, var(--color-cli-success) 10%, transparent);
+  }
+  
+  .border-cli-warning-opacity {
+    border-color: color-mix(in srgb, var(--color-cli-warning) 50%, var(--color-cli-border));
+  }
+  .bg-cli-warning-low {
+    background: color-mix(in srgb, var(--color-cli-warning) 12%, transparent);
   }
 
-  .chip[data-tone="success"] {
-    border-color: color-mix(in srgb, var(--cli-success) 50%, var(--cli-border));
-    color: var(--cli-success);
-    background: color-mix(in srgb, var(--cli-success) 10%, transparent);
+  .border-cli-error-opacity {
+    border-color: color-mix(in srgb, var(--color-cli-error) 50%, var(--color-cli-border));
   }
-
-  .chip[data-tone="warning"] {
-    border-color: color-mix(in srgb, var(--cli-warning) 50%, var(--cli-border));
-    color: var(--cli-warning);
-    background: color-mix(in srgb, var(--cli-warning) 12%, transparent);
-  }
-
-  .chip[data-tone="error"] {
-    border-color: color-mix(in srgb, var(--cli-error) 50%, var(--cli-border));
-    color: var(--cli-error);
-    background: color-mix(in srgb, var(--cli-error) 12%, transparent);
+  .bg-cli-error-low {
+    background: color-mix(in srgb, var(--color-cli-error) 12%, transparent);
   }
 </style>

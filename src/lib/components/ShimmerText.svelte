@@ -14,11 +14,11 @@
     display: inline-block;
     background: linear-gradient(
       90deg,
-      var(--cli-text-dim) 0%,
-      var(--cli-text-dim) 40%,
-      var(--cli-text) 50%,
-      var(--cli-text-dim) 60%,
-      var(--cli-text-dim) 100%
+      var(--color-cli-text-dim) 0%,
+      var(--color-cli-text-dim) 40%,
+      var(--color-cli-text) 50%,
+      var(--color-cli-text-dim) 60%,
+      var(--color-cli-text-dim) 100%
     );
     background-size: 200% 100%;
     background-clip: text;

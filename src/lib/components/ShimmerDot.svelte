@@ -3,15 +3,14 @@
     color?: string;
   }
 
-  const { color = "var(--cli-prefix-agent)" }: Props = $props();
+  const { color = "var(--color-cli-prefix-agent)" }: Props = $props();
 </script>
 
-<span class="shimmer-dot" style:--dot-color={color}>●</span>
+<span class="shimmer-dot" style:color={color}>●</span>
 
 <style>
   .shimmer-dot {
     display: inline-block;
-    color: var(--dot-color);
     animation: shimmer 2s ease-in-out infinite;
   }
 
