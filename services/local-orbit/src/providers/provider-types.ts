@@ -8,7 +8,7 @@
 /**
  * Provider identifier literals for type safety
  */
-export type ProviderId = "codex" | "copilot-acp" | string;
+export type ProviderId = "codex" | "copilot-acp" | "claude" | string;
 
 /**
  * Session/thread status across providers
