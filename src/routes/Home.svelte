@@ -376,6 +376,15 @@
   const copilotGrouped = $derived(groupThreadsByProject(providerGroups.copilot));
 
   let collapsedGroups = $state<Record<string, boolean>>({});
+  const expandedGroups = $state<Record<string, boolean>>({});
+  let threadsPerProjectLimit = $state(10);
+
+  $effect(() => {
+    const saved = localStorage.getItem('coderelay_threads_per_project_limit');
+    if (saved) {
+      threadsPerProjectLimit = Math.max(1, Math.min(50, parseInt(saved) || 10));
+    }
+  });
 
   function isGroupCollapsed(label: string): boolean {
     return collapsedGroups[label] === true;
@@ -667,7 +676,107 @@
   }
 </script>
 
-{#snippet threadSection(groups: any[])}
+
+{#snippet threadItem(thread: any)}
+  {@const repoLabel = threadRepoLabel(thread)}
+  {@const projectLabel = threadProjectLabel(thread)}
+  {@const canManageThread = canSendPrompt(thread)}
+  {@const disabledReason = canManageThread ? "" : getCapabilityTooltip("SEND_PROMPT", false)}
+  <li class="thread-item row">
+    <a
+      class="thread-link row"
+      href="/thread/{thread.id}"
+      onclick={(e) => {
+        e.preventDefault();
+        threads.open(thread.id);
+        navigate("/thread/:id", { params: { id: thread.id } });
+      }}
+    >
+      <span class="thread-icon">›</span>
+      <span
+        class="thread-indicator"
+        class:thread-indicator-idle={threadIndicator(thread) === "idle"}
+        class:thread-indicator-working={threadIndicator(thread) === "working"}
+        class:thread-indicator-blocked={threadIndicator(thread) === "blocked"}
+        title={indicatorTitle(threadIndicator(thread))}
+        aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread))}
+      >●</span>
+      <span class="thread-main stack">
+        <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
+        {#if repoLabel || projectLabel}
+          <span
+            class="thread-context row"
+            title={threadContextTitle(
+              thread,
+              repoLabel && projectLabel ? `${repoLabel}/${projectLabel}` : repoLabel || projectLabel || ""
+            )}
+          >
+            {#if repoLabel}
+              <span class="thread-repo-pill">{repoLabel}</span>
+            {/if}
+            {#if projectLabel}
+              <span class="thread-project-pill">{projectLabel}</span>
+            {/if}
+          </span>
+        {/if}
+        <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
+      </span>
+    </a>
+    {#if uiToggles.showThreadListExports}
+      <button
+        class="export-btn"
+        onclick={(e) => {
+          e.stopPropagation();
+          exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
+        }}
+        title="Share/export thread as Markdown"
+      >⇪</button>
+      <button
+        class="export-btn"
+        onclick={(e) => {
+          e.stopPropagation();
+          exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
+        }}
+        title="Share/export thread as JSON"
+      >⎘</button>
+      <button
+        class="export-btn"
+        onclick={(e) => {
+          e.stopPropagation();
+          exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
+        }}
+        title="Share/export thread as HTML"
+      >⌘</button>
+      <button
+        class="export-btn"
+        onclick={(e) => {
+          e.stopPropagation();
+          exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
+        }}
+        title="Print/export thread as PDF"
+      >PDF</button>
+    {/if}
+
+    <button
+      class="thread-action-btn rename-btn"
+      onclick={() => renameThread(thread)}
+      disabled={!canManageThread}
+      title={canManageThread ? "Rename thread" : disabledReason}
+    >
+      ✏️
+    </button>
+    <button
+      class="thread-action-btn archive-btn"
+      onclick={() => threads.archive(thread.id)}
+      disabled={!canManageThread}
+      title={canManageThread ? "Archive thread" : disabledReason}
+    >
+      📦
+    </button>
+  </li>
+{/snippet}
+
+{#snippet groupedThreadList(groups: any[])}
   {#if groups.length > 0}
     {#each groups as group (group.label)}
       <div class="thread-group stack">
@@ -684,110 +793,34 @@
         </button>
         {#if !isGroupCollapsed(group.label)}
           <ul class="thread-list">
-            {#each group.threads as thread (thread.id)}
-              {@const repoLabel = threadRepoLabel(thread)}
-              {@const projectLabel = threadProjectLabel(thread)}
-              {@const canManageThread = canSendPrompt(thread)}
-              {@const disabledReason = canManageThread ? "" : getCapabilityTooltip("SEND_PROMPT", false)}
-              <li class="thread-item row">
-                <a
-                  class="thread-link row"
-                  href="/thread/{thread.id}"
-                  onclick={(e) => {
-                    e.preventDefault();
-                    threads.open(thread.id);
-                    navigate("/thread/:id", { params: { id: thread.id } });
-                  }}
-                >
-                  <span class="thread-icon">›</span>
-                  <span
-                    class="thread-indicator"
-                    class:thread-indicator-idle={threadIndicator(thread) === "idle"}
-                    class:thread-indicator-working={threadIndicator(thread) === "working"}
-                    class:thread-indicator-blocked={threadIndicator(thread) === "blocked"}
-                    title={indicatorTitle(threadIndicator(thread))}
-                    aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread))}
-                  >●</span>
-                  <span class="thread-main stack">
-                    <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
-                    {#if repoLabel || projectLabel}
-                      <span
-                        class="thread-context row"
-                        title={threadContextTitle(
-                          thread,
-                          repoLabel && projectLabel ? `${repoLabel}/${projectLabel}` : repoLabel || projectLabel || ""
-                        )}
-                      >
-                        {#if repoLabel}
-                          <span class="thread-repo-pill">{repoLabel}</span>
-                        {/if}
-                        {#if projectLabel}
-                          <span class="thread-project-pill">{projectLabel}</span>
-                        {/if}
-                      </span>
-                    {/if}
-                    <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
-                  </span>
-                </a>
-                {#if uiToggles.showThreadListExports}
-                  <button
-                    class="export-btn"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
-                    }}
-                    title="Share/export thread as Markdown"
-                  >⇪</button>
-                  <button
-                    class="export-btn"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
-                    }}
-                    title="Share/export thread as JSON"
-                  >⎘</button>
-                  <button
-                    class="export-btn"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
-                    }}
-                    title="Share/export thread as HTML"
-                  >⌘</button>
-                  <button
-                    class="export-btn"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
-                    }}
-                    title="Print/export thread as PDF"
-                  >PDF</button>
-                {/if}
-
-                <button
-                  class="thread-action-btn rename-btn"
-                  onclick={() => renameThread(thread)}
-                  disabled={!canManageThread}
-                  title={canManageThread ? "Rename thread" : disabledReason}
-                >
-                  ✏️
-                </button>
-                <button
-                  class="thread-action-btn archive-btn"
-                  onclick={() => threads.archive(thread.id)}
-                  disabled={!canManageThread}
-                  title={canManageThread ? "Archive thread" : disabledReason}
-                >
-                  📦
-                </button>
-              </li>
+            {#each (expandedGroups[group.label] ? group.threads : group.threads.slice(0, threadsPerProjectLimit)) as thread (thread.id)}
+              {@render threadItem(thread)}
             {/each}
           </ul>
+          {#if !expandedGroups[group.label] && group.threads.length > threadsPerProjectLimit}
+            <div class="show-more-row row">
+              <button
+                class="plain-btn show-more-btn"
+                onclick={() => expandedGroups[group.label] = true}
+              >
+                Show all {group.threads.length} threads...
+              </button>
+            </div>
+          {/if}
         {/if}
       </div>
     {/each}
   {/if}
 {/snippet}
+
+{#snippet flatThreadList(list: any[])}
+  <ul class="thread-list">
+    {#each list as thread (thread.id)}
+      {@render threadItem(thread)}
+    {/each}
+  </ul>
+{/snippet}
+
 
 <svelte:head>
   <title>CodeRelay</title>
@@ -957,7 +990,11 @@
           </div>
 
           {#if codexGrouped.groups.length > 0}
-            {@render threadSection(codexGrouped.groups)}
+            {#if uiToggles.showProjectGrouping}
+              {@render groupedThreadList(codexGrouped.groups)}
+            {:else}
+              {@render flatThreadList(providerGroups.codex)}
+            {/if}
           {:else}
             <div class="empty-state">No Codex threads yet</div>
           {/if}
@@ -972,7 +1009,11 @@
           </div>
 
           {#if copilotGrouped.groups.length > 0}
-            {@render threadSection(copilotGrouped.groups)}
+            {#if uiToggles.showProjectGrouping}
+              {@render groupedThreadList(copilotGrouped.groups)}
+            {:else}
+              {@render flatThreadList(providerGroups.copilot)}
+            {/if}
           {:else}
             <div class="empty-state">No Copilot sessions detected</div>
           {/if}
