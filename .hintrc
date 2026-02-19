@@ -1,0 +1,13 @@
+{
+  "extends": [
+    "web-recommended"
+  ],
+  "hints": {
+    "compat-api/html": [
+      "error",
+      {
+        "ignore": ["meta[name=theme-color]"]
+      }
+    ]
+  }
+}
