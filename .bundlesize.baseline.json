@@ -2,10 +2,10 @@
   "chunks": {
     "Admin.css": 10750,
     "Admin.js": 36234,
-    "AppHeader.css": 5711,
-    "AppHeader.js": 8071,
-    "DangerZone.css": 1809,
-    "DangerZone.js": 1074,
+    "AppHeader.css": 5688,
+    "AppHeader.js": 8069,
+    "DangerZone.css": 912,
+    "DangerZone.js": 1777,
     "Device.css": 786,
     "Device.js": 496,
     "Home.css": 12562,
@@ -24,8 +24,8 @@
     "Review.js": 11668,
     "Settings.css": 12886,
     "Settings.js": 31056,
-    "Thread.css": 34028,
-    "Thread.js": 73294,
+    "Thread.css": 32124,
+    "Thread.js": 73695,
     "abap.js": 15852,
     "actionscript.js": 14049,
     "ada.js": 48082,
@@ -126,7 +126,7 @@
     "hxml.js": 1743,
     "hy.js": 2648,
     "imba.js": 49930,
-    "index.css": 21599,
+    "index.css": 25629,
     "index.js": 18873,
     "ini.js": 1525,
     "java.js": 27219,
@@ -289,6 +289,6 @@
     "zenscript.js": 3912,
     "zig.js": 5340
   },
-  "generatedAt": "2026-02-19T20:21:15.417799Z",
-  "total": 10113302
+  "generatedAt": "2026-02-19T20:41:37.838878Z",
+  "total": 10115610
 }
