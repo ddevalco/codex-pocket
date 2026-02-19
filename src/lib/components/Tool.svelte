@@ -3,6 +3,7 @@
   import type { Message } from "../types";
   import { marked } from "marked";
   import DOMPurify from "dompurify";
+  import { uiToggles } from "../uiToggles";
 
   interface Props {
     message: Message;
@@ -317,7 +318,7 @@
     {/if}
     </button>
 
-    {#if hasContent}
+    {#if hasContent && uiToggles.showToolOutputCopy}
       <button
         type="button"
         class="copy-btn"
