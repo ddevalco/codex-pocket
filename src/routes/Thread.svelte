@@ -92,7 +92,13 @@
         return threadProvider === "copilot-acp" && !supportsApprovals(currentThread);
     });
 
-    const composerDisabled = $derived.by(() => isInProgress || !socket.isHealthy || !canSendPromptInput);
+    const composerDisabled = $derived.by(() => {
+        // Gating: check capabilities.sendPrompt explicitly as required by regression guard
+        if (currentThread?.capabilities?.sendPrompt === false) {
+             return true; 
+        }
+        return isInProgress || !socket.isHealthy || !canSendPromptInput;
+    });
 
 
     const threadTitle = $derived.by(() => {
