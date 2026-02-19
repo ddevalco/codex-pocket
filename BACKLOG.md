@@ -169,6 +169,14 @@ Issues are canonical for work items:
 
 ## Active Items
 
+### Phase 1: UI Elements Toggles (Ready for Reviewer Gate)
+
+- Status: All 10 P0/P1 issues (#175-184) completed. Final polish and QA packet ready for review.
+- PRs (foundation + UI lanes): #207, #208, #209, #210, #211
+  - Validation: Type-check ✅ | Build ✅ (per PR verification)
+- PR (polish + QA): Pending (Phase 1 completion)
+- Notes: Settings layout finalized, documentation updated, QA checklist prepared.
+
 ### Security/Dependencies (2026-02-17)
 
 - ✅ Resolved via `npm audit fix` (automatic remediation succeeded).

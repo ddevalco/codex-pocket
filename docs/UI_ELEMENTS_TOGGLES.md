@@ -2,117 +2,50 @@
 
 ## Overview
 
-Feature for per-device UI customization with on/off switches for 15+ non-critical visual elements. Reduces clutter while preserving critical functions. Default: all ON.
+Per-device UI customization that lets users hide or show non-critical interface elements. Defaults remain ON for backward compatibility and to avoid surprises. Preferences are stored locally in the browser and do not sync across devices.
 
-## Feature Catalog
+## Phase 1 Status (Complete)
 
-### High Priority (P0)
+All Phase 1 issues are complete, covering the store, Settings UI, and the high-impact toggles.
 
-| Feature | Location | Default | Impact | Value Proposition |
-|---------|----------|---------|--------|-------------------|
-| Thread-list export buttons (4/thread) | Home.svelte | ON | High | Remove significant mobile clutter |
-| Quick reply shortcuts row | PromptInput | ON | Medium | Reclaim vertical composer space |
-| Attachment thumbnails | PromptInput | ON | Medium | Compact text-only mode option |
-| Message copy variants (4 options) | MessageBlock | ON | Medium | Simplify to 1-2 core actions |
+- #175 Foundation store and persistence: Complete
+- #176 Settings UI Elements section: Complete
+- #177 Thread list exports toggle: Complete
+- #178 Composer quick replies toggle: Complete
+- #179 Composer attachment thumbnails toggle: Complete
+- #180 Message copy variants toggle: Complete
+- #181 Thread view header actions toggle: Complete
+- #182 Thread list actions toggle: Complete
+- #183 Settings polish and documentation: Complete
+- #184 QA checklist and validation: Complete
 
-### Medium Priority (P1)
+## Defaults and Rationale
 
-- Thread copy button (Thread.svelte header)
-- Thread share button (Thread.svelte header)
-- More menu exports (Thread.svelte popover)
-- Helper profiles menu (Thread.svelte header)
-- Review link (Thread.svelte header)
-- Tool output copy button (Tool.svelte)
-- Rename button (Home.svelte thread items)
-- Archive button (Home.svelte thread items)
+- Default: All toggles ON to preserve existing behavior.
+- Storage: `localStorage` key `codex-pocket:ui-toggles` (per-device, per-browser).
+- Safety guarantee: At least one message copy action always remains enabled.
+- Rationale: Users can reduce clutter without losing critical actions or accidentally hiding required flows.
 
-### Lower Priority (P2)
+## How To Use
 
-- Draft indicator (PromptInput footer)
-- Preset dropdown (PromptInput toolbar)
-- Image upload label text (PromptInput toolbar)
+1. Go to Settings.
+2. Open the UI Elements card.
+3. Toggle a switch to hide or show that feature.
+4. Use "Reset to defaults" to restore all toggles to ON.
 
-## Technical Design
+## Settings Layout
 
-### Store Architecture
+The UI Elements section is grouped for clarity:
 
-Create `src/lib/uiToggles.ts`:
+- Thread List: Controls quick actions and exports in the home thread list.
+- Composer: Controls the composer shortcut row and attachment previews.
+- Messages: Controls copy actions for messages and tool output.
+- Thread View: Controls secondary header actions inside a thread.
 
-```typescript
-interface UITogglesState {
-  // Thread List
-  showThreadListExports: boolean;
-  showThreadListRename: boolean;
-  showThreadListArchive: boolean;
-  
-  // Thread View
-  showThreadCopy: boolean;
-  showThreadShare: boolean;
-  showThreadMoreMenu: boolean;
-  showHelperProfiles: boolean;
-  showReviewLink: boolean;
-  
-  // Messages
-  showAdvancedCopy: boolean;
-  showToolOutputCopy: boolean;
-  
-  // Composer
-  showQuickReplies: boolean;
-  showAttachmentThumbnails: boolean;
-  showDraftIndicator: boolean;
-  showPresetDropdown: boolean;
-}
-```
+On desktop, groups appear in a two-column grid. On mobile, they stack into a single column for readability. The header includes per-device and defaults-on chips, plus a prominent reset action.
 
-localStorage key: `codex-pocket:ui-toggles`  
-Default: All `true`  
-Safety: At least one message copy method must remain available
+## Testing Notes
 
-### Settings UI
-
-Add "UI Elements" section to Settings.svelte with grouped switches:
-
-- Thread View (5 toggles)
-- Thread List (3 toggles)
-- Messages (2 toggles)
-- Composer (4 toggles)
-
-Notice: "These preferences are stored on this device only."
-
-## Implementation Phases
-
-**Phase 1 - Foundation + High-Impact** (Sequential)
-
-1. Create uiToggles.ts store
-2. Add Settings UI Elements section
-3. Gate thread-list exports
-4. Gate composer features
-5. Simplify message copy
-
-**Phase 2 - Coverage** (Parallel)
-
-1. Thread View toggles
-2. Thread List remaining
-3. Composer remaining
-4. Messages matrix
-5. Expand Settings UI
-
-**Phase 3 - Polish** (Sequential)
-
-1. Empty states + guardrails
-2. Documentation
-3. QA validation
-
-## Testing Strategy
-
-- Unit: Store init, fallbacks, persistence
-- Integration: Toggle → UI updates
-- Visual: Mobile viewport clutter reduction
-- Safety: At least one copy method always available
-
-## Constraints
-
-- Cannot hide critical functions (send, navigation, basic display)
-- Must default to ON (backward compatibility)
-- Per-device only (no sync)
-- Preserve at least one message copy action
+- Verify toggles persist after reload.
+- Confirm hidden UI elements do not render when toggled off.
+- Validate that at least one message copy action is always available.

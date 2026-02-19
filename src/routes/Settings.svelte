@@ -53,12 +53,14 @@
 
   type UiToggleGroup = {
     title: string;
+    description: string;
     items: UiToggleItem[];
   };
 
   const uiToggleGroups: UiToggleGroup[] = [
     {
       title: "Thread List",
+      description: "Control quick actions and exports in the home thread list.",
       items: [
         {
           key: "showThreadListExports",
@@ -69,6 +71,7 @@
     },
     {
       title: "Composer",
+      description: "Tune the composer shortcuts and attachment previews.",
       items: [
         {
           key: "showComposerQuickReplies",
@@ -84,6 +87,7 @@
     },
     {
       title: "Messages",
+      description: "Choose which copy actions appear on messages and tool output.",
       items: [
         {
           key: "showMessageCopyButton",
@@ -109,6 +113,7 @@
     },
     {
       title: "Thread View",
+      description: "Show or hide secondary actions in the thread header.",
       items: [
         {
           key: "showThreadHeaderActions",
@@ -484,16 +489,17 @@
               <StatusChip tone="neutral">Per-device</StatusChip>
               <StatusChip tone="success">Defaults on</StatusChip>
             </div>
-            <button type="button" class="plain-btn" onclick={resetUiToggles}>Reset to defaults</button>
+            <button type="button" class="plain-btn ui-toggle-reset" onclick={resetUiToggles}>Reset to defaults</button>
           </div>
           {#if uiToggleNote}
-            <p class="hint">{uiToggleNote}</p>
+            <p class="hint" aria-live="polite">{uiToggleNote}</p>
           {/if}
           <p class="hint">These preferences are stored on this device only.</p>
           <div class="ui-toggle-groups">
             {#each uiToggleGroups as group (group.title)}
               <div class="ui-toggle-group">
                 <div class="ui-toggle-group-header">{group.title}</div>
+                <p class="ui-toggle-group-help">{group.description}</p>
                 <div class="ui-toggle-list">
                   {#each group.items as item (item.key)}
                     <label class="ui-toggle-row">
@@ -1013,6 +1019,13 @@
     flex-wrap: wrap;
   }
 
+  .ui-toggle-reset {
+    border: 1px solid color-mix(in srgb, var(--cli-border) 80%, transparent);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-weight: 600;
+  }
+
   .ui-toggles-chips {
     gap: var(--space-xs);
   }
@@ -1036,6 +1049,13 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--cli-text-dim);
+  }
+
+  .ui-toggle-group-help {
+    margin: var(--space-xs) 0 0;
+    color: var(--cli-text-muted);
+    font-size: var(--text-xs);
+    line-height: 1.4;
   }
 
   .ui-toggle-list {

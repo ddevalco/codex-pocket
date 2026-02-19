@@ -281,7 +281,7 @@
 
 <form class="prompt-input" onsubmit={handleSubmit}>
   <div class="input-container stack">
-  {#if quickReplies.length && uiToggles.showComposerQuickReplies}
+    {#if quickReplies.length && uiToggles.showComposerQuickReplies}
       <div class="quick-replies row" role="group" aria-label="Quick reply shortcuts">
         {#each quickReplies as reply, i (`${reply.label}:${reply.text}:${i}`)}
           <button
