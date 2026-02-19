@@ -82,8 +82,14 @@ bun run build
 success "Build passed"
 
 info "Phase 4 local-orbit tests"
+set +e
 TEST_OUTPUT="$(cd services/local-orbit && bun test 2>&1)"
+TEST_STATUS=$?
+set -e
 echo "$TEST_OUTPUT"
+if [[ $TEST_STATUS -ne 0 ]]; then
+  fail "Local-orbit tests failed (exit ${TEST_STATUS})"
+fi
 TEST_COUNT="$(echo "$TEST_OUTPUT" | grep -E "Ran [0-9]+ tests" | tail -n 1 | grep -oE "[0-9]+" | head -n 1 || true)"
 if [[ -z "$TEST_COUNT" ]]; then
   TEST_COUNT="$(echo "$TEST_OUTPUT" | grep -E "^[[:space:]]*[0-9]+ tests? passed" | head -n 1 | grep -oE "[0-9]+" || true)"
