@@ -245,9 +245,9 @@ fi
 
 mkdir -p "$APP_DIR"
   # DB Migration check
-  if [[ -f "$APP_DIR/coderelay.db" && ! -f "$APP_DIR/coderelay.db" ]]; then
-    echo "Renaming DB from coderelay.db to coderelay.db..."
-    mv "$APP_DIR/coderelay.db" "$APP_DIR/coderelay.db"
+  if [[ -f "$APP_DIR/codex-pocket.db" && ! -f "$APP_DIR/coderelay.db" ]]; then
+    echo "Migrating database from codex-pocket.db to coderelay.db..."
+    mv "$APP_DIR/codex-pocket.db" "$APP_DIR/coderelay.db"
   fi
 
 
