@@ -154,9 +154,9 @@
 <style>
   .input-card {
     margin: var(--space-xs) var(--space-md);
-    border: 1px solid var(--cli-border);
+    border: 1px solid oklch(var(--color-cli-border));
     border-radius: var(--radius-md);
-    background: var(--cli-bg-elevated);
+    background: oklch(var(--color-cli-bg-elevated));
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     overflow: hidden;
@@ -168,11 +168,11 @@
 
   .card-header {
     padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid var(--cli-border);
+    border-bottom: 1px solid oklch(var(--color-cli-border));
   }
 
   .header-label {
-    color: var(--cli-prefix-agent);
+    color: oklch(var(--color-cli-prefix-agent));
     font-size: var(--text-xs);
     font-weight: 600;
     text-transform: uppercase;
@@ -187,16 +187,16 @@
   }
 
   .question-section.has-border {
-    border-top: 1px solid var(--cli-border);
+    border-top: 1px solid oklch(var(--color-cli-border));
   }
 
   .question-header {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-weight: 500;
   }
 
   .question-text {
-    color: var(--cli-text-dim);
+    color: oklch(var(--color-cli-text-dim));
     font-size: var(--text-xs);
   }
 
@@ -215,7 +215,7 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     text-align: left;
@@ -225,17 +225,17 @@
   }
 
   .option-btn:hover:not(:disabled) {
-    background: var(--cli-bg-hover);
+    background: oklch(var(--color-cli-bg-hover));
   }
 
   .option-btn.focused {
-    border-color: var(--cli-border);
-    background: var(--cli-bg-hover);
+    border-color: oklch(var(--color-cli-border));
+    background: oklch(var(--color-cli-bg-hover));
   }
 
   .option-btn.chosen {
-    border-color: var(--cli-prefix-agent);
-    background: color-mix(in srgb, var(--cli-prefix-agent) 8%, transparent);
+    border-color: oklch(var(--color-cli-prefix-agent));
+    background: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 8%, transparent);
   }
 
   .option-btn:disabled {
@@ -243,13 +243,13 @@
   }
 
   .radio {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     flex-shrink: 0;
     line-height: 1.6;
   }
 
   .option-btn.chosen .radio {
-    color: var(--cli-prefix-agent);
+    color: oklch(var(--color-cli-prefix-agent));
   }
 
   .option-content {
@@ -260,17 +260,17 @@
   }
 
   .option-label {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     white-space: normal;
     word-break: break-word;
   }
 
   .option-btn.chosen .option-label {
-    color: var(--cli-prefix-agent);
+    color: oklch(var(--color-cli-prefix-agent));
   }
 
   .option-desc {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-size: var(--text-xs);
     white-space: normal;
     word-break: break-word;
@@ -283,10 +283,10 @@
   .text-input {
     width: 100%;
     padding: var(--space-xs) var(--space-sm);
-    background: var(--cli-bg);
-    border: 1px solid var(--cli-border);
+    background: oklch(var(--color-cli-bg));
+    border: 1px solid oklch(var(--color-cli-border));
     border-radius: var(--radius-sm);
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     box-sizing: border-box;
@@ -294,7 +294,7 @@
 
   .text-input:focus {
     outline: none;
-    border-color: var(--cli-prefix-agent);
+    border-color: oklch(var(--color-cli-prefix-agent));
   }
 
   .text-input:disabled {
@@ -303,17 +303,17 @@
 
   .card-footer {
     padding: var(--space-sm) var(--space-md);
-    border-top: 1px solid var(--cli-border);
+    border-top: 1px solid oklch(var(--color-cli-border));
     display: flex;
     align-items: center;
   }
 
   .submit-btn {
     padding: var(--space-xs) var(--space-md);
-    background: var(--cli-prefix-agent);
+    background: oklch(var(--color-cli-prefix-agent));
     border: none;
     border-radius: var(--radius-sm);
-    color: var(--cli-bg);
+    color: oklch(var(--color-cli-bg));
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     font-weight: 500;
@@ -331,7 +331,7 @@
   }
 
   .status-badge {
-    color: var(--cli-success);
+    color: oklch(var(--color-cli-success));
     font-size: var(--text-xs);
     font-weight: 600;
   }
