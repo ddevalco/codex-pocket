@@ -11,10 +11,11 @@ Codex Pocket’s goal is narrower and more opinionated:
 
 ## High-Level Differences
 
-- **Multi-provider architecture**
-  - Zane is Codex-only.
+- **Multi-provider architecture with capability detection**
+  - Zane is Codex-only with static feature assumptions.
   - Codex Pocket supports multiple AI providers (Codex, GitHub Copilot ACP) through a unified adapter interface.
-  - Capability-driven UI adapts to each provider's supported features.
+  - **Capability Matrix**: Each provider declares capabilities (`CAN_ATTACH_FILES`, `CAN_FILTER_HISTORY`, `SUPPORTS_APPROVALS`, `SUPPORTS_STREAMING`) dynamically.
+  - **Graceful Degradation**: UI elements automatically disable when capabilities are unavailable, with tooltips explaining why (no broken interactions).
 
 - **No Cloudflare dependency**
   - Zane's default architecture expects Cloudflare components (Orbit/Auth style flows).

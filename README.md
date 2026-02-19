@@ -112,9 +112,14 @@ Prioritized engineering recommendations are maintained in:
 - 💾 Local-first data persistence
 - ⚡ Real-time WebSocket communication
 - 🧪 Bundle size guardrails and release preflight checks
-- 🔒 Approval workflows for tool permissions with persistent policies
-- 🔍 Advanced filtering (provider, status) with view persistence
-- 📎 Attachment support for both Codex and Copilot providers
+
+### Phase 4 Capabilities
+
+- **🔌 Capability Matrix** — Dynamic per-provider capability detection (`CAN_ATTACH_FILES`, `CAN_FILTER_HISTORY`, `SUPPORTS_APPROVALS`, `SUPPORTS_STREAMING`). The UI automatically adapts to each provider's supported features.
+- **🎛️ Graceful Degradation UX** — UI elements disable when capabilities are unavailable (e.g., attach button shows tooltip when `CAN_ATTACH_FILES=false`). No broken interactions.
+- **📎 ACP Attachment Support** — Full file and URL attachment support for GitHub Copilot ACP provider, matching Codex's attachment capabilities.
+- **🔒 ACP Approvals System** — Interactive approval prompts for tool permissions (shell commands, file operations) with persistent policy store (`allow_always`, `reject_always`). Manage policies in Settings.
+- **🔍 Advanced Filtering** — Dual-axis filtering: Provider filter (All/Codex/Copilot) + Status filter (All/Active/Archived) with live counts and localStorage persistence.
 
 ## Multi-Provider Support
 
@@ -122,6 +127,17 @@ Codex Pocket supports multiple AI providers in a single interface:
 
 - **Codex**: Full read/write support with all features (default)
 - **GitHub Copilot**: Full ACP (Agent Control Protocol) integration with send, streaming, approvals, and attachments
+
+### Capability Matrix
+
+Each provider declares its capabilities dynamically:
+
+- `CAN_ATTACH_FILES`: File/URL attachments supported
+- `CAN_FILTER_HISTORY`: Provider supports filtering thread history
+- `SUPPORTS_APPROVALS`: Interactive tool permission prompts available
+- `SUPPORTS_STREAMING`: Real-time response streaming enabled
+
+The UI automatically adapts to each provider's capability set. If a provider lacks a capability, the related UI elements are disabled with explanatory tooltips.
 
 ### Using Copilot Sessions
 
