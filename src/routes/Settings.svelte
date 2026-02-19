@@ -31,6 +31,7 @@
     type HelperProfile,
   } from "../lib/helperProfiles";
   import { approvalPolicyStore } from "../lib/approval-policy-store.svelte";
+  import { getToggleState, resetToggles, setToggleState, type UIToggleKey } from "../lib/uiToggles";
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   type EnterBehavior = "newline" | "send";
@@ -42,6 +43,81 @@
   let presetImportInput: HTMLInputElement | null = null;
   let helperProfiles = $state<HelperProfile[]>([]);
   let helperProfileSaveNote = $state<string>("");
+  let uiToggleNote = $state<string>("");
+
+  type UiToggleItem = {
+    key: UIToggleKey;
+    label: string;
+    help: string;
+  };
+
+  type UiToggleGroup = {
+    title: string;
+    items: UiToggleItem[];
+  };
+
+  const uiToggleGroups: UiToggleGroup[] = [
+    {
+      title: "Thread List",
+      items: [
+        {
+          key: "showThreadListExports",
+          label: "Thread list exports",
+          help: "Show quick export actions on each thread row.",
+        },
+      ],
+    },
+    {
+      title: "Composer",
+      items: [
+        {
+          key: "showComposerQuickReplies",
+          label: "Quick replies",
+          help: "Show the one-tap shortcut row in the composer.",
+        },
+        {
+          key: "showComposerThumbnails",
+          label: "Attachment thumbnails",
+          help: "Display attachment previews under the input.",
+        },
+      ],
+    },
+    {
+      title: "Messages",
+      items: [
+        {
+          key: "showMessageCopyButton",
+          label: "Copy button",
+          help: "Show the primary copy action on messages.",
+        },
+        {
+          key: "showMessageCopyMarkdown",
+          label: "Copy as markdown",
+          help: "Include the markdown copy action when available.",
+        },
+        {
+          key: "showMessageCopyQuoted",
+          label: "Copy as quoted",
+          help: "Include the quoted copy action when available.",
+        },
+        {
+          key: "showToolOutputCopy",
+          label: "Tool output copy",
+          help: "Show copy controls on tool outputs.",
+        },
+      ],
+    },
+    {
+      title: "Thread View",
+      items: [
+        {
+          key: "showThreadHeaderActions",
+          label: "Thread header actions",
+          help: "Show secondary actions in the thread header.",
+        },
+      ],
+    },
+  ];
 
   $effect(() => {
     try {
@@ -184,6 +260,11 @@
   function saveHelperProfileConfig() {
     helperProfiles = saveHelperProfiles(helperProfiles);
     helperProfileSaveNote = "Saved.";
+  }
+
+  function resetUiToggles() {
+    resetToggles();
+    uiToggleNote = "Reset to defaults.";
   }
 
   function exportAgentPresetConfig() {
@@ -392,6 +473,50 @@
           </select>
         </div>
         <p class="hint" id="enter-behavior-help">Default is newline on all devices. This is stored per-device in your browser.</p>
+      </SectionCard>
+    </div>
+
+    <div class="panel panel-wide">
+      <SectionCard title="UI Elements" subtitle="Control optional interface elements">
+        <div class="stack ui-toggles">
+          <div class="ui-toggles-header row">
+            <div class="row ui-toggles-chips">
+              <StatusChip tone="neutral">Per-device</StatusChip>
+              <StatusChip tone="success">Defaults on</StatusChip>
+            </div>
+            <button type="button" class="plain-btn" onclick={resetUiToggles}>Reset to defaults</button>
+          </div>
+          {#if uiToggleNote}
+            <p class="hint">{uiToggleNote}</p>
+          {/if}
+          <p class="hint">These preferences are stored on this device only.</p>
+          <div class="ui-toggle-groups">
+            {#each uiToggleGroups as group (group.title)}
+              <div class="ui-toggle-group">
+                <div class="ui-toggle-group-header">{group.title}</div>
+                <div class="ui-toggle-list">
+                  {#each group.items as item (item.key)}
+                    <label class="ui-toggle-row">
+                      <span class="ui-toggle-text">
+                        <span class="ui-toggle-label">{item.label}</span>
+                        <span class="ui-toggle-help">{item.help}</span>
+                      </span>
+                      <span class="ui-toggle-control">
+                        <input
+                          type="checkbox"
+                          role="switch"
+                          checked={getToggleState(item.key)}
+                          onchange={(e) => setToggleState(item.key, (e.target as HTMLInputElement).checked)}
+                        />
+                        <span class="ui-toggle-track" aria-hidden="true"></span>
+                      </span>
+                    </label>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
       </SectionCard>
     </div>
 
@@ -877,6 +1002,126 @@
     --stack-gap: var(--space-sm);
   }
 
+  .ui-toggles {
+    --stack-gap: var(--space-sm);
+  }
+
+  .ui-toggles-header {
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .ui-toggles-chips {
+    gap: var(--space-xs);
+  }
+
+  .ui-toggle-groups {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .ui-toggle-group {
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .ui-toggle-group-header {
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cli-text-dim);
+  }
+
+  .ui-toggle-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+  }
+
+  .ui-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .ui-toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .ui-toggle-label {
+    color: var(--cli-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+  }
+
+  .ui-toggle-help {
+    color: var(--cli-text-muted);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+  }
+
+  .ui-toggle-control {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex: 0 0 auto;
+  }
+
+  .ui-toggle-control input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .ui-toggle-track {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: var(--cli-bg);
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .ui-toggle-track::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--cli-text-muted);
+    transition: transform var(--transition-fast), background var(--transition-fast);
+  }
+
+  .ui-toggle-control input:checked + .ui-toggle-track {
+    background: color-mix(in srgb, var(--cli-prefix-agent) 25%, var(--cli-bg));
+    border-color: color-mix(in srgb, var(--cli-prefix-agent) 60%, var(--cli-border));
+  }
+
+  .ui-toggle-control input:checked + .ui-toggle-track::after {
+    transform: translateX(20px);
+    background: var(--cli-prefix-agent);
+  }
+
+  .ui-toggle-control input:focus-visible + .ui-toggle-track {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
+  }
+
   .policy-list {
     display: flex;
     flex-direction: column;
@@ -955,6 +1200,18 @@
     .helper-row {
       grid-template-columns: 1fr;
       align-items: stretch;
+    }
+  }
+
+  @media (min-width: 980px) {
+    .ui-toggle-groups {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    .ui-toggle-row {
+      align-items: flex-start;
     }
   }
 
