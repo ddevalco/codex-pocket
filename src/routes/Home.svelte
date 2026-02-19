@@ -7,6 +7,7 @@
   import { models } from "../lib/models.svelte";
   import { theme } from "../lib/theme.svelte";
   import { auth } from "../lib/auth.svelte";
+  import { uiToggles } from "../lib/uiToggles";
   import { canSendPrompt, getCapabilityTooltip } from "../lib/thread-capabilities";
   import AppHeader from "../lib/components/AppHeader.svelte";
   import ProjectPicker from "../lib/components/ProjectPicker.svelte";
@@ -684,38 +685,40 @@
                     <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
                   </span>
                 </a>
-                <button
-                  class="export-btn"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
-                  }}
-                  title="Share/export thread as Markdown"
-                >⇪</button>
-                <button
-                  class="export-btn"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
-                  }}
-                  title="Share/export thread as JSON"
-                >⎘</button>
-                <button
-                  class="export-btn"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
-                  }}
-                  title="Share/export thread as HTML"
-                >⌘</button>
-                <button
-                  class="export-btn"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
-                  }}
-                  title="Print/export thread as PDF"
-                >PDF</button>
+                {#if uiToggles.showThreadListExports}
+                  <button
+                    class="export-btn"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      exportThread(thread.id, "md", (e as MouseEvent).shiftKey);
+                    }}
+                    title="Share/export thread as Markdown"
+                  >⇪</button>
+                  <button
+                    class="export-btn"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      exportThread(thread.id, "json", (e as MouseEvent).shiftKey);
+                    }}
+                    title="Share/export thread as JSON"
+                  >⎘</button>
+                  <button
+                    class="export-btn"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      exportThread(thread.id, "html", (e as MouseEvent).shiftKey);
+                    }}
+                    title="Share/export thread as HTML"
+                  >⌘</button>
+                  <button
+                    class="export-btn"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      exportThread(thread.id, "pdf", (e as MouseEvent).shiftKey);
+                    }}
+                    title="Print/export thread as PDF"
+                  >PDF</button>
+                {/if}
 
                 <button
                   class="thread-action-btn rename-btn"
