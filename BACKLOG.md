@@ -249,6 +249,40 @@ Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATION
 - [ ] P5-03: Custom Agent Import
 - [ ] P5-05: Metrics Dashboard Integration
 
+## Epic #221: Farfield-Inspired UI/UX Refresh
+
+### Issue #223: OKLCH Color Migration - Terminal Components
+
+**Epic:** #221 | **Story Points:** 13 | **Status:** Phase 1A ✅, Phase 1B 🔄
+
+Migrate terminal/message components from CSS variables to Tailwind utility classes.
+
+**Progress:**
+
+- ✅ Phase 1A: 6 leaf components (PR #244 merged)
+- 🔄 Phase 1B: 11 critical components (in batches)
+  - Batch 1: Tool.svelte
+  - Batch 2: MessageBlock + ApprovalPrompt + UserInputPrompt
+  - Batch 3: PromptInput
+  - Batch 4: Thread route
+  - Batch 5: Settings + remaining
+
+**Acceptance Criteria:**
+
+- [ ] All `var(--cli-*)` CSS variable references removed
+- [ ] All components use Tailwind utility classes
+- [ ] No visual regressions in light/dark mode
+- [ ] Build and type-check pass
+- [ ] Dynamic color assignment works correctly
+
+**Dependencies:**
+
+- ✅ Issue #222 (Tailwind v4 foundation) - complete
+
+**Blocks:**
+
+- Issues #224-226 (other Phase 1 work)
+
 ## Technical Debt & Refactoring
 
 - **CodexAdapter Migration**: Migrate Codex provider logic from index.ts into CodexAdapter class.
