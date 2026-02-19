@@ -88,3 +88,19 @@ export {
   ACPStreamingNormalizer,
   createEventNormalizer,
 } from "./normalizers/event-normalizer.js";
+
+// Token usage and cost tracking
+export type { TokenUsage } from "./provider-types.js";
+export type { PricingTable } from "./cost-calculator.js";
+
+export {
+  calculateCost,
+  enrichTokenUsage,
+  getPricingTables,
+} from "./cost-calculator.js";
+
+export {
+  extractTokenUsage,
+  enrichEventWithTokenUsage,
+  enrichEventsWithTokenUsage,
+} from "./token-usage-enricher.js";
