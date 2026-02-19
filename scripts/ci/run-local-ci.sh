@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fast pre-push validation (build phase only) - runs typecheck, build, guards.
-# This mirrors the CI ordering in .github/workflows/ci.yml.
+# NOTE: Includes typecheck step not present in .github/workflows/ci.yml for earlier error detection.
 
 set -euo pipefail
 
