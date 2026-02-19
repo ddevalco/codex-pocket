@@ -104,24 +104,24 @@
 
 <style>
   .outcome-card {
-    border: 1px solid var(--border-color);
+    border: 1px solid oklch(var(--color-border));
     border-radius: 0.5rem;
     padding: 1rem;
     margin: 1rem 0;
-    background: var(--bg-secondary, #2a2a2a);
-    color: var(--text-primary, #fff);
+    background: oklch(var(--color-cli-bg-elevated));
+    color: oklch(var(--color-cli-text));
   }
   
   .status-success {
-    border-left: 4px solid var(--success-color, #22c55e);
+    border-left: 4px solid oklch(var(--color-cli-success));
   }
   
   .status-failure {
-    border-left: 4px solid var(--error-color, #ef4444);
+    border-left: 4px solid oklch(var(--color-cli-error));
   }
   
   .status-partial {
-    border-left: 4px solid var(--warning-color, #f59e0b);
+    border-left: 4px solid oklch(var(--color-cli-warning));
   }
   
   .outcome-header {
@@ -139,20 +139,20 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: var(--bg-tertiary, #3a3a3a);
+    background: oklch(var(--color-cli-bg-hover));
   }
   
   /* Use direct style instead of computed class context just in case */
   :global(.status-success) .status-icon {
-    color: var(--success-color, #22c55e);
+    color: oklch(var(--color-cli-success));
   }
   
   :global(.status-failure) .status-icon {
-    color: var(--error-color, #ef4444);
+    color: oklch(var(--color-cli-error));
   }
   
   :global(.status-partial) .status-icon {
-    color: var(--warning-color, #f59e0b);
+    color: oklch(var(--color-cli-warning));
   }
   
   .outcome-info {
@@ -168,12 +168,12 @@
   
   .status-label {
     font-size: 0.875rem;
-    color: var(--text-secondary, #aaa);
+    color: oklch(var(--color-cli-text-muted));
     text-transform: capitalize;
   }
   
   .outcome-summary {
-    color: var(--text-primary, #fff);
+    color: oklch(var(--color-cli-text));
     margin-bottom: 1rem;
     line-height: 1.5;
   }
@@ -186,7 +186,7 @@
     font-size: 0.875rem;
     font-weight: 600;
     margin-bottom: 0.5rem;
-    color: var(--text-secondary, #aaa);
+    color: oklch(var(--color-cli-text-muted));
   }
   
   .touched-files ul {
@@ -202,7 +202,7 @@
   .file-link {
     background: none;
     border: none;
-    color: var(--link-color, #3b82f6);
+    color: oklch(var(--color-cli-prefix-agent));
     cursor: pointer;
     text-align: left;
     padding: 0.25rem;
@@ -217,7 +217,7 @@
   .expand-files {
     background: none;
     border: none;
-    color: var(--link-color, #3b82f6);
+    color: oklch(var(--color-cli-prefix-agent));
     cursor: pointer;
     font-size: 0.875rem;
     padding: 0.25rem;
@@ -235,7 +235,7 @@
   }
   
   .continue-button {
-    background: var(--accent-color, #3b82f6);
+    background: oklch(var(--color-cli-prefix-agent));
     color: white;
     border: none;
     padding: 0.5rem 1rem;
