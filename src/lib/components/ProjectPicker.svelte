@@ -128,28 +128,28 @@
   .input-row input {
     flex: 1;
     padding: var(--space-sm);
-    background: var(--cli-bg);
-    border: 1px solid var(--cli-border);
+    background: var(--color-cli-bg);
+    border: 1px solid var(--color-cli-border);
     border-radius: var(--radius-sm);
-    color: var(--cli-text);
+    color: var(--color-cli-text);
     font-family: var(--font-mono);
   }
 
   .input-row input:focus {
     outline: none;
-    border-color: var(--cli-prefix-agent);
+    border-color: var(--color-cli-prefix-agent);
   }
 
   .input-row input::placeholder {
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
   }
 
   .browse-btn {
     padding: var(--space-sm) var(--space-sm);
     background: transparent;
-    border: 1px solid var(--cli-border);
+    border: 1px solid var(--color-cli-border);
     border-radius: var(--radius-sm);
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     cursor: pointer;
@@ -157,8 +157,8 @@
   }
 
   .browse-btn:hover:not(:disabled) {
-    color: var(--cli-text);
-    border-color: var(--cli-text-muted);
+    color: var(--color-cli-text);
+    border-color: var(--color-cli-text-muted);
   }
 
   .browse-btn:disabled {
@@ -167,9 +167,9 @@
   }
 
   .dir-browser {
-    border: 1px solid var(--cli-border);
+    border: 1px solid var(--color-cli-border);
     border-radius: var(--radius-sm);
-    background: var(--cli-bg);
+    background: var(--color-cli-bg);
     max-height: 200px;
     display: flex;
     flex-direction: column;
@@ -180,13 +180,13 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--space-xs) var(--space-sm);
-    border-bottom: 1px solid var(--cli-border);
+    border-bottom: 1px solid var(--color-cli-border);
     gap: var(--space-sm);
   }
 
   .dir-path {
     font-size: var(--text-xs);
-    color: var(--cli-text-dim);
+    color: var(--color-cli-text-dim);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -195,10 +195,10 @@
 
   .select-btn {
     padding: 2px 8px;
-    background: var(--cli-prefix-agent);
+    background: var(--color-cli-prefix-agent);
     border: none;
     border-radius: var(--radius-sm);
-    color: var(--cli-bg);
+    color: var(--color-cli-bg);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     cursor: pointer;
@@ -220,14 +220,14 @@
     padding: var(--space-xs) var(--space-sm);
     background: transparent;
     border: none;
-    color: var(--cli-text);
+    color: var(--color-cli-text);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     cursor: pointer;
   }
 
   .dir-item:hover {
-    background: var(--cli-selection);
+    background: var(--color-cli-selection);
   }
 
   .dir-loading,
@@ -235,10 +235,10 @@
   .dir-empty {
     padding: var(--space-sm);
     font-size: var(--text-xs);
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
   }
 
   .dir-error {
-    color: var(--cli-error);
+    color: var(--color-cli-error);
   }
 </style>

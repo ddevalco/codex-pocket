@@ -66,22 +66,22 @@
 <style>
   .section {
     --stack-gap: 0;
-    border: 1px solid var(--cli-border);
+    border: 1px solid var(--color-cli-border);
     border-radius: var(--radius-md);
     overflow: hidden;
   }
 
   .section-header {
     padding: var(--space-sm) var(--space-md);
-    background: var(--cli-bg-elevated);
-    border-bottom: 1px solid var(--cli-border);
+    background: var(--color-cli-bg-elevated);
+    border-bottom: 1px solid var(--color-cli-border);
   }
 
   .section-title {
     font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--cli-text-dim);
+    color: var(--color-cli-text-dim);
   }
 
   .section-body {
@@ -98,15 +98,15 @@
 
   .setting-label {
     font-size: var(--text-xs);
-    color: var(--cli-text);
+    color: var(--color-cli-text);
   }
 
   .setting-btn {
     padding: var(--space-xs) var(--space-sm);
-    border: 1px solid var(--cli-border);
+    border: 1px solid var(--color-cli-border);
     border-radius: var(--radius-sm);
     background: transparent;
-    color: var(--cli-text-dim);
+    color: var(--color-cli-text-dim);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     cursor: pointer;
@@ -114,9 +114,9 @@
   }
 
   .setting-btn:hover {
-    background: var(--cli-selection);
-    color: var(--cli-text);
-    border-color: var(--cli-text-muted);
+    background: var(--color-cli-selection);
+    color: var(--color-cli-text);
+    border-color: var(--color-cli-text-muted);
   }
 
   .btn-group {
@@ -125,13 +125,13 @@
   }
 
   .hint {
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
     font-size: var(--text-xs);
     line-height: 1.5;
     margin: 0;
   }
 
   .hint strong {
-    color: var(--cli-text-dim);
+    color: var(--color-cli-text-dim);
   }
 </style>
