@@ -6,6 +6,7 @@
     import { messages } from "../lib/messages.svelte";
     import { models } from "../lib/models.svelte";
     import { theme } from "../lib/theme.svelte";
+    import { uiToggles } from "../lib/uiToggles";
     import { canSendPrompt, getCapabilityTooltip, supportsApprovals } from "../lib/thread-capabilities";
     import { loadAgentPresets, type AgentPreset } from "../lib/presets";
     import { loadHelperProfiles, type HelperProfile } from "../lib/helperProfiles";
@@ -765,143 +766,145 @@
         onSandboxChange={(v) => sandbox = v}
     >
         {#snippet actions()}
-            <a href={`/thread/${threadId}/review`}>review</a>
-            <div class="more-menu" role="group" onpointerdown={(e) => e.stopPropagation()}>
-                <button
-                    type="button"
-                    class="more-btn"
-                    aria-haspopup="menu"
-                    aria-expanded={helperMenuOpen}
-                    aria-label="Launch helper"
-                    title="Launch helper"
-                    onclick={() => {
-                        agentPresets = loadAgentPresets();
-                        helperProfiles = loadHelperProfiles();
-                        helperMenuOpen = !helperMenuOpen;
-                        moreMenuOpen = false;
-                    }}
-                >
-                    helpers
+            {#if uiToggles.showThreadHeaderActions}
+                <a href={`/thread/${threadId}/review`}>review</a>
+                <div class="more-menu" role="group" onpointerdown={(e) => e.stopPropagation()}>
+                    <button
+                        type="button"
+                        class="more-btn"
+                        aria-haspopup="menu"
+                        aria-expanded={helperMenuOpen}
+                        aria-label="Launch helper"
+                        title="Launch helper"
+                        onclick={() => {
+                            agentPresets = loadAgentPresets();
+                            helperProfiles = loadHelperProfiles();
+                            helperMenuOpen = !helperMenuOpen;
+                            moreMenuOpen = false;
+                        }}
+                    >
+                        helpers
+                    </button>
+                    {#if helperMenuOpen}
+                        <div class="more-popover" role="menu" aria-label="Helper profiles">
+                            {#if helperProfiles.length === 0}
+                                <a href="/settings">Create helper profiles in Settings</a>
+                            {:else}
+                                {#each helperProfiles as profile (profile.id)}
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        onclick={() => launchHelper(profile)}
+                                        title={profile.prompt}
+                                    >
+                                        {profile.name}
+                                    </button>
+                                {/each}
+                            {/if}
+                        </div>
+                    {/if}
+                </div>
+                <button type="button" onclick={copyThread} title="Copy thread as Markdown">copy</button>
+                <button type="button" onclick={shareThread} title="Share thread">share</button>
+                <a href="/settings">Settings</a>
+                <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
+                    {themeIcons[theme.current]}
                 </button>
-                {#if helperMenuOpen}
-                    <div class="more-popover" role="menu" aria-label="Helper profiles">
-                        {#if helperProfiles.length === 0}
-                            <a href="/settings">Create helper profiles in Settings</a>
-                        {:else}
-                            {#each helperProfiles as profile (profile.id)}
-                                <button
-                                    type="button"
-                                    role="menuitem"
-                                    onclick={() => launchHelper(profile)}
-                                    title={profile.prompt}
-                                >
-                                    {profile.name}
-                                </button>
-                            {/each}
-                        {/if}
-                    </div>
-                {/if}
-            </div>
-            <button type="button" onclick={copyThread} title="Copy thread as Markdown">copy</button>
-            <button type="button" onclick={shareThread} title="Share thread">share</button>
-            <a href="/settings">Settings</a>
-            <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
-                {themeIcons[theme.current]}
-            </button>
-            <div class="more-menu" role="group" onpointerdown={(e) => e.stopPropagation()}>
-                <button
-                    type="button"
-                    class="more-btn"
-                    aria-haspopup="menu"
-                    aria-expanded={moreMenuOpen}
-                    aria-label="More actions"
-                    title="More actions"
-                    onclick={() => (moreMenuOpen = !moreMenuOpen)}
-                >
-                    ⋯
-                </button>
-                {#if moreMenuOpen}
-                    <div class="more-popover" role="menu" aria-label="Thread actions">
-                        <button
-                            type="button"
-                            role="menuitem"
-                            onclick={() => {
-                                closeMoreMenu();
-                                copyLastN(20);
-                            }}
-                            title="Copy last 20 messages"
-                        >
-                            copy last 20
-                        </button>
-                        <button
-                            type="button"
-                            role="menuitem"
-                            onclick={() => {
-                                closeMoreMenu();
-                                downloadThread();
-                            }}
-                            title="Download thread as .md"
-                        >
-                            export md
-                        </button>
-                        <button
-                            type="button"
-                            role="menuitem"
-                            onclick={() => {
-                                closeMoreMenu();
-                                downloadThreadJson();
-                            }}
-                            title="Download thread as .json"
-                        >
-                            export json
-                        </button>
-                        <button
-                            type="button"
-                            role="menuitem"
-                            onclick={() => {
-                                closeMoreMenu();
-                                downloadThreadHtml();
-                            }}
-                            title="Download thread as .html"
-                        >
-                            export html
-                        </button>
-                        <button
-                            type="button"
-                            role="menuitem"
-                            onclick={() => {
-                                closeMoreMenu();
-                                printThreadPdf();
-                            }}
-                            title="Print / save as PDF"
-                        >
-                            export pdf
-                        </button>
-                        <button
-                            type="button"
-                            role="menuitem"
-                            onclick={() => {
-                                closeMoreMenu();
-                                shareThreadJson();
-                            }}
-                            title="Share thread as .json"
-                        >
-                            share json
-                        </button>
-                        <button
-                            type="button"
-                            role="menuitem"
-                            onclick={() => {
-                                closeMoreMenu();
-                                shareThreadHtml();
-                            }}
-                            title="Share thread as .html"
-                        >
-                            share html
-                        </button>
-                    </div>
-                {/if}
-            </div>
+                <div class="more-menu" role="group" onpointerdown={(e) => e.stopPropagation()}>
+                    <button
+                        type="button"
+                        class="more-btn"
+                        aria-haspopup="menu"
+                        aria-expanded={moreMenuOpen}
+                        aria-label="More actions"
+                        title="More actions"
+                        onclick={() => (moreMenuOpen = !moreMenuOpen)}
+                    >
+                        ⋯
+                    </button>
+                    {#if moreMenuOpen}
+                        <div class="more-popover" role="menu" aria-label="Thread actions">
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    copyLastN(20);
+                                }}
+                                title="Copy last 20 messages"
+                            >
+                                copy last 20
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    downloadThread();
+                                }}
+                                title="Download thread as .md"
+                            >
+                                export md
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    downloadThreadJson();
+                                }}
+                                title="Download thread as .json"
+                            >
+                                export json
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    downloadThreadHtml();
+                                }}
+                                title="Download thread as .html"
+                            >
+                                export html
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    printThreadPdf();
+                                }}
+                                title="Print / save as PDF"
+                            >
+                                export pdf
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    shareThreadJson();
+                                }}
+                                title="Share thread as .json"
+                            >
+                                share json
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    shareThreadHtml();
+                                }}
+                                title="Share thread as .html"
+                            >
+                                share html
+                            </button>
+                        </div>
+                    {/if}
+                </div>
+            {/if}
         {/snippet}
     </AppHeader>
 
