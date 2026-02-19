@@ -82,6 +82,8 @@ bun run build
 success "Build passed"
 
 info "Phase 4 local-orbit tests"
+# Install local-orbit dependencies
+(cd services/local-orbit && bun install)
 set +e
 TEST_OUTPUT="$(cd services/local-orbit && bun test 2>&1)"
 TEST_STATUS=$?
