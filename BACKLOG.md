@@ -50,16 +50,14 @@ Issues are canonical for work items:
 - [x] End-to-end validation: Static checks pass, ready for manual testing
 - Next: P4-06 (Hardening)
 
-### 2026-02-18: Phase 4.2 - Graceful Degrade UX
+### 2026-02-19: Phase 4.2 - Graceful Degrade UX
 
-- [x] P4-02: Graceful Degrade UX (#152)
-- [x] Created thread-capabilities.ts helper module with capability checks
-- [x] Gated attachment UI based on CAN_ATTACH_FILES capability
-- [x] Removed provider-specific UI checks (provider === 'copilot-acp')
-- [x] Added tooltips for disabled features explaining why unavailable
-- [x] Backward compatibility: threads without capabilities default to enabled
-- [x] Provider defaults: codex (all features), copilot-acp (limited attachments)
-- [x] Validation: Type-check pass, Reviewer approved, backward compat verified
+- [x] P4-02: Graceful Degrade UX (#152) - IMPLEMENTED (2026-02-19)
+- [x] Capability-based UI degradation (no hard-coded provider checks)
+- [x] Tooltips for disabled features with clear explanations
+- [x] Backward compatibility (defaults to enabled when capabilities absent)
+- [x] Type-safe capability helpers in [src/lib/thread-capabilities.ts](src/lib/thread-capabilities.ts)
+- [x] Validation: Type-check: ✅ Pass | Build: ✅ Pass | Tests: ✅ Pass | Reviewer: ✅ Approved
 
 ### 2026-02-18: Phase 4.1 - Capability Matrix Plumbing
 
@@ -199,7 +197,6 @@ Epic tracking: [`docs/ACP_CODEX_INTEGRATION_EPIC.md`](docs/ACP_CODEX_INTEGRATION
 **Phase 4: Capability Matrix + Graceful Degrade** ✅ COMPLETE
 
 - [x] P4-01: Provider capability detection system (#151) ✅
-- [x] P4-02: Graceful Degrade UX (#152) ✅
 - [x] P4-03: ACP Attachments - IMPLEMENTED ✅ (2026-02-18, ready for manual testing)
 - [x] P4-04: ACP Approvals - IMPLEMENTED ✅ (2026-02-18)
 - [x] P4-05: Advanced Filtering + View Persistence ✅ (2026-02-18)
