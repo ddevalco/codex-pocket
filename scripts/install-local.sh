@@ -9,6 +9,7 @@ set -euo pipefail
 APP_DIR="${CODERELAY_HOME:-$HOME/.coderelay}"
 REPO_URL="${CODERELAY_REPO:-https://github.com/ddevalco/coderelay.git}"
 BRANCH="${CODERELAY_BRANCH:-main}"
+USE_LOCAL_REPO=0
 
 # Migration check
 if [[ ! -d "$APP_DIR" && -d "$HOME/.coderelay" ]]; then
@@ -21,6 +22,13 @@ bold=$'\033[1m'
 reset=$'\033[0m'
 
 abort() { echo "Error: $*" >&2; exit 1; }
+
+if [[ "$REPO_URL" == /* || "$REPO_URL" == ./* ]]; then
+  if ! REPO_URL="$(cd "$REPO_URL" 2>/dev/null && pwd)"; then
+    abort "Local repo path not found: $REPO_URL"
+  fi
+  USE_LOCAL_REPO=1
+fi
 
 # Bun is often installed at ~/.bun/bin and may not be on PATH in non-interactive shells.
 if [[ -d "$HOME/.bun/bin" ]]; then
@@ -252,17 +260,32 @@ mkdir -p "$APP_DIR"
 
 
 step "Installing app to $APP_DIR/app"
-if [[ -d "$APP_DIR/app/.git" ]]; then
-  git -C "$APP_DIR/app" fetch --quiet
-  git -C "$APP_DIR/app" checkout "$BRANCH" --quiet
-  git -C "$APP_DIR/app" pull --rebase --quiet
-else
+if [[ "$USE_LOCAL_REPO" -eq 1 ]]; then
+  need_cmd rsync
   rm -rf "$APP_DIR/app"
-  git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR/app"
+  mkdir -p "$APP_DIR/app"
+  rsync -a --delete \
+    --exclude ".git" \
+    --exclude "node_modules" \
+    --exclude "dist" \
+    "$REPO_URL"/ "$APP_DIR/app"/
+else
+  if [[ -d "$APP_DIR/app/.git" ]]; then
+    git -C "$APP_DIR/app" fetch --quiet
+    git -C "$APP_DIR/app" checkout "$BRANCH" --quiet
+    git -C "$APP_DIR/app" pull --rebase --quiet
+  else
+    rm -rf "$APP_DIR/app"
+    git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR/app"
+  fi
 fi
 
 # Print the installed commit for debugging/support.
-APP_COMMIT="$(git -C "$APP_DIR/app" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+if [[ "$USE_LOCAL_REPO" -eq 1 ]]; then
+  APP_COMMIT="$(git -C "$REPO_URL" rev-parse --short HEAD 2>/dev/null || echo "local")"
+else
+  APP_COMMIT="$(git -C "$APP_DIR/app" rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+fi
 echo "App commit: $APP_COMMIT"
 
 # Sanity check: ensure we didn't accidentally install an old Anchor auth flow.
@@ -276,8 +299,18 @@ if ! rg -q "missing shared token" "$APP_DIR/app/services/anchor/src/index.ts" 2>
 fi
 
 step "Installing dependencies"
-(cd "$APP_DIR/app" && "$BUN_BIN" install)
-(cd "$APP_DIR/app/services/anchor" && "$BUN_BIN" install)
+if ! (cd "$APP_DIR/app" && "$BUN_BIN" install); then
+  abort "Failed to install root dependencies. Try running '$BUN_BIN install' in $APP_DIR/app"
+fi
+if ! (cd "$APP_DIR/app/services/anchor" && "$BUN_BIN" install); then
+  abort "Failed to install anchor dependencies. Try running '$BUN_BIN install' in $APP_DIR/app/services/anchor"
+fi
+if ! (cd "$APP_DIR/app/services/local-orbit" && "$BUN_BIN" install); then
+  abort "Failed to install local-orbit dependencies. Try running '$BUN_BIN install' in $APP_DIR/app/services/local-orbit"
+fi
+if [[ ! -d "$APP_DIR/app/services/local-orbit/node_modules" ]]; then
+  abort "local-orbit dependencies missing after install. Check $APP_DIR/app/services/local-orbit"
+fi
 
 step "Generating access token"
 if [[ -z "${CODERELAY_LOCAL_TOKEN:-}" ]]; then
@@ -298,7 +331,9 @@ if command -v pbcopy >/dev/null 2>&1; then
 fi
 
 step "Building UI"
-(cd "$APP_DIR/app" && VITE_ZANE_LOCAL=1 "$BUN_BIN" run build)
+if ! (cd "$APP_DIR/app" && VITE_CODERELAY_LOCAL=1 "$BUN_BIN" run build); then
+  abort "UI build failed. Check logs above and retry with '$BUN_BIN run build' in $APP_DIR/app"
+fi
 
 CONFIG_JSON="$APP_DIR/config.json"
 DB_PATH="$APP_DIR/coderelay.db"
