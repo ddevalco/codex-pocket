@@ -1,6 +1,6 @@
 import { hostname, homedir } from "node:os";
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
-import { readdir, stat, unlink, mkdir as mkdirAsync } from "node:fs/promises";
+import { readdir, stat, unlink, mkdir as mkdirAsync, writeFile, rename, access } from "node:fs/promises";
 import { dirname, join, basename } from "node:path";
 import { createHash } from "node:crypto";
 import { Database } from "bun:sqlite";
@@ -808,6 +808,18 @@ try {
   db.exec("ALTER TABLE token_sessions ADD COLUMN mode TEXT NOT NULL DEFAULT 'full';");
 } catch {
   // already migrated
+}
+
+// Run FTS5 and thread metadata migrations
+try {
+  const fts5Migration = Bun.file(join(process.cwd(), "migrations", "002_add_fts5_search.sql"));
+  if (await fts5Migration.exists()) {
+    const sql = await fts5Migration.text();
+    db.exec(sql);
+  }
+} catch (e) {
+  // FTS5 may already exist or not supported, log and continue
+  console.warn("[db] FTS5 migration skipped:", e instanceof Error ? e.message : String(e));
 }
 
 const insertEvent = db.prepare(
@@ -1689,6 +1701,25 @@ function broadcastToClients(data: unknown): void {
   for (const ws of clientSockets.keys()) send(ws, data);
 }
 
+// TODO: Emit helper-agent-outcome events when helper runs complete
+// This will be implemented when helper agent infrastructure is added
+// Example:
+// function emitHelperOutcome(helperRunId: string, result: HelperResult) {
+//   const outcome = {
+//     kind: 'helper-agent-outcome',
+//     agentName: result.agentName,
+//     status: result.exitCode === 0 ? 'success' : 'failure',
+//     summary: result.summary,
+//     touchedFiles: extractTouchedFiles(result.toolEvents),
+//     suggestedNextStep: result.suggestedNextStep,
+//     helperRunId,
+//     timestamp: Date.now()
+//   };
+//   
+//   storeEvent(threadId, outcome);
+//   broadcastToClients(threadId, outcome);
+// }
+
 function subscribe(role: Role, ws: WebSocket, threadId: string): void {
   const subs = role === "client" ? clientSockets.get(ws) : anchorSockets.get(ws);
   if (!subs) return;
@@ -2136,6 +2167,24 @@ await registry.startAll();
   }
 }
 
+// Helper to get VS Code globalStorage path
+function getVSCodeAgentPath(): string {
+  const platform = process.platform;
+  let basePath: string;
+  
+  if (platform === 'darwin') {
+    basePath = join(homedir(), 'Library', 'Application Support', 'Code', 'User', 'globalStorage', 'coderelay.agents');
+  } else if (platform === 'linux') {
+    basePath = join(homedir(), '.config', 'Code', 'User', 'globalStorage', 'coderelay.agents');
+  } else if (platform === 'win32') {
+    basePath = join(process.env.APPDATA || '', 'Code', 'User', 'globalStorage', 'coderelay.agents');
+  } else {
+    throw new Error(`Unsupported platform: ${platform}`);
+  }
+  
+  return basePath;
+}
+
 const server = Bun.serve<WsData>({
   hostname: HOST,
   port: PORT,
@@ -2174,6 +2223,114 @@ const server = Bun.serve<WsData>({
         version: { appCommit: APP_COMMIT },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
+    }
+
+    // Metrics Dashboard API
+    if (url.pathname === "/api/metrics" && method === "GET") {
+      if (!authorised(req)) return unauth();
+
+      const { searchParams } = url;
+      const range = searchParams.get("range") || "7d";
+      const provider = searchParams.get("provider") || "all";
+
+      // Convert range to timestamp
+      const now = Date.now();
+      let startTime: number;
+
+      switch (range) {
+        case "24h":
+          startTime = now - 24 * 60 * 60 * 1000;
+          break;
+        case "7d":
+          startTime = now - 7 * 24 * 60 * 60 * 1000;
+          break;
+        case "30d":
+          startTime = now - 30 * 24 * 60 * 60 * 1000;
+          break;
+        case "all":
+          startTime = 0;
+          break;
+        default:
+          startTime = now - 7 * 24 * 60 * 60 * 1000;
+      }
+
+      try {
+        const startSec = Math.floor(startTime / 1000);
+        
+        // Token usage per provider
+        const tokenUsageQuery = db.query(`
+          SELECT 
+            json_extract(payload, '$.provider') as provider,
+            SUM(CAST(json_extract(payload, '$.tokenUsage.totalTokens') AS INTEGER)) as totalTokens,
+            SUM(CAST(json_extract(payload, '$.tokenUsage.estimatedCost') AS REAL)) as estimatedCost
+          FROM events
+          WHERE created_at >= ?
+            ${provider !== "all" ? "AND json_extract(payload, '$.provider') = ?" : ""}
+            AND json_extract(payload, '$.tokenUsage.totalTokens') IS NOT NULL
+          GROUP BY provider
+        `);
+        
+        const params = provider !== "all" ? [startSec, provider] : [startSec];
+        const tokenUsage = tokenUsageQuery.all(...params) as any[];
+        
+        // Thread counts per provider
+        const threadCountQuery = db.query(`
+          SELECT 
+            json_extract(payload, '$.provider') as provider,
+            COUNT(DISTINCT thread_id) as threadCount
+          FROM events
+          WHERE created_at >= ?
+            ${provider !== "all" ? "AND json_extract(payload, '$.provider') = ?" : ""}
+          GROUP BY provider
+        `);
+        
+        const threadCounts = threadCountQuery.all(...params) as any[];
+        
+        // Daily usage (for chart)
+        const dailyUsageQuery = db.query(`
+          SELECT 
+            DATE(created_at, 'unixepoch') as day,
+            json_extract(payload, '$.provider') as provider,
+            SUM(CAST(json_extract(payload, '$.tokenUsage.totalTokens') AS INTEGER)) as tokens
+          FROM events
+          WHERE created_at >= ?
+            ${provider !== "all" ? "AND json_extract(payload, '$.provider') = ?" : ""}
+            AND json_extract(payload, '$.tokenUsage.totalTokens') IS NOT NULL
+          GROUP BY day, provider
+          ORDER BY day ASC
+        `);
+        
+        const dailyUsage = dailyUsageQuery.all(...params) as any[];
+        
+        // Calculate totals
+        const totalTokens = tokenUsage.reduce((sum, row) => sum + (row.totalTokens || 0), 0);
+        const totalCost = tokenUsage.reduce((sum, row) => sum + (row.estimatedCost || 0), 0);
+        const totalThreads = threadCounts.reduce((sum, row) => sum + (row.threadCount || 0), 0);
+        
+        return okJson({
+          range,
+          provider,
+          totals: {
+            tokens: totalTokens,
+            cost: totalCost,
+            threads: totalThreads,
+          },
+          byProvider: tokenUsage.map((row) => ({
+            provider: row.provider,
+            tokens: row.totalTokens || 0,
+            cost: row.estimatedCost || 0,
+            threads: threadCounts.find((tc) => tc.provider === row.provider)?.threadCount || 0,
+          })),
+          dailyUsage: dailyUsage.map((row) => ({
+            day: row.day,
+            provider: row.provider,
+            tokens: row.tokens || 0,
+          })),
+        });
+      } catch (error) {
+        console.error("Metrics error:", error);
+        return new Response(JSON.stringify({ error: "Failed to fetch metrics" }), { status: 500 });
+      }
     }
 
     // Custom Agent Management API
@@ -2222,7 +2379,324 @@ const server = Bun.serve<WsData>({
 
       // Sync with VS Code
       if (url.pathname.match(/^\/api\/agents\/[^/]+\/sync-vscode$/) && method === "POST") {
-          return okJson({ success: false, message: "VS Code sync not implemented yet" });
+        const id = url.pathname.split('/')[3];
+        
+        try {
+          const agent = agentStore.getAgent(id);
+          if (!agent) {
+             return new Response(JSON.stringify({ error: "Agent not found" }), { status: 404 });
+          }
+          
+          // Get VS Code path
+          const vscodePath = getVSCodeAgentPath();
+          
+          try {
+            await mkdirAsync(vscodePath, { recursive: true });
+          } catch (err: any) {
+             if (err.code === 'EACCES') return new Response(JSON.stringify({ error: 'Permission denied' }), { status: 403 });
+             if (err.code === 'ENOENT') return new Response(JSON.stringify({ error: 'Path not found' }), { status: 404 });
+             throw err;
+          }
+          
+          const targetPath = join(vscodePath, `${id}.json`);
+          const force = url.searchParams.get('force') === 'true';
+          
+          let fileExists = false;
+          try { await access(targetPath); fileExists = true; } catch {}
+          
+          if (fileExists && !force) {
+            return okJson({ success: false, agentId: id, path: targetPath, conflictDetected: true });
+          }
+          
+          const tempPath = join(vscodePath, `.${id}.json.tmp`);
+          await writeFile(tempPath, JSON.stringify(agent, null, 2), 'utf-8');
+          await rename(tempPath, targetPath);
+          
+          agent.lastSyncedAt = Date.now();
+          agentStore.updateAgent(agent);
+          
+          return okJson({ success: true, agentId: id, path: targetPath, conflictDetected: fileExists, lastSyncedAt: agent.lastSyncedAt });
+        } catch (error: any) {
+          console.error('VS Code sync error:', error);
+          return new Response(JSON.stringify({ error: `Sync failed: ${error.message}` }), { status: 500 });
+        }
+      }
+
+      // Batch Sync with VS Code
+      if (url.pathname === "/api/agents/sync-all-vscode" && method === "POST") {
+        try {
+          const agents = agentStore.listAgents();
+          const results = [];
+          const vscodePath = getVSCodeAgentPath();
+          await mkdirAsync(vscodePath, { recursive: true });
+          
+          let anyUpdated = false;
+          
+          for (const agent of agents) {
+            try {
+              const targetPath = join(vscodePath, `${agent.id}.json`);
+              // Force overwrite for batch sync? The requirement is "Confirm conflict".
+              // Batch sync typically implies "Sync All" which might mean overwrite all or skip existing.
+              // The user prompt didn't specify batch conflict handling. "Add Batch Sync Endpoint (Optional but useful)" implementation shows overwrite.
+              // I'll stick to overwrite for batch sync to keep it simple as requested in the snippet.
+              
+              const tempPath = join(vscodePath, `.${agent.id}.json.tmp`);
+              await writeFile(tempPath, JSON.stringify(agent, null, 2), 'utf-8');
+              await rename(tempPath, targetPath);
+              
+              agent.lastSyncedAt = Date.now();
+              results.push({ id: agent.id, success: true });
+              anyUpdated = true;
+            } catch (error: any) {
+              results.push({ id: agent.id, success: false, error: error.message });
+            }
+          }
+          
+          if (anyUpdated) {
+            // Bulk save. agentStore.updateAgent saves individually which is inefficient but safe.
+            // Since we updated objects in memory, we can just call saveAgents() if exposed or just call updateAgent for the last one?
+            // Actually agentStore.updateAgent saves the whole list. calling it in loop is bad.
+            // But since I modified agent objects in place (reference), calling saveAgents once is enough.
+            // But saveAgents is private in AgentStore class? No, I see public saveAgents() in my read_file output?
+            // Let's check agent-store.ts again.
+            // It has `public saveAgents(): void`.
+            agentStore.saveAgents();
+          }
+          
+          return okJson({
+            success: true,
+            synced: results.filter(r => r.success).length,
+            failed: results.filter(r => !r.success).length,
+            results
+          });
+        } catch (error: any) {
+           return new Response(JSON.stringify({ error: `Batch sync failed: ${error.message}` }), { status: 500 });
+        }
+      }
+    }
+
+    // Thread Context/Memory Management API (Issue #201)
+    if (url.pathname.startsWith("/api/threads")) {
+      if (!authorised(req)) return unauth();
+
+      // Search in thread (GET /api/threads/:id/search?q=query)
+      if (url.pathname.match(/^\/api\/threads\/[^/]+\/search$/) && method === "GET") {
+        const parts = url.pathname.split("/").filter(Boolean);
+        const threadId = parts.length >= 2 ? parts[2] : null;
+        const query = url.searchParams.get("q");
+        
+        if (!threadId) {
+          return new Response(JSON.stringify({ error: "Thread ID required" }), { status: 400 });
+        }
+        if (!query || typeof query !== "string" || !query.trim()) {
+          return new Response(JSON.stringify({ error: "Query parameter 'q' required" }), { status: 400 });
+        }
+
+        try {
+          // Check if FTS5 table exists
+          const ftsExists = db.prepare(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='events_fts'"
+          ).get();
+          
+          if (!ftsExists) {
+            return new Response(JSON.stringify({ error: "Search not available (FTS5 not initialized)" }), { status: 503 });
+          }
+
+          const results = db.prepare(`
+            SELECT e.id, e.payload, e.created_at, e.method, e.role
+            FROM events e
+            WHERE e.id IN (
+              SELECT rowid FROM events_fts
+              WHERE events_fts MATCH ? AND thread_id = ?
+              ORDER BY rank
+            )
+            ORDER BY e.created_at ASC
+          `).all(query, threadId) as Array<{ id: number; payload: string; created_at: number; method: string | null; role: string }>;
+          
+          return okJson({
+            query,
+            threadId,
+            results: results.map(r => ({
+              id: r.id,
+              ...JSON.parse(r.payload),
+              created_at: r.created_at,
+              method: r.method,
+              role: r.role
+            })),
+            count: results.length
+          });
+        } catch (error) {
+          console.error("[search] Error:", error);
+          return new Response(JSON.stringify({ error: "Search failed", details: error instanceof Error ? error.message : String(error) }), { status: 500 });
+        }
+      }
+
+      // Export thread (GET /api/threads/:id/export?format=json|markdown)
+      if (url.pathname.match(/^\/api\/threads\/[^/]+\/export$/) && method === "GET") {
+        const parts = url.pathname.split("/").filter(Boolean);
+        const threadId = parts.length >= 2 ? parts[2] : null;
+        const format = url.searchParams.get("format") || "json";
+        
+        if (!threadId) {
+          return new Response(JSON.stringify({ error: "Thread ID required" }), { status: 400 });
+        }
+
+        try {
+          const events = db.prepare(`
+            SELECT id, thread_id, turn_id, direction, role, method, payload, created_at
+            FROM events
+            WHERE thread_id = ?
+            ORDER BY created_at ASC
+          `).all(threadId) as Array<{
+            id: number;
+            thread_id: string;
+            turn_id: string | null;
+            direction: string;
+            role: string;
+            method: string | null;
+            payload: string;
+            created_at: number;
+          }>;
+          
+          if (format === "json") {
+            const exportData = {
+              threadId,
+              exportedAt: new Date().toISOString(),
+              version: "1.0",
+              events: events.map(e => ({
+                id: e.id,
+                thread_id: e.thread_id,
+                turn_id: e.turn_id,
+                direction: e.direction,
+                role: e.role,
+                method: e.method,
+                payload: JSON.parse(e.payload),
+                created_at: e.created_at
+              }))
+            };
+            const filename = `thread-${threadId.replace(/[^a-zA-Z0-9-]/g, "_")}-${Date.now()}.json`;
+            return new Response(JSON.stringify(exportData, null, 2), {
+              headers: {
+                "Content-Type": "application/json",
+                "Content-Disposition": `attachment; filename="${filename}"`
+              }
+            });
+          } else if (format === "markdown") {
+            let markdown = `# Thread: ${threadId}\n\nExported: ${new Date().toISOString()}\n\n---\n\n`;
+            
+            for (const event of events) {
+              try {
+                const payload = JSON.parse(event.payload);
+                const text = payload?.message?.text || payload?.text || "";
+                if (text) {
+                  const role = event.role || payload?.role || "unknown";
+                  const timestamp = new Date(event.created_at * 1000).toISOString();
+                  markdown += `## ${role} (${timestamp})\n\n${text}\n\n---\n\n`;
+                }
+              } catch {
+                // Skip malformed events
+              }
+            }
+            
+            const filename = `thread-${threadId.replace(/[^a-zA-Z0-9-]/g, "_")}-${Date.now()}.md`;
+            return new Response(markdown, {
+              headers: {
+                "Content-Type": "text/markdown; charset=utf-8",
+                "Content-Disposition": `attachment; filename="${filename}"`
+              }
+            });
+          } else {
+            return new Response(JSON.stringify({ error: "Unsupported format (use json or markdown)" }), { status: 400 });
+          }
+        } catch (error) {
+          console.error("[export] Error:", error);
+          return new Response(JSON.stringify({ error: "Export failed" }), { status: 500 });
+        }
+      }
+
+      // Import thread (POST /api/threads/import)
+      if (url.pathname === "/api/threads/import" && method === "POST") {
+        try {
+          const body = await req.json().catch(() => null) as { events?: unknown[] } | null;
+          
+          if (!body || !body.events || !Array.isArray(body.events)) {
+            return new Response(JSON.stringify({ error: "Invalid thread format (expected { events: [...] })" }), { status: 400 });
+          }
+
+          const timestamp = Date.now();
+          const newThreadId = `imported-${timestamp}-${Math.random().toString(36).substr(2, 9)}`;
+          
+          // Insert all events with new thread ID
+          const importedEvents: Array<{ id: number; event: any }> = [];
+          for (const event of body.events) {
+            const eventId = db.prepare(`
+              INSERT INTO events (thread_id, turn_id, direction, role, method, payload, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+              RETURNING id
+            `).get(
+              newThreadId,
+              (event as any).turn_id || null,
+              (event as any).direction || "client",
+              (event as any).role || "user",
+              (event as any).method || null,
+              typeof (event as any).payload === "string" ? (event as any).payload : JSON.stringify((event as any).payload || event),
+              (event as any).created_at || Math.floor(timestamp / 1000)
+            ) as { id: number } | undefined;
+            
+            if (eventId) {
+              importedEvents.push({ id: eventId.id, event });
+            }
+          }
+          
+          return okJson({
+            success: true,
+            threadId: newThreadId,
+            eventCount: importedEvents.length,
+            originalEventCount: body.events.length
+          });
+        } catch (error) {
+          console.error("[import] Error:", error);
+          return new Response(JSON.stringify({ error: "Import failed", details: error instanceof Error ? error.message : String(error) }), { status: 500 });
+        }
+      }
+
+      // Archive thread (PATCH /api/threads/:id/archive)
+      if (url.pathname.match(/^\/api\/threads\/[^/]+\/archive$/) && method === "PATCH") {
+        const parts = url.pathname.split("/").filter(Boolean);
+        const threadId = parts.length >= 2 ? parts[2] : null;
+        
+        if (!threadId) {
+          return new Response(JSON.stringify({ error: "Thread ID required" }), { status: 400 });
+        }
+
+        try {
+          const body = await req.json().catch(() => null) as { archived?: boolean } | null;
+          const archived = body?.archived === true;
+          const now = Math.floor(Date.now() / 1000);
+          
+          // Upsert thread metadata
+          db.prepare(`
+            INSERT INTO thread_metadata (thread_id, archived, archived_at, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(thread_id) DO UPDATE SET
+              archived = ?,
+              archived_at = ?,
+              updated_at = ?
+          `).run(
+            threadId,
+            archived ? 1 : 0,
+            archived ? now : null,
+            now,
+            archived ? 1 : 0,
+            archived ? now : null,
+            now
+          );
+          
+          return okJson({ success: true, threadId, archived });
+        } catch (error) {
+          console.error("[archive] Error:", error);
+          return new Response(JSON.stringify({ error: "Archive operation failed" }), { status: 500 });
+        }
       }
     }
 

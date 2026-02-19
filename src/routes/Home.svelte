@@ -796,6 +796,7 @@
 <div class="home stack">
   <AppHeader status={socket.status}>
     {#snippet actions()}
+      <a href="/metrics">Metrics</a>
       <a href="/settings">Settings</a>
       <a href="/admin">Admin</a>
       <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">

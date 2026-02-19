@@ -32,7 +32,8 @@
   } from "../lib/helperProfiles";
   import { approvalPolicyStore } from "../lib/approval-policy-store.svelte";
   import { getToggleState, resetToggles, setToggleState, type UIToggleKey } from "../lib/uiToggles";
-  import { agents } from "../lib/agents.svelte";
+  import { type CustomAgent } from "../lib/types";
+import { agents } from "../lib/agents.svelte";
 
   const OLD_ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   const ENTER_BEHAVIOR_KEY = "coderelay_enter_behavior";
@@ -44,6 +45,113 @@
   
   let customAgentImportInput = $state<HTMLInputElement | null>(null);
   let customAgentImportError = $state<string | null>(null);
+
+  // VS Code Sync State
+  let syncingAgentId = $state<string | null>(null);
+  let syncError = $state<string | null>(null);
+  let showConfirmModal = $state(false);
+  let confirmAgent = $state<CustomAgent | null>(null);
+
+  // Batch Sync State
+  let isSyncingAll = $state(false);
+  let syncAllResult = $state<any>(null);
+
+  async function syncAllAgents() {
+    isSyncingAll = true;
+    syncAllResult = null;
+    
+    try {
+      const res = await fetch('/api/agents/sync-all-vscode', {
+        method: 'POST'
+      });
+      
+      const data = await res.json();
+      syncAllResult = data;
+      
+      if (data.success) {
+         await agents.load();
+      }
+    } catch (error: any) {
+      alert(`Batch sync failed: ${error.message}`);
+    } finally {
+      isSyncingAll = false;
+    }
+  }
+  
+  async function syncAgentToVSCode(agent: CustomAgent, force = false) {
+    syncingAgentId = agent.id;
+    syncError = null;
+    
+    try {
+      // Force refresh if confirming overwrite
+      const url = `/api/agents/${agent.id}/sync-vscode${force ? '?force=true' : ''}`;
+      
+      const res = await fetch(url, {
+        method: 'POST'
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        if (data.conflictDetected && !force) {
+           // Provide better error if it was a conflict but returned 409 or similar (though we implemented 200 with conflictDetected)
+           // But wait, my backend implementation returns 200 OK with conflictDetected: true, success: false
+        } else {
+           syncError = data.error || 'Sync failed';
+           return;
+        }
+      }
+      
+      if (data.conflictDetected && !force) {
+        // Show confirmation modal
+        confirmAgent = agent;
+        showConfirmModal = true;
+        return;
+      }
+      
+      if (data.success) {
+        // Update local agent data with lastSyncedAt
+        // We need to update the store item. Since agents.list is a getter, we might need to reload or manually update if possible.
+        // The store `agents.svelte.ts` exposes a getter `list`.
+        // To update UI reactively, we should probably call `agents.load()` or if we can mutate the object in place (Svelte 5 context).
+        // `agent` here is a reference to an object in the list. If `agents.list` contains state objects, mutating them *might* work?
+        // But `agents.list` is likely just an array of objects.
+        // Let's just reload the agents to be safe and consistent.
+        await agents.load();
+        
+        // Success feedback
+        // alert(`Agent synced to VS Code at ${data.path}`);
+        // Maybe a toast? The prompt used alert.
+      } else {
+         syncError = data.message || "Sync failed";
+      }
+    } catch (error) {
+      syncError = error instanceof Error ? error.message : "Network error";
+    } finally {
+      syncingAgentId = null;
+    }
+  }
+  
+  function confirmOverwrite() {
+    if (confirmAgent) {
+      syncAgentToVSCode(confirmAgent, true);
+    }
+    showConfirmModal = false;
+    confirmAgent = null;
+  }
+  
+  function formatSyncTime(timestamp?: number): string {
+    if (!timestamp) return 'Never';
+    
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
+    return new Date(timestamp).toLocaleDateString();
+  }
 
   $effect(() => {
     agents.load();
@@ -669,9 +777,25 @@
                      {/if}
                   </div>
                   <div class="agent-actions">
+                     <button
+                        class="plain-btn"
+                        onclick={() => syncAgentToVSCode(agent)}
+                        disabled={syncingAgentId === agent.id}
+                        title={agent.lastSyncedAt ? `Last synced: ${formatSyncTime(agent.lastSyncedAt)}` : "Sync to VS Code"}
+                     >
+                        {syncingAgentId === agent.id ? 'Syncing...' : 'Sync to VS Code'}
+                     </button>
                      <button class="plain-btn" onclick={() => agents.export(agent.id)}>Export</button>
                      <button class="plain-btn danger" onclick={() => agents.delete(agent.id)}>Delete</button>
                   </div>
+                  {#if agent.lastSyncedAt}
+                    <div class="sync-status temp-sync-status">
+                      <small class="muted">Synced: {formatSyncTime(agent.lastSyncedAt)}</small>
+                    </div>
+                  {/if}
+                  {#if syncError && syncingAgentId === agent.id}
+                    <div class="error-msg">{syncError}</div>
+                  {/if}
                </div>
             {/each}
             
@@ -685,7 +809,22 @@
             />
             <div class="actions">
                <button class="plain-btn" onclick={() => customAgentImportInput?.click()}>Import Agent JSON</button>
+               <button
+                  class="plain-btn"
+                  onclick={syncAllAgents}
+                  disabled={isSyncingAll || agents.list.length === 0}
+               >
+                  {isSyncingAll ? 'Syncing All...' : 'Sync All to VS Code'}
+               </button>
             </div>
+            {#if syncAllResult}
+               <div class="sync-status">
+                  Synced {syncAllResult.synced} agents.
+                  {#if syncAllResult.failed > 0}
+                     {syncAllResult.failed} failed.
+                  {/if}
+               </div>
+            {/if}
          </div>
       </SectionCard>
       <SectionCard title="Presets">
@@ -896,7 +1035,69 @@
   </div>
 </div>
 
+<!-- Confirmation Modal -->
+{#if showConfirmModal}
+  <div class="modal-overlay">
+    <div class="modal">
+      <h3>Overwrite Existing Agent?</h3>
+      <p>
+        Agent <strong>{confirmAgent?.name}</strong> already exists in VS Code.
+        Do you want to overwrite it?
+      </p>
+      <div class="modal-actions">
+        <button onclick={() => { showConfirmModal = false; confirmAgent = null; }}>
+          Cancel
+        </button>
+        <button onclick={confirmOverwrite} class="primary-btn">
+          Overwrite
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .modal {
+    background: var(--bg-primary);
+    padding: 2rem;
+    border-radius: 0.5rem;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+  }
+  
+  .modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+  }
+  
+  .primary-btn {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .sync-status {
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+  }
+
+
   .settings {
     --stack-gap: 0;
     min-height: 100vh;

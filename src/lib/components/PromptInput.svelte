@@ -89,6 +89,9 @@
     quickReplies = loadQuickReplies();
   });
 
+  export function setInput(text: string) {
+    input = text;
+  }
 
   let uploadBusy = $state(false);
   let uploadError = $state<string | null>(null);

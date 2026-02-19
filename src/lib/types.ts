@@ -103,7 +103,18 @@ export type MessageKind =
   | "user-input-request"
   | "plan"
   | "collab"
-  | "compaction";
+  | "compaction"
+  | "helper-agent-outcome";
+
+export interface HelperAgentOutcome {
+  agentName: string;
+  status: 'success' | 'failure' | 'partial';
+  summary: string;
+  touchedFiles: string[];
+  suggestedNextStep?: string;
+  helperRunId: string;
+  timestamp: number;
+}
 
 export interface MessageMetadata {
   filePath?: string;
@@ -181,6 +192,7 @@ export interface Message {
   tokenUsage?: TokenUsage;
   approval?: ApprovalRequest;
   userInputRequest?: UserInputRequest;
+  helperOutcome?: HelperAgentOutcome;
   planStatus?: "pending" | "approved";
   status?: MessageStatus;
   clientRequestId?: string;
@@ -259,6 +271,7 @@ export interface CustomAgent {
   description: string;
   instructions?: string;
   model?: string;
+  lastSyncedAt?: number;
   provider?: 'codex' | 'copilot-acp' | 'claude';
   capabilities?: {
     tools?: boolean;

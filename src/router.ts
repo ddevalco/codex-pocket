@@ -8,6 +8,7 @@ export const { navigate, route } = createRouter({
   "/thread/:id/review": () => import("./routes/Review.svelte"),
   "/settings": () => import("./routes/Settings.svelte"),
   "/device": () => import("./routes/Device.svelte"),
+  "/metrics": () => import("./routes/Metrics.svelte"),
   "/admin": () => import("./routes/Admin.svelte"),
   "/pair": () => import("./routes/Pair.svelte"),
 });

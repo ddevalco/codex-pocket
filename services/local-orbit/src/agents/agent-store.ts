@@ -76,6 +76,13 @@ export class AgentStore {
     return this.agents.get(id) || null;
   }
 
+  public updateAgent(agent: CustomAgent): void {
+    if (this.agents.has(agent.id)) {
+      this.agents.set(agent.id, agent);
+      this.saveAgents();
+    }
+  }
+
   public deleteAgent(id: string): boolean {
     const deleted = this.agents.delete(id);
     if (deleted) {

@@ -18,12 +18,22 @@
     import WorkingStatus from "../lib/components/WorkingStatus.svelte";
     import Reasoning from "../lib/components/Reasoning.svelte";
     import PromptInput from "../lib/components/PromptInput.svelte";
+    import OutcomeCard from "../lib/components/OutcomeCard.svelte";
+    import { createMockHelperOutcome } from "../lib/test-helpers";
 
     const themeIcons = { system: "◐", light: "○", dark: "●" } as const;
 
     let moreMenuOpen = $state(false);
     let helperMenuOpen = $state(false);
     let helperLaunchNote = $state<string | null>(null);
+
+    // Search functionality (Issue #201)
+    let searchQuery = $state("");
+    let searchResults = $state<any[]>([]);
+    let isSearching = $state(false);
+    let searchError = $state<string | null>(null);
+    let showSearch = $state(false);
+    let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
     let model = $state("");
     let reasoningEffort = $state<ReasoningEffort>("medium");
@@ -36,8 +46,22 @@
     let trackedPlanId: string | null = null;
     let container: HTMLDivElement | undefined;
     let turnStartTime = $state<number | undefined>(undefined);
+    let promptInput: ReturnType<typeof PromptInput> | undefined;
 
     const threadId = $derived(route.params.id);
+
+    function handleOutcomeContinue(text: string) {
+        if (promptInput) {
+            promptInput.setInput(text);
+        }
+    }
+
+    function handleFileClick(filePath: string) {
+        // Implement scrolling to file mentions if needed or just log
+        console.log("File clicked:", filePath);
+        // Find message with this file or navigate? For now just log.
+    }
+
 
 
     const currentThread = $derived.by(() => {
@@ -431,6 +455,124 @@
         a.download = `${title}.html`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    // Search functionality (Issue #201)
+    async function handleSearch() {
+        const id = threadId;
+        if (!id || !searchQuery.trim()) {
+            searchResults = [];
+            searchError = null;
+            return;
+        }
+
+        isSearching = true;
+        searchError = null;
+        try {
+            const res = await fetch(`/api/threads/${encodeURIComponent(id)}/search?q=${encodeURIComponent(searchQuery.trim())}`);
+            if (!res.ok) {
+                const error = await res.json().catch(() => ({ error: "Search failed" }));
+                searchError = error.error || "Search failed";
+                searchResults = [];
+            } else {
+                const data = await res.json();
+                searchResults = data.results || [];
+            }
+        } catch (error) {
+            console.error("[search] Error:", error);
+            searchError = "Network error";
+            searchResults = [];
+        } finally {
+            isSearching = false;
+        }
+    }
+
+    function clearSearch() {
+        searchQuery = "";
+        searchResults = [];
+        searchError = null;
+        showSearch = false;
+    }
+
+    function onSearchInput() {
+        if (searchTimeout) clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            handleSearch();
+        }, 500);
+    }
+
+    // Server-side export (Issue #201)
+    async function exportThreadServer(format: "json" | "markdown") {
+        const id = threadId;
+        if (!id) return;
+        
+        try {
+            const res = await fetch(`/api/threads/${encodeURIComponent(id)}/export?format=${format}`);
+            if (!res.ok) {
+                alert("Export failed");
+                return;
+            }
+            
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            
+            // Extract filename from Content-Disposition header if available
+            const disposition = res.headers.get("Content-Disposition");
+            let filename = `thread-${id.slice(0, 8)}.${format === "json" ? "json" : "md"}`;
+            if (disposition) {
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                if (match) filename = match[1];
+            }
+            
+            a.download = filename;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+        } catch (error) {
+            console.error("[export] Error:", error);
+            alert("Export failed: " + (error instanceof Error ? error.message : String(error)));
+        }
+    }
+
+    // Import thread (Issue #201)
+    async function importThread() {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/json,.json";
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+            
+            try {
+                const text = await file.text();
+                const thread = JSON.parse(text);
+                
+                const res = await fetch("/api/threads/import", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ events: thread.events || thread })
+                });
+                
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ error: "Import failed" }));
+                    alert("Import failed: " + (error.error || "Unknown error"));
+                    return;
+                }
+                
+                const result = await res.json();
+                if (result.success && result.threadId) {
+                    // Navigate to the newly imported thread
+                    window.location.href = `/threads/${result.threadId}`;
+                } else {
+                    alert("Import succeeded but no thread ID returned");
+                }
+            } catch (error) {
+                console.error("[import] Error:", error);
+                alert("Import failed: " + (error instanceof Error ? error.message : String(error)));
+            }
+        };
+        input.click();
     }
 
 
@@ -901,6 +1043,67 @@
                             >
                                 share html
                             </button>
+                            <hr style="margin: 4px 0; border: none; border-top: 1px solid #e5e7eb;" />
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    exportThreadServer("json");
+                                }}
+                                title="Export via server (with full event data)"
+                            >
+                                server export json
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    exportThreadServer("markdown");
+                                }}
+                                title="Export via server (markdown format)"
+                            >
+                                server export md
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    importThread();
+                                }}
+                                title="Import thread from JSON file"
+                            >
+                                import thread
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    const mock = createMockHelperOutcome();
+                                    if (threadId) mock.threadId = threadId;
+                                    messages.current.push(mock);
+                                }}
+                                title="Add Helper Outcome (Dev only)"
+                            >
+                                mock outcome
+                            </button>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onclick={() => {
+                                    closeMoreMenu();
+                                    showSearch = !showSearch;
+                                    if (showSearch && searchQuery) {
+                                        handleSearch();
+                                    }
+                                }}
+                                title="Toggle search in thread"
+                            >
+                                {showSearch ? "hide search" : "search thread"}
+                            </button>
                         </div>
                     {/if}
                 </div>
@@ -919,6 +1122,41 @@
             ⚠️ Copilot is running in <strong>auto-approve mode</strong>.
             Tools execute without confirmation.
             <a href="/settings">Manage in Settings</a>
+        </div>
+    {/if}
+
+    {#if showSearch}
+        <div class="search-bar">
+            <div class="search-input-wrapper">
+                <input
+                    type="search"
+                    bind:value={searchQuery}
+                    oninput={onSearchInput}
+                    placeholder="Search in thread..."
+                    class="search-input"
+                />
+                {#if searchQuery}
+                    <button
+                        type="button"
+                        onclick={clearSearch}
+                        class="search-clear-btn"
+                        title="Clear search"
+                    >
+                        ✕
+                    </button>
+                {/if}
+            </div>
+            {#if isSearching}
+                <div class="search-status">Searching...</div>
+            {:else if searchError}
+                <div class="search-error">{searchError}</div>
+            {:else if searchQuery && searchResults.length > 0}
+                <div class="search-results-header">
+                    Found {searchResults.length} result{searchResults.length === 1 ? "" : "s"}
+                </div>
+            {:else if searchQuery && searchResults.length === 0 && !isSearching}
+                <div class="search-no-results">No results for "{searchQuery}"</div>
+            {/if}
         </div>
     {/if}
 
@@ -972,6 +1210,14 @@
                 <span class="empty-prompt">&gt;</span>
                 <span class="empty-text">No messages yet. Start a conversation.</span>
             </div>
+        {:else if searchResults.length > 0 && showSearch}
+            <!-- Show search results -->
+            {#each searchResults as result}
+                {@const message = messages.current.find(m => m.id === result.id)}
+                {#if message}
+                    <MessageBlock {message} onCopyQuoted={copyQuoted} onCopyFromHere={(id) => copyFromHere(id, 20)} />
+                {/if}
+            {/each}
         {:else}
             {#each messages.current as message (message.id)}
                 {#if message.role === "approval" && message.approval}
@@ -1003,6 +1249,12 @@
                         disabled={isInProgress || !socket.isHealthy}
                         latest={message.id === lastPlanId}
                         onApprove={() => handlePlanApprove(message.id)}
+                    />
+                {:else if message.kind === "helper-agent-outcome" && message.helperOutcome}
+                    <OutcomeCard
+                        outcome={message.helperOutcome}
+                        onContinue={handleOutcomeContinue}
+                        onFileClick={handleFileClick}
                     />
                 {:else}
                     <MessageBlock {message} onCopyQuoted={copyQuoted} onCopyFromHere={(id) => copyFromHere(id, 20)} />
@@ -1051,6 +1303,7 @@
     </div>
 
     <PromptInput
+        bind:this={promptInput}
         draftKey={threadId}
         thread={currentThread}
         {model}
@@ -1368,6 +1621,74 @@
 
     .more-popover button:hover {
         background: var(--cli-bg-hover);
+    }
+
+    /* Search bar styles (Issue #201) */
+    .search-bar {
+        padding: var(--space-sm);
+        background: var(--cli-bg);
+        border-bottom: 1px solid var(--cli-border);
+    }
+
+    .search-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+    }
+
+    .search-input {
+        flex: 1;
+        padding: var(--space-xs) var(--space-sm);
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+        background: var(--cli-bg-surface);
+        border: 1px solid var(--cli-border);
+        border-radius: var(--radius-sm);
+        color: var(--cli-text);
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--cli-accent);
+    }
+
+    .search-clear-btn {
+        padding: var(--space-xs);
+        background: transparent;
+        border: none;
+        color: var(--cli-text-muted);
+        cursor: pointer;
+        font-size: var(--text-sm);
+    }
+
+    .search-clear-btn:hover {
+        color: var(--cli-text);
+    }
+
+    .search-status,
+    .search-error,
+    .search-results-header,
+    .search-no-results {
+        margin-top: var(--space-xs);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+    }
+
+    .search-status {
+        color: var(--cli-text-muted);
+    }
+
+    .search-error {
+        color: var(--cli-error);
+    }
+
+    .search-results-header {
+        color: var(--cli-success);
+    }
+
+    .search-no-results {
+        color: var(--cli-text-muted);
     }
 
 </style>
