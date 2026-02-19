@@ -98,7 +98,7 @@ function resolveAnchorCmd(): string {
 }
 
 const ANCHOR_CMD = resolveAnchorCmd();
-const ANCHOR_ARGS = (process.env.CODERELAY_LOCAL_ANCHOR_ARGS ?? process.env.ZANE_LOCAL_ANCHOR_ARGS?.trim() || "run src/index.ts").split(/\s+/);
+const ANCHOR_ARGS = ((process.env.CODERELAY_LOCAL_ANCHOR_ARGS ?? process.env.ZANE_LOCAL_ANCHOR_ARGS?.trim()) || "run src/index.ts").split(/\s+/);
 const ANCHOR_LOG_PATH = process.env.CODERELAY_LOCAL_ANCHOR_LOG ?? process.env.ZANE_LOCAL_ANCHOR_LOG ?? `${homedir()}/.coderelay/anchor.log`;
 const ANCHOR_HOST = process.env.ANCHOR_HOST ?? "127.0.0.1";
 const ANCHOR_PORT = Number(process.env.ANCHOR_PORT ?? 8788);
@@ -112,7 +112,7 @@ const PAIR_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.CODERELAY_LOCAL_PAIR_R
 const UPLOAD_NEW_RATE_LIMIT_MAX = Number(process.env.CODERELAY_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX ?? process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX ?? 30);
 const UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.CODERELAY_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC ?? process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC ?? 60);
 const CLI_BIN =
-  process.env.CODERELAY_LOCAL_CLI_BIN ?? process.env.ZANE_LOCAL_CLI_BIN?.trim() ||
+  (process.env.CODERELAY_LOCAL_CLI_BIN ?? process.env.ZANE_LOCAL_CLI_BIN?.trim()) ||
   `${homedir()}/.coderelay/bin/coderelay`;
 
 const CLI_OUTPUT_LIMIT = Number(process.env.CODERELAY_LOCAL_CLI_OUTPUT_LIMIT ?? process.env.ZANE_LOCAL_CLI_OUTPUT_LIMIT ?? 20000);

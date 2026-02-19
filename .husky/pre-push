@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Run local CI checks before push.
+# To bypass in emergencies: git push --no-verify
+set -eu
+
+# Git hooks often run with a minimal PATH.
+# Ensure Bun installs (default: ~/.bun/bin) are available.
+export PATH="$HOME/.bun/bin:$PATH"
+
+echo "Running local CI checks before push..."
+./scripts/ci/run-local-ci.sh

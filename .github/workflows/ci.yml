@@ -448,7 +448,9 @@ jobs:
           bun-version: 'latest'
 
       - name: Install deps
-        run: bun install
+        run: |
+          bun install
+          (cd services/local-orbit && bun install)
 
       - name: Build UI
         run: bun run build
