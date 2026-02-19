@@ -1787,7 +1787,6 @@ function getProviderCapabilities(providerId: string): ProviderCapabilities {
       };
     }
   }
-
   // Return known provider capabilities, fallback to codex defaults
   return PROVIDER_CAPABILITIES[normalizedId] ?? PROVIDER_CAPABILITIES.codex;
 }
