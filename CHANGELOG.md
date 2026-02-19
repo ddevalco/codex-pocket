@@ -6,9 +6,23 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: Rebranded from "Codex Pocket" to "CodeRelay"
+  - All localStorage keys migrated automatically (`__zane_threads_store__` → `__coderelay_threads_store__`)
+  - Environment variable: `CODEX_POCKET_HOME` → `CODERELAY_HOME`
+  - Binary: `codex-pocket` → `coderelay`
+  - LaunchAgent: `com.codex.pocket.plist` → `com.coderelay.plist`
+  - Repository will be renamed: `ddevalco/codex-pocket` → `ddevalco/coderelay`
+- **Copilot sessions attachment button now enabled** (CAN_ATTACH_FILES: true)
+- sendPrompt relay path supports multiple attachment input formats
+- ACP protocol uses content array with text and image/attachment parts
+- Attachment button disabled for providers that don't support file attachments
+- Removed hard-coded provider checks from UI components
+- Unified action gating logic in thread list (rename/archive)
+
 ### Added
 
-- **Rebrand**: Renamed to **CodeRelay** (formerly CodeRelay). Includes migration logic for existing installs.
 - **ACP Approvals & Tool Permissions**: Interactive prompts for Copilot tool actions (shell commands, file ops, etc.)
 - Support for "Allow once", "Always allow", "Reject once", and "Always reject" decisions
 - 60-second timeout auto-cancel for pending approvals
@@ -27,15 +41,6 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 - Capability-driven UI feature gating: attachment button now respects provider capabilities
 - Tooltips explain why features are unavailable when disabled
 - Created thread-capabilities helper module for consistent capability checks
-
-### Changed
-
-- **Copilot sessions attachment button now enabled** (CAN_ATTACH_FILES: true)
-- sendPrompt relay path supports multiple attachment input formats
-- ACP protocol uses content array with text and image/attachment parts
-- Attachment button disabled for providers that don't support file attachments
-- Removed hard-coded provider checks from UI components
-- Unified action gating logic in thread list (rename/archive)
 
 ### Fixed
 
