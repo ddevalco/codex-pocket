@@ -158,6 +158,15 @@ export class CopilotAcpAdapter implements ProviderAdapter {
       if (this.config.allowAllTools) {
         acpArgs.push("--allow-all-tools");
       }
+
+      // Fix: When using gh binary, prepend "copilot" subcommand to args
+      // This handles both standalone copilot binary and gh CLI usage:
+      // - /usr/local/bin/copilot → args: ["--acp"]
+      // - /usr/local/bin/gh → args: ["copilot", "--acp"]
+      if (this.executablePath.includes("/gh")) {
+        acpArgs.unshift("copilot");
+      }
+
       console.log(`[copilot-acp] Spawning: ${this.executablePath} ${acpArgs.join(" ")}`);
       this.process = spawnProcess(this.executablePath, acpArgs);
 
@@ -686,8 +695,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
     // Try `gh` (GitHub CLI) as fallback
     const ghPath = await findExecutable("gh");
     if (ghPath) {
-      // Note: If using gh, we'd need to adjust the spawn command to use "gh copilot --acp"
-      // For now, just return gh path and let the caller handle it
+      // Note: When using gh, start() method will prepend "copilot" to spawn args
       return ghPath;
     }
 
