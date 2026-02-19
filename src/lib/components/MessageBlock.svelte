@@ -5,6 +5,7 @@
   import ShimmerDot from "./ShimmerDot.svelte";
   import Reasoning from "./Reasoning.svelte";
   import Tool from "./Tool.svelte";
+  import { uiToggles } from "../uiToggles";
 
   interface Props {
     message: Message;
@@ -213,17 +214,23 @@
     </button>
     {#if menuOpen}
       <div class="menu" role="menu" aria-label="Message actions">
-        <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyMessage(); }}>Copy</button>
-        <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyRawMarkdown(); }}>Copy markdown</button>
-        <button
-          type="button"
-          role="menuitem"
-          onclick={() => {
-            menuOpen = false;
-            onCopyQuoted?.(message);
-          }}
-          disabled={!onCopyQuoted}
-        >Copy quoted</button>
+        {#if uiToggles.showMessageCopyButton}
+          <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyMessage(); }}>Copy</button>
+        {/if}
+        {#if uiToggles.showMessageCopyMarkdown}
+          <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyRawMarkdown(); }}>Copy markdown</button>
+        {/if}
+        {#if uiToggles.showMessageCopyQuoted}
+          <button
+            type="button"
+            role="menuitem"
+            onclick={() => {
+              menuOpen = false;
+              onCopyQuoted?.(message);
+            }}
+            disabled={!onCopyQuoted}
+          >Copy quoted</button>
+        {/if}
         <button
           type="button"
           role="menuitem"
@@ -236,25 +243,27 @@
       </div>
     {/if}
   </div>
-  <button
-    type="button"
-    class="copy-btn"
-    class:copied={copyState === "copied"}
-    class:error={copyState === "error"}
-    onclick={(e) => {
-      // Shift+click copies raw markdown source.
-      (copyMessage as any).__wantRaw = (e as MouseEvent).shiftKey;
-      copyMessage();
-    }}
-    title={
-      copyState === "copied"
-        ? "Copied"
-        : "Copy message (Shift+Click to copy raw markdown)"
-    }
-    aria-label="Copy message"
-  >
-    {copyState === "copied" ? "copied" : "copy"}
-  </button>
+  {#if uiToggles.showMessageCopyButton}
+    <button
+      type="button"
+      class="copy-btn"
+      class:copied={copyState === "copied"}
+      class:error={copyState === "error"}
+      onclick={(e) => {
+        // Shift+click copies raw markdown source.
+        (copyMessage as any).__wantRaw = (e as MouseEvent).shiftKey;
+        copyMessage();
+      }}
+      title={
+        copyState === "copied"
+          ? "Copied"
+          : "Copy message (Shift+Click to copy raw markdown)"
+      }
+      aria-label="Copy message"
+    >
+      {copyState === "copied" ? "copied" : "copy"}
+    </button>
+  {/if}
   {#if isReasoning}
     <Reasoning content={message.text} defaultOpen={false} />
   {:else if isTool}
