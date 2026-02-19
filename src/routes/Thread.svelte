@@ -6,7 +6,7 @@
     import { messages } from "../lib/messages.svelte";
     import { models } from "../lib/models.svelte";
     import { theme } from "../lib/theme.svelte";
-    import { supportsApprovals } from "../lib/thread-capabilities";
+    import { canSendPrompt, getCapabilityTooltip, supportsApprovals } from "../lib/thread-capabilities";
     import { loadAgentPresets, type AgentPreset } from "../lib/presets";
     import { loadHelperProfiles, type HelperProfile } from "../lib/helperProfiles";
     import AppHeader from "../lib/components/AppHeader.svelte";
@@ -50,11 +50,11 @@
         return threadId?.startsWith("copilot-acp:") ? "copilot-acp" : "codex";
     });
 
-    const canSendPrompt = $derived.by(() => {
-        if (threadProvider !== "copilot-acp") return true;
-        const capabilities = (currentThread as any)?.capabilities;
-        if (typeof capabilities?.sendPrompt === "boolean") return capabilities.sendPrompt;
-        return true;
+    const canSendPromptInput = $derived(canSendPrompt(currentThread));
+
+    const sendPromptDisabledReason = $derived.by(() => {
+        if (canSendPromptInput) return "";
+        return getCapabilityTooltip("SEND_PROMPT", false);
     });
 
     const pendingAcpApproval = $derived.by(() => {
@@ -67,7 +67,7 @@
         return threadProvider === "copilot-acp" && !supportsApprovals(currentThread);
     });
 
-    const composerDisabled = $derived.by(() => isInProgress || !socket.isHealthy || !canSendPrompt);
+    const composerDisabled = $derived.by(() => isInProgress || !socket.isHealthy || !canSendPromptInput);
 
 
     const threadTitle = $derived.by(() => {
@@ -523,7 +523,7 @@
         messages.addPending(threadId, inputText, clientRequestId);
 
         if (threadProvider === "copilot-acp") {
-            if (!canSendPrompt) {
+            if (!canSendPromptInput) {
                 promptError = "Copilot provider does not support prompt input for this session.";
                 messages.updateStatus(threadId, clientRequestId, "error");
                 return;
@@ -1057,6 +1057,7 @@
         modelOptions={models.options}
         modelsLoading={models.status === "loading"}
         disabled={composerDisabled}
+        disabledReason={sendPromptDisabledReason}
         loading={promptLoading}
         error={promptError || ""}
         onStop={isInProgress ? handleStop : undefined}

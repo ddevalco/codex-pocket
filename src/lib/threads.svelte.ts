@@ -62,24 +62,47 @@ function repoNameFromOrigin(origin: string | undefined): string | undefined {
 }
 
 
-function parseCapabilities(input: any): ProviderCapabilities | null {
+function parseCapabilities(input: any): ProviderCapabilities & Partial<ThreadCapabilities> | null {
   const thread = input && typeof input === "object" ? input : {};
   const source = thread.capabilities && typeof thread.capabilities === "object" ? thread.capabilities : thread;
-  const canAttachFiles = typeof source?.CAN_ATTACH_FILES === "boolean" ? source.CAN_ATTACH_FILES : null;
-  const canFilterHistory = typeof source?.CAN_FILTER_HISTORY === "boolean" ? source.CAN_FILTER_HISTORY : null;
-  const supportsApprovals = typeof source?.SUPPORTS_APPROVALS === "boolean" ? source.SUPPORTS_APPROVALS : null;
-  const supportsStreaming = typeof source?.SUPPORTS_STREAMING === "boolean" ? source.SUPPORTS_STREAMING : null;
+  const canAttachFiles =
+    typeof source?.CAN_ATTACH_FILES === "boolean"
+      ? source.CAN_ATTACH_FILES
+      : typeof source?.attachments === "boolean"
+        ? source.attachments
+        : null;
+  const canFilterHistory =
+    typeof source?.CAN_FILTER_HISTORY === "boolean"
+      ? source.CAN_FILTER_HISTORY
+      : typeof source?.filtering === "boolean"
+        ? source.filtering
+        : null;
+  const supportsApprovals =
+    typeof source?.SUPPORTS_APPROVALS === "boolean"
+      ? source.SUPPORTS_APPROVALS
+      : typeof source?.approvals === "boolean"
+        ? source.approvals
+        : null;
+  const supportsStreaming =
+    typeof source?.SUPPORTS_STREAMING === "boolean"
+      ? source.SUPPORTS_STREAMING
+      : typeof source?.streaming === "boolean"
+        ? source.streaming
+        : null;
+  const sendPrompt = typeof source?.sendPrompt === "boolean" ? source.sendPrompt : null;
   const hasAny =
     canAttachFiles != null ||
     canFilterHistory != null ||
     supportsApprovals != null ||
-    supportsStreaming != null;
+    supportsStreaming != null ||
+    sendPrompt != null;
   if (!hasAny) return null;
   return {
     CAN_ATTACH_FILES: canAttachFiles ?? DEFAULT_CAPABILITIES.CAN_ATTACH_FILES,
     CAN_FILTER_HISTORY: canFilterHistory ?? DEFAULT_CAPABILITIES.CAN_FILTER_HISTORY,
     SUPPORTS_APPROVALS: supportsApprovals ?? DEFAULT_CAPABILITIES.SUPPORTS_APPROVALS,
     SUPPORTS_STREAMING: supportsStreaming ?? DEFAULT_CAPABILITIES.SUPPORTS_STREAMING,
+    sendPrompt: sendPrompt ?? DEFAULT_CAPABILITIES.sendPrompt,
   };
 }
 

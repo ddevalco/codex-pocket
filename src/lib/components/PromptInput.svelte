@@ -15,6 +15,7 @@
     modelOptions?: ModelOption[];
     modelsLoading?: boolean;
     disabled?: boolean;
+    disabledReason?: string;
     loading?: boolean;
     error?: string;
     draftKey?: string;
@@ -43,6 +44,7 @@
     modelOptions = [],
     modelsLoading = false,
     disabled = false,
+    disabledReason = "",
     loading = false,
     error = "",
     draftKey,
@@ -84,6 +86,7 @@
   let uploadBusy = $state(false);
   let uploadError = $state<string | null>(null);
   let pendingAttachments = $state<ImageAttachment[]>([]);
+  const resolvedDisabledReason = $derived((disabledReason ?? "").trim());
 
   const canAttach = $derived(canAttachFiles(thread));
   const canSubmit = $derived((input.trim().length > 0 || pendingAttachments.length > 0) && !disabled && !loading);
@@ -298,6 +301,7 @@
       placeholder="What would you like to do?"
       rows="1"
       disabled={disabled || loading}
+      title={resolvedDisabledReason}
 	    ></textarea>
     {#if pendingAttachments.length}
       <div class="attachment-chips" role="list" aria-label="Selected attachments">
@@ -543,7 +547,12 @@
           </svg>
         </button>
       {:else}
-        <button type="submit" class="submit-btn row" disabled={!canSubmit}>
+        <button
+          type="submit"
+          class="submit-btn row"
+          disabled={!canSubmit}
+          title={resolvedDisabledReason || "Send"}
+        >
           {#if disabled || loading}
             <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
@@ -557,6 +566,9 @@
         </button>
       {/if}
     </div>
+    {#if resolvedDisabledReason}
+      <div class="hint" style="padding: 0 var(--space-md) var(--space-sm);">{resolvedDisabledReason}</div>
+    {/if}
     {#if uploadError}
       <div class="hint hint-error" style="padding: 0 var(--space-md) var(--space-sm);">{uploadError}</div>
     {/if}

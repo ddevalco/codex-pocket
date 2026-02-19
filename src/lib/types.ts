@@ -32,7 +32,7 @@ export interface ThreadInfo {
   provider: "codex" | "copilot-acp";
   status?: string;
   archived: boolean;
-  capabilities?: ProviderCapabilities;
+  capabilities?: ProviderCapabilities & Partial<ThreadCapabilities>;
 }
 
 export interface ProviderCapabilities {
