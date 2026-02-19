@@ -12,6 +12,25 @@ Issues are canonical for work items:
 
 ## Recently Done
 
+### 2026-02-19: Installer Bug Fixes
+
+**Issue:** Installation process had multiple critical bugs:
+
+- Missing `local-orbit` dependency installation (causing @anthropic-ai/sdk crash)
+- Wrong environment variable (`VITE_ZANE_LOCAL` vs `VITE_CODERELAY_LOCAL`)
+- No support for local development repo installation
+
+**Resolution:**
+
+- ✅ Fixed `scripts/install-local.sh` (commit 55a417d)
+- ✅ Added local-orbit dependency installation with validation
+- ✅ Corrected build environment variable
+- ✅ Added local repo source support via rsync
+- ✅ Improved error handling and messaging
+- 🐛 Created Issue #251 for ACP adapter bug (separate fix needed)
+
+**Impact:** Installer now works correctly from both GitHub and local sources. App installs and runs without manual dependency fixes.
+
 ### 2026-02-19: Rebrand to CodeRelay
 
 - Phase 5: Rebrand to CodeRelay - COMPLETE (2026-02-19)
