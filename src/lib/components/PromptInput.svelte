@@ -597,14 +597,14 @@
 
   .input-container {
     --stack-gap: 0;
-    border: 1px solid var(--cli-border);
+    border: 1px solid oklch(var(--color-cli-border));
     border-radius: var(--radius-md);
-    background: var(--cli-bg);
+    background: oklch(var(--color-cli-bg));
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   }
 
   .input-container:focus-within {
-    border-color: var(--cli-text-muted);
+    border-color: oklch(var(--color-cli-text-muted));
     box-shadow: var(--shadow-focus);
   }
 
@@ -616,9 +616,9 @@
   }
 
   .quick-reply-btn {
-    border: 1px solid var(--cli-border);
-    background: var(--cli-bg-elevated);
-    color: var(--cli-text-dim);
+    border: 1px solid oklch(var(--color-cli-border));
+    background: oklch(var(--color-cli-bg-elevated));
+    color: oklch(var(--color-cli-text-dim));
     border-radius: var(--radius-sm);
     padding: 4px 10px;
     font-family: var(--font-sans);
@@ -629,9 +629,9 @@
   }
 
   .quick-reply-btn:hover:enabled {
-    background: var(--cli-bg-hover);
-    color: var(--cli-text);
-    border-color: color-mix(in srgb, var(--cli-prefix-agent) 35%, var(--cli-border));
+    background: oklch(var(--color-cli-bg-hover));
+    color: oklch(var(--color-cli-text));
+    border-color: color-mix(in oklch, oklch(var(--color-cli-prefix-agent)) 35%, oklch(var(--color-cli-border)));
   }
 
   .quick-reply-btn:disabled {
@@ -644,7 +644,7 @@
     padding: var(--space-md);
     font-family: var(--font-mono);
     line-height: 1.6;
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     background: transparent;
     border: none;
     resize: none;
@@ -658,7 +658,7 @@
   }
 
   textarea::placeholder {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
   }
 
   textarea:disabled {
@@ -679,9 +679,9 @@
     gap: 6px;
     padding: 2px 8px;
     border-radius: 999px;
-    border: 1px solid var(--cli-border);
-    background: var(--cli-bg-elevated);
-    color: var(--cli-text-dim);
+    border: 1px solid oklch(var(--color-cli-border));
+    background: oklch(var(--color-cli-bg-elevated));
+    color: oklch(var(--color-cli-text-dim));
     font-size: var(--text-xs);
     font-family: var(--font-sans);
     max-width: 100%;
@@ -692,8 +692,8 @@
     height: 20px;
     border-radius: 4px;
     object-fit: cover;
-    border: 1px solid var(--cli-border);
-    background: var(--cli-bg);
+    border: 1px solid oklch(var(--color-cli-border));
+    background: oklch(var(--color-cli-bg));
     flex: 0 0 auto;
   }
 
@@ -707,7 +707,7 @@
   .attachment-remove {
     border: none;
     background: transparent;
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     cursor: pointer;
     font-size: var(--text-sm);
     line-height: 1;
@@ -715,13 +715,13 @@
   }
 
   .attachment-remove:hover {
-    color: var(--cli-error);
+    color: oklch(var(--color-cli-error));
   }
 
   .footer {
     --split-gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-    border-top: 1px solid var(--cli-border);
+    border-top: 1px solid oklch(var(--color-cli-border));
   }
 
   .tools {
@@ -735,7 +735,7 @@
     background: transparent;
     border: none;
     border-radius: var(--radius-sm);
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     cursor: pointer;
@@ -747,8 +747,8 @@
   }
 
   .tool-btn:hover {
-    background: var(--cli-bg-hover);
-    color: var(--cli-text);
+    background: oklch(var(--color-cli-bg-hover));
+    color: oklch(var(--color-cli-text));
   }
 
   .tool-btn svg {
@@ -764,8 +764,8 @@
   }
 
   .mode-toggle.active {
-    background: color-mix(in srgb, var(--cli-prefix-agent) 15%, transparent);
-    color: var(--cli-prefix-agent);
+    background: color-mix(in oklch, oklch(var(--color-cli-prefix-agent)) 15%, transparent);
+    color: oklch(var(--color-cli-prefix-agent));
   }
 
   /* Dropdown */
@@ -780,8 +780,8 @@
     min-width: 140px;
     margin-bottom: var(--space-xs);
     padding: var(--space-xs);
-    background: var(--cli-bg-elevated);
-    border: 1px solid var(--cli-border);
+    background: oklch(var(--color-cli-bg-elevated));
+    border: 1px solid oklch(var(--color-cli-border));
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-popover);
     z-index: 100;
@@ -806,7 +806,7 @@
     background: transparent;
     border: none;
     border-radius: var(--radius-sm);
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     text-align: left;
@@ -815,16 +815,16 @@
   }
 
   .dropdown-item:hover {
-    background: var(--cli-bg-hover);
+    background: oklch(var(--color-cli-bg-hover));
   }
 
   .dropdown-item.selected {
-    color: var(--cli-prefix-agent);
+    color: oklch(var(--color-cli-prefix-agent));
   }
 
   .dropdown-empty {
     padding: var(--space-sm);
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     text-align: center;
@@ -842,7 +842,7 @@
     width: 2rem;
     height: 2rem;
     padding: 0;
-    background: var(--cli-prefix-agent);
+    background: oklch(var(--color-cli-prefix-agent));
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -853,7 +853,7 @@
   .submit-btn svg {
     width: 1rem;
     height: 1rem;
-    color: var(--cli-bg);
+    color: oklch(var(--color-cli-bg));
   }
 
   .submit-btn:hover:not(:disabled) {
@@ -870,7 +870,7 @@
     width: 2rem;
     height: 2rem;
     padding: 0;
-    background: var(--cli-error);
+    background: oklch(var(--color-cli-error));
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -881,7 +881,7 @@
   .stop-btn svg {
     width: 1rem;
     height: 1rem;
-    color: var(--cli-bg);
+    color: oklch(var(--color-cli-bg));
   }
 
   .stop-btn:hover {
@@ -894,10 +894,10 @@
     align-items: center;
     gap: 6px;
     font-size: var(--text-xs);
-    color: var(--cli-text-dim);
+    color: oklch(var(--color-cli-text-dim));
     margin-right: 8px;
     padding-right: 8px;
-    border-right: 1px solid var(--cli-border);
+    border-right: 1px solid oklch(var(--color-cli-border));
   }
 
   .draft-label {
@@ -913,7 +913,7 @@
     height: 20px;
     padding: 0;
     border-radius: 50%;
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     cursor: pointer;
     background: transparent;
     border: none;
@@ -921,8 +921,8 @@
   }
 
   .draft-clear-btn:hover {
-    color: var(--cli-error);
-    background: var(--cli-bg-hover);
+    color: oklch(var(--color-cli-error));
+    background: oklch(var(--color-cli-bg-hover));
   }
 
   @media (max-width: 480px) {
