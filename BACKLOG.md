@@ -241,12 +241,25 @@ Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATION
   - Provider-agnostic token usage tracking
   - 49 tests, graceful handling of missing data
 
+**Phase 3 Complete (2026-02-19): Core Feature Expansion**
+
+- ✅ P5-01: Claude Integration - COMPLETE (PRs #212, #214)
+  - Full Anthropic SDK integration with streaming
+  - Session and event normalizers
+  - Provider filter UI integration
+  - Disabled by default, opt-in required
+  - 23 tests, all passing
+- ✅ P5-04: Token Cost Display - COMPLETE (PRs #213, #215)
+  - Backend cost calculator with pricing tables
+  - Settings toggle (default OFF, privacy-first)
+  - MessageBlock rendering with compact styling
+  - Privacy notice included
+  - 49 tests, all passing
+
 **Remaining Phase 5 Work:**
 
-- [ ] P5-01: Claude Integration - API client + UI (Phase 3)
 - [ ] P5-02: Context/Memory Offload & Save
 - [ ] P5-03: Custom Agent Import
-- [ ] P5-04: Token Cost Display - UI (Phase 3)
 - [ ] P5-05: Metrics Dashboard Integration
 - [ ] P5-06: Rename/Rebrand
 
