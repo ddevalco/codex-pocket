@@ -11,6 +11,7 @@ export interface UITogglesState {
   showMessageCopyQuoted: boolean;
   showToolOutputCopy: boolean;
   showThreadHeaderActions: boolean;
+  showTokenCosts: boolean;
 }
 
 export type UIToggleKey = keyof UITogglesState;
@@ -24,6 +25,7 @@ const DEFAULT_TOGGLES: UITogglesState = {
   showMessageCopyQuoted: true,
   showToolOutputCopy: true,
   showThreadHeaderActions: true,
+  showTokenCosts: false,
 };
 
 function normalizeToggles(raw: unknown): UITogglesState {
