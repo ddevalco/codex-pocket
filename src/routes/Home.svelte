@@ -1,7 +1,7 @@
 <script lang="ts">
   import { socket } from "../lib/socket.svelte";
   import { threads } from "../lib/threads.svelte";
-  import type { ThreadInfo } from "../lib/types";
+  import type { ThreadInfo, ThreadFilterState } from "../lib/types";
   import { messages } from "../lib/messages.svelte";
   import { navigate } from "../router";
   import { models } from "../lib/models.svelte";
@@ -10,6 +10,50 @@
   import AppHeader from "../lib/components/AppHeader.svelte";
   import ProjectPicker from "../lib/components/ProjectPicker.svelte";
   import ShimmerDot from "../lib/components/ShimmerDot.svelte";
+
+  const FILTER_STORAGE_KEY = "codex_pocket_thread_filters";
+
+  const DEFAULT_FILTERS: ThreadFilterState = {
+    provider: "all",
+    status: "all",
+  };
+
+  function loadFilters(): ThreadFilterState {
+    if (typeof localStorage === "undefined") return DEFAULT_FILTERS;
+    try {
+      const stored = localStorage.getItem(FILTER_STORAGE_KEY);
+      if (!stored) return DEFAULT_FILTERS;
+
+      const parsed = JSON.parse(stored);
+      if (!parsed || typeof parsed !== "object") return DEFAULT_FILTERS;
+
+      return {
+        provider: ["all", "codex", "copilot-acp"].includes(parsed.provider)
+          ? parsed.provider
+          : DEFAULT_FILTERS.provider,
+        status: ["all", "active", "archived"].includes(parsed.status)
+          ? parsed.status
+          : DEFAULT_FILTERS.status,
+      };
+    } catch {
+      return DEFAULT_FILTERS;
+    }
+  }
+
+  function saveFilters(state: ThreadFilterState) {
+    if (typeof localStorage === "undefined") return;
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn("Failed to save filters", e);
+    }
+  }
+
+  const filters = $state<ThreadFilterState>(loadFilters());
+
+  $effect(() => {
+    saveFilters(filters);
+  });
 
   const themeIcons = { system: "◐", light: "○", dark: "●" } as const;
 
@@ -125,7 +169,27 @@
   }
 
   const visibleThreads = $derived.by(() => {
-    const list = threads.list || [];
+    let list = threads.list || [];
+
+    // Filter by provider
+    if (filters.provider !== "all") {
+      list = list.filter((t) => {
+        if (filters.provider === "copilot-acp") return t.provider === "copilot-acp";
+        if (filters.provider === "codex") return t.provider !== "copilot-acp"; // Default is Codex
+        return true;
+      });
+    }
+
+    // Filter by status
+    if (filters.status !== "all") {
+      list = list.filter((t) => {
+        // Use 'archived' property instead of 'status' string which tracks execution state.
+        const isArchived = t.archived === true || t.status === "archived";
+        if (filters.status === "archived") return isArchived;
+        if (filters.status === "active") return !isArchived;
+        return true;
+      });
+    }
 
     // Sort by most recently active:
     // 1) active threads (blocked/working) first
@@ -153,6 +217,36 @@
 
       return String(a.id).localeCompare(String(b.id));
     });
+  });
+
+  const threadCounts = $derived.by(() => {
+    const list = threads.list || [];
+    let codex = 0;
+    let copilot = 0;
+    let active = 0;
+    let archived = 0;
+
+    for (const t of list) {
+      if (t.provider === "copilot-acp") {
+        copilot++;
+      } else {
+        codex++;
+      }
+
+      if (t.archived === true || t.status === "archived") {
+        archived++;
+      } else {
+        active++;
+      }
+    }
+
+    return {
+      all: list.length,
+      codex,
+      copilot,
+      active,
+      archived,
+    };
   });
 
   function threadTime(ts?: number, id?: string) {
@@ -623,20 +717,16 @@
                 <button
                   class="thread-action-btn rename-btn"
                   onclick={() => renameThread(thread)}
-                  disabled={thread.provider === "copilot-acp" || readonly}
-                  title={thread.provider === "copilot-acp"
-                    ? "Copilot sessions are read-only in Phase 1"
-                    : "Rename thread"}
+                  disabled={readonly}
+                  title="Rename thread"
                 >
                   ✏️
                 </button>
                 <button
                   class="thread-action-btn archive-btn"
                   onclick={() => threads.archive(thread.id)}
-                  disabled={thread.provider === "copilot-acp" || readonly}
-                  title={thread.provider === "copilot-acp"
-                    ? "Copilot sessions are read-only in Phase 1"
-                    : "Archive thread"}
+                  disabled={readonly}
+                  title="Archive thread"
                 >
                   📦
                 </button>
@@ -701,6 +791,55 @@
         </div>
         <div class="section-actions row">
           <button class="new-task-link" type="button" onclick={openTaskModal}>New task</button>
+        </div>
+      </div>
+
+      <div class="filter-bar split">
+        <div class="filter-group row">
+          <span class="filter-label" id="filter-provider-label">Provider:</span>
+          <div role="group" aria-labelledby="filter-provider-label" class="filter-options row">
+            <button
+              class="filter-chip"
+              class:selected={filters.provider === "all"}
+              aria-pressed={filters.provider === "all"}
+              onclick={() => (filters.provider = "all")}
+            >All ({threadCounts.all})</button>
+            <button
+              class="filter-chip"
+              class:selected={filters.provider === "codex"}
+              aria-pressed={filters.provider === "codex"}
+              onclick={() => (filters.provider = "codex")}
+            >Codex ({threadCounts.codex})</button>
+            <button
+              class="filter-chip"
+              class:selected={filters.provider === "copilot-acp"}
+              aria-pressed={filters.provider === "copilot-acp"}
+              onclick={() => (filters.provider = "copilot-acp")}
+            >Copilot ({threadCounts.copilot})</button>
+          </div>
+        </div>
+        <div class="filter-group row">
+          <span class="filter-label" id="filter-status-label">Status:</span>
+          <div role="group" aria-labelledby="filter-status-label" class="filter-options row">
+            <button
+              class="filter-chip"
+              class:selected={filters.status === "all"}
+              aria-pressed={filters.status === "all"}
+              onclick={() => (filters.status = "all")}
+            >All ({threadCounts.all})</button>
+            <button
+              class="filter-chip"
+              class:selected={filters.status === "active"}
+              aria-pressed={filters.status === "active"}
+              onclick={() => (filters.status = "active")}
+            >Active ({threadCounts.active})</button>
+            <button
+              class="filter-chip"
+              class:selected={filters.status === "archived"}
+              aria-pressed={filters.status === "archived"}
+              onclick={() => (filters.status = "archived")}
+            >Archived ({threadCounts.archived})</button>
+          </div>
         </div>
       </div>
 
@@ -772,7 +911,6 @@
           <div class="provider-header">
             <div class="provider-title">
               <span class="provider-badge">GitHub Copilot</span>
-              <span class="readonly-chip">Read-only</span>
             </div>
           </div>
 
@@ -887,15 +1025,6 @@
     font-weight: 600;
     font-size: 0.95rem;
     color: var(--cli-prefix-agent);
-  }
-
-  .readonly-chip {
-    font-size: 0.75rem;
-    padding: 0.125rem 0.5rem;
-    background: var(--cli-bg);
-    color: var(--cli-text-dim);
-    border: 1px solid var(--cli-border);
-    border-radius: 4px;
   }
 
   .new-thread-btn {
@@ -1499,5 +1628,60 @@
       padding: 0 var(--space-xs);
       font-size: 13px;
     }
+  }
+
+  /* Filter Bar */
+  .filter-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-sm);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .filter-label {
+    color: var(--cli-text-dim);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .filter-options {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    padding: 3px 10px;
+    background: transparent;
+    border: 1px solid var(--cli-border);
+    border-radius: 99px;
+    color: var(--cli-text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .filter-chip:hover {
+    background: var(--cli-selection);
+    color: var(--cli-text);
+  }
+
+  .filter-chip.selected {
+    background: var(--cli-text);
+    color: var(--cli-bg);
+    border-color: var(--cli-text);
   }
 </style>

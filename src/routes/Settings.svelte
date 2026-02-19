@@ -30,6 +30,7 @@
     saveHelperProfiles,
     type HelperProfile,
   } from "../lib/helperProfiles";
+  import { approvalPolicyStore } from "../lib/approval-policy-store.svelte";
 
   const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
   type EnterBehavior = "newline" | "send";
@@ -391,6 +392,41 @@
           </select>
         </div>
         <p class="hint" id="enter-behavior-help">Default is newline on all devices. This is stored per-device in your browser.</p>
+      </SectionCard>
+    </div>
+
+    <div class="panel panel-wide">
+      <SectionCard title="Copilot Tool Approvals">
+        <div class="stack approval-policy-settings">
+          <p class="hint">Manage your saved "always allow" and "always reject" rules for Copilot tool actions.</p>
+          {#if approvalPolicyStore.policies.length === 0}
+            <p class="hint empty">No saved rules. Rules are created when you choose "always allow" or "always reject" during an approval prompt.</p>
+          {:else}
+            <div class="policy-list">
+              {#each approvalPolicyStore.policies as policy (policy.id)}
+                <div class="policy-row">
+                  <span
+                    class="policy-decision"
+                    class:allow={policy.decision === "allow"}
+                    class:reject={policy.decision === "reject"}
+                  >
+                    {policy.decision === "allow" ? "✓ Always Allow" : "✗ Always Reject"}
+                  </span>
+                  <span class="policy-tool">
+                    {policy.toolKind ?? "any tool"}{policy.toolTitle ? `: ${policy.toolTitle}` : ""}
+                  </span>
+                  <button
+                    type="button"
+                    class="plain-btn"
+                    onclick={() => approvalPolicyStore.revokePolicy(policy.id)}
+                  >
+                    Revoke
+                  </button>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
       </SectionCard>
     </div>
 
@@ -833,8 +869,50 @@
     --stack-gap: var(--space-sm);
   }
 
+  .approval-policy-settings {
+    --stack-gap: var(--space-sm);
+  }
+
   .preset-settings {
     --stack-gap: var(--space-sm);
+  }
+
+  .policy-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .policy-row {
+    display: grid;
+    grid-template-columns: max-content 1fr auto;
+    gap: var(--space-sm);
+    align-items: center;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
+  }
+
+  .policy-decision {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .policy-decision.allow {
+    color: var(--cli-success, #4ade80);
+  }
+
+  .policy-decision.reject {
+    color: var(--cli-error);
+  }
+
+  .policy-tool {
+    color: var(--cli-text);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
   }
 
   .quick-reply-row {
@@ -862,6 +940,11 @@
     .quick-reply-row {
       grid-template-columns: 1fr;
       align-items: stretch;
+    }
+
+    .policy-row {
+      grid-template-columns: 1fr;
+      align-items: start;
     }
 
     .preset-row {

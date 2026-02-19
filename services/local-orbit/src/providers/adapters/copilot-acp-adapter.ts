@@ -16,6 +16,7 @@
  */
 
 import type { ChildProcess } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import type { ProviderAdapter } from "../contracts.js";
 import type {
   ProviderCapabilities,
@@ -31,6 +32,21 @@ import type {
 import { AcpClient } from "./acp-client.js";
 import { ACPStreamingNormalizer } from "../normalizers/acp-event-normalizer.js";
 import { findExecutable, spawnProcess, killProcess, processHealth } from "./process-utils.js";
+
+/**
+ * Helper to read and encode attachment content
+ * @param localPath - File system path to attachment
+ * @returns Base64-encoded file content
+ * @throws Error if file cannot be read
+ */
+async function readAttachmentContent(localPath: string): Promise<string> {
+  try {
+    const buffer = await readFile(localPath);
+    return buffer.toString("base64");
+  } catch (err) {
+    throw new Error(`Failed to read attachment: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
 
 /**
  * Configuration for Copilot ACP adapter
@@ -60,6 +76,12 @@ export interface CopilotAcpConfig {
    * Custom executable path (overrides PATH search)
    */
   executablePath?: string;
+
+  /**
+   * When true, pass --allow-all-tools to CLI.
+   * approvals capability will be false in this mode. Default: false
+   */
+  allowAllTools?: boolean;
 }
 
 /**
@@ -69,17 +91,24 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   readonly providerId = "copilot-acp";
   readonly providerName = "GitHub Copilot (ACP)";
 
-  readonly capabilities: ProviderCapabilities = {
+  private readonly _baseCapabilities = {
     listSessions: true,
-    openSession: false, // Phase 2
-    sendPrompt: true, // Phase 2 - Issue #144
-    streaming: true, // Phase 2 - Issue #145
-    attachments: false, // Phase 2
-    approvals: false, // Phase 2
-    multiTurn: false, // Phase 2
-    filtering: false, // Phase 1 - basic list only
-    pagination: false, // Phase 1 - basic list only
+    openSession: false,   // Phase 2
+    sendPrompt: true,     // Phase 2 - Issue #144
+    streaming: true,      // Phase 2 - Issue #145
+    attachments: true,    // Phase 2 - P4-03-03 COMPLETE
+    multiTurn: false,     // Phase 2
+    filtering: false,     // Phase 1 - basic list only
+    pagination: false,    // Phase 1 - basic list only
   };
+
+  /** approvals: true only when NOT in allow-all-tools mode */
+  get capabilities(): ProviderCapabilities {
+    return {
+      ...this._baseCapabilities,
+      approvals: !this.config.allowAllTools,
+    };
+  }
 
   private config: CopilotAcpConfig;
   private process: ChildProcess | null = null;
@@ -89,6 +118,15 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   private subscriptions = new Map<string, EventSubscription>();
   private lastHealthCheck: ProviderHealthStatus | null = null;
   private consecutiveFailures = 0;
+
+  /** Pending approval requests awaiting user resolution */
+  private pendingApprovals = new Map<
+    string,
+    { resolve: (result: unknown) => void; timeout: ReturnType<typeof setTimeout> }
+  >();
+
+  /** External handler registered via onApprovalRequest() */
+  private approvalEventEmitter?: (event: NormalizedEvent) => void;
 
   constructor(config: CopilotAcpConfig = {}) {
     this.config = {
@@ -116,8 +154,12 @@ export class CopilotAcpAdapter implements ProviderAdapter {
 
     try {
       // Spawn copilot in ACP mode
-      console.log(`[copilot-acp] Spawning: ${this.executablePath} --acp`);
-      this.process = spawnProcess(this.executablePath, ["--acp"]);
+      const acpArgs: string[] = ["--acp"];
+      if (this.config.allowAllTools) {
+        acpArgs.push("--allow-all-tools");
+      }
+      console.log(`[copilot-acp] Spawning: ${this.executablePath} ${acpArgs.join(" ")}`);
+      this.process = spawnProcess(this.executablePath, acpArgs);
 
       // Create JSON-RPC client
       this.client = new AcpClient(this.process, this.config.timeout);
@@ -131,6 +173,26 @@ export class CopilotAcpAdapter implements ProviderAdapter {
       // Note: The actual ACP handshake protocol may vary - this is a placeholder
       // For Phase 1, we'll assume the process is ready immediately
       await this.performHandshake();
+
+      // Register server→client approval request handler
+      this.client.onRequest("session/request_permission", async (params, rpcId) => {
+        const event = this.normalizer.normalizePermissionRequest(rpcId, params);
+
+        return new Promise<unknown>((resolve) => {
+          const key = String(rpcId);
+
+          const timeoutHandle = setTimeout(() => {
+            const entry = this.pendingApprovals.get(key);
+            if (entry) {
+              this.pendingApprovals.delete(key);
+              entry.resolve({ outcome: { outcome: "cancelled" } });
+            }
+          }, 60_000);
+
+          this.pendingApprovals.set(key, { resolve, timeout: timeoutHandle });
+          this.emitApprovalRequest(event);
+        });
+      });
 
       console.log("[copilot-acp] Started successfully");
     } catch (err) {
@@ -354,13 +416,43 @@ export class CopilotAcpAdapter implements ProviderAdapter {
           await new Promise((resolve) => setTimeout(resolve, retryDelay * Math.pow(2, attempt - 1)));
         }
 
-        // Construct JSON-RPC request per PHASE2_PLAN.md
+        // Build content array for ACP protocol
+        const content: any[] = [
+          { type: "text", text: input.text }
+        ];
+
+        // Add attachment parts if present
+        if (input.attachments && input.attachments.length > 0) {
+          for (const attachment of input.attachments) {
+            try {
+              // Read and encode file content
+              const data = await readAttachmentContent(attachment.localPath);
+              
+              // Add attachment part to content array
+              content.push({
+                type: attachment.type === "image" ? "image" : "attachment",
+                mimeType: attachment.mimeType,
+                data, // base64 encoded
+                filename: attachment.filename,
+              });
+              
+              console.log(
+                `[copilot-acp] Added ${attachment.type} attachment: ${attachment.filename} (${attachment.mimeType})`
+              );
+            } catch (err) {
+              console.warn(
+                `[copilot-acp] Failed to read attachment ${attachment.filename}:`,
+                err instanceof Error ? err.message : String(err)
+              );
+              // Continue with other attachments, don't fail entire request
+            }
+          }
+        }
+
+        // Construct JSON-RPC request with content array
         const params = {
           sessionId,
-          input: {
-            text: input.text,
-            attachments: input.attachments || [],
-          },
+          input: { content }, // Use content array instead of text + attachments
           options: {
             mode: options?.mode ?? "auto",
             ...(options?.model && { model: options.model }),
@@ -368,12 +460,47 @@ export class CopilotAcpAdapter implements ProviderAdapter {
           },
         };
 
-        // Send request with extended timeout for prompts (default: 30s)
-        const result = await this.client.sendRequest(
-          "sendPrompt",
-          params,
-          this.config.promptTimeout ?? 30000,
-        );
+        // Try with attachments first, fallback to text-only on ACP rejection
+        let result;
+        try {
+          // Send request with extended timeout for prompts (default: 30s)
+          result = await this.client.sendRequest(
+            "sendPrompt",
+            params,
+            this.config.promptTimeout ?? 30000,
+          );
+          // Success - attachment support confirmed
+        } catch (err) {
+          // Check if error is attachment-related (invalid params, unsupported)
+          const isAttachmentError = 
+            err instanceof Error && 
+            (err.message.includes("content") || 
+             err.message.includes("attachment") ||
+             err.message.includes("invalid"));
+          
+          // If we have attachments and got an attachment error, retry text-only
+          if (input.attachments && input.attachments.length > 0 && isAttachmentError) {
+            console.warn(
+              `[copilot-acp] ACP rejected attachments, retrying with text-only (session: ${sessionId})`
+            );
+            
+            // Retry with text-only params
+            const textOnlyParams = {
+              sessionId,
+              input: { content: [{ type: "text", text: input.text }] },
+              options: params.options,
+            };
+            
+            result = await this.client.sendRequest(
+              "sendPrompt",
+              textOnlyParams,
+              this.config.promptTimeout ?? 30000,
+            );
+          } else {
+            // Not an attachment error or no attachments, re-throw
+            throw err;
+          }
+        }
 
         const elapsed = Date.now() - startTime;
         
@@ -501,6 +628,41 @@ export class CopilotAcpAdapter implements ProviderAdapter {
    */
   async normalizeEvent(_rawEvent: unknown): Promise<NormalizedEvent | null> {
     throw new Error("normalizeEvent not implemented in Phase 1");
+  }
+
+  // --- Approval handling ---
+
+  /**
+   * Register a handler to receive approval request events.
+   * Called by relay/index.ts so the UI layer can present the request to the user.
+   */
+  public onApprovalRequest(handler: (event: NormalizedEvent) => void): void {
+    this.approvalEventEmitter = handler;
+  }
+
+  /**
+   * Resolve a pending approval request.
+   * Called by relay when the user makes a decision.
+   *
+   * @param rpcId - The JSON-RPC request ID returned from the permission event
+   * @param outcome - User decision (selected option or cancelled)
+   */
+  public resolveApproval(
+    rpcId: string,
+    outcome:
+      | { outcome: "selected"; optionId: string }
+      | { outcome: "cancelled" },
+  ): void {
+    const entry = this.pendingApprovals.get(rpcId);
+    if (entry) {
+      clearTimeout(entry.timeout);
+      this.pendingApprovals.delete(rpcId);
+      entry.resolve({ outcome });
+    }
+  }
+
+  private emitApprovalRequest(event: NormalizedEvent): void {
+    this.approvalEventEmitter?.(event);
   }
 
   // --- Private helper methods ---

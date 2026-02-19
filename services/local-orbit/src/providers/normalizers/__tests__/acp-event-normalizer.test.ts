@@ -16,20 +16,21 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import {
   ACPStreamingNormalizer,
   type AcpUpdateNotification,
+  type AcpPermissionRequestParams,
 } from "../acp-event-normalizer.js";
 import type { NormalizedEvent } from "../../provider-types.js";
 
 describe("ACPStreamingNormalizer", () => {
   let normalizer: ACPStreamingNormalizer;
-  let originalSetTimeout: typeof setTimeout;
-  let originalClearTimeout: typeof clearTimeout;
-  let originalDateNow: typeof Date.now;
+  let _originalSetTimeout: typeof setTimeout;
+  let _originalClearTimeout: typeof clearTimeout;
+  let _originalDateNow: typeof Date.now;
 
   beforeEach(() => {
     // Save originals
-    originalSetTimeout = globalThis.setTimeout;
-    originalClearTimeout = globalThis.clearTimeout;
-    originalDateNow = Date.now;
+    _originalSetTimeout = globalThis.setTimeout;
+    _originalClearTimeout = globalThis.clearTimeout;
+    _originalDateNow = Date.now;
 
     // Create normalizer with short timeout for testing
     normalizer = new ACPStreamingNormalizer({ streamTimeout: 1000 });
@@ -776,5 +777,102 @@ describe("ACPStreamingNormalizer", () => {
       normalizer.clearAllContexts();
       expect(normalizer.getActiveContextCount()).toBe(0);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// normalizePermissionRequest
+// ---------------------------------------------------------------------------
+
+/** Sample ACP permission-request payload used across tests */
+const samplePermissionParams: AcpPermissionRequestParams = {
+  sessionId: "sess-123",
+  toolCall: {
+    toolCallId: "tc-456",
+    title: "Run shell command",
+    kind: "shell",
+    status: "pending",
+  },
+  options: [
+    { optionId: "allow-once", name: "Allow once", kind: "allow_once" },
+    { optionId: "reject-once", name: "Reject", kind: "reject_once" },
+  ],
+};
+
+describe("ACPStreamingNormalizer - normalizePermissionRequest", () => {
+  let normalizer: ACPStreamingNormalizer;
+
+  beforeEach(() => {
+    normalizer = new ACPStreamingNormalizer();
+  });
+
+  afterEach(() => {
+    normalizer.clearAllContexts();
+  });
+
+  it("returns approval_request category", () => {
+    const result = normalizer.normalizePermissionRequest("rpc-1", samplePermissionParams);
+    expect(result.category).toBe("approval_request");
+  });
+
+  it("preserves rpcId in payload", () => {
+    const result = normalizer.normalizePermissionRequest("rpc-42", samplePermissionParams);
+    expect((result.payload as any).rpcId).toBe("rpc-42");
+  });
+
+  it("maps toolCall fields to payload correctly", () => {
+    const result = normalizer.normalizePermissionRequest("rpc-1", samplePermissionParams);
+    const payload = result.payload as any;
+    expect(payload.sessionId).toBe("sess-123");
+    expect(payload.toolCallId).toBe("tc-456");
+    expect(payload.toolTitle).toBe("Run shell command");
+    expect(payload.toolKind).toBe("shell");
+  });
+
+  it("maps options array correctly with kinds", () => {
+    const result = normalizer.normalizePermissionRequest("rpc-1", samplePermissionParams);
+    const options = (result.payload as any).options as Array<{
+      optionId: string;
+      name: string;
+      kind: string;
+    }>;
+    expect(options).toHaveLength(2);
+    expect(options[0]).toEqual({ optionId: "allow-once", name: "Allow once", kind: "allow_once" });
+    expect(options[1]).toEqual({ optionId: "reject-once", name: "Reject", kind: "reject_once" });
+  });
+
+  it("handles missing toolCall fields gracefully", () => {
+    const params: AcpPermissionRequestParams = {
+      sessionId: "sess-no-tool",
+      // toolCall omitted
+      options: [{ optionId: "opt-1", name: "Allow", kind: "allow_once" }],
+    };
+    const result = normalizer.normalizePermissionRequest("rpc-2", params);
+    expect(result.category).toBe("approval_request");
+    expect(result.sessionId).toBe("sess-no-tool");
+    const payload = result.payload as any;
+    expect(payload.toolCallId).toBe("");
+    expect(payload.toolTitle).toBeUndefined();
+    expect(payload.toolKind).toBeUndefined();
+  });
+
+  it("handles empty options array", () => {
+    const params: AcpPermissionRequestParams = {
+      sessionId: "sess-empty-opts",
+      toolCall: { toolCallId: "tc-789", title: "Do something", kind: "exec" },
+      options: [],
+    };
+    const result = normalizer.normalizePermissionRequest("rpc-3", params);
+    expect((result.payload as any).options).toEqual([]);
+  });
+
+  it("emits the event via the event handler", () => {
+    const emitted: NormalizedEvent[] = [];
+    normalizer.on("event", (event) => emitted.push(event));
+
+    normalizer.normalizePermissionRequest("rpc-emit", samplePermissionParams);
+
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0].category).toBe("approval_request");
   });
 });

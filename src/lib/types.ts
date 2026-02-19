@@ -5,6 +5,14 @@ export type ConnectionStatus =
   | "reconnecting"
   | "error";
 
+export type ProviderFilter = "all" | "codex" | "copilot-acp";
+export type StatusFilter = "all" | "active" | "archived";
+
+export interface ThreadFilterState {
+  provider: ProviderFilter;
+  status: StatusFilter;
+}
+
 export interface ThreadInfo {
   id: string;
   preview?: string;
@@ -21,8 +29,9 @@ export interface ThreadInfo {
   lastActivity?: number;
   lastActiveAt?: number;
   modelProvider?: string;
-  provider?: string;
+  provider: "codex" | "copilot-acp";
   status?: string;
+  archived: boolean;
   capabilities?: ProviderCapabilities;
 }
 
@@ -113,6 +122,23 @@ export interface ApprovalRequest {
   toolName?: string;
   reason?: string;
   status: "pending" | "approved" | "declined" | "cancelled";
+}
+
+export interface AcpApprovalOption {
+  optionId: string;
+  name: string;
+  kind: "allow_once" | "allow_always" | "reject_once" | "reject_always";
+}
+
+export interface AcpApprovalRequest {
+  rpcId: string | number;
+  threadId: string;
+  toolCallId: string;
+  toolTitle?: string;
+  toolKind?: string;
+  options: AcpApprovalOption[];
+  resolvedAt?: number;
+  resolution?: { optionId: string | null };
 }
 
 export interface UserInputOption {

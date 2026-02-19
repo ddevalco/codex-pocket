@@ -149,6 +149,10 @@ else
   warn "No tests found; skipping"
 fi
 
+info "Phase 4 capability regression guards"
+bash scripts/ci/phase4-guards.sh
+success "Phase 4 capability regression guards passed"
+
 if (( SKIP_CI_CHECK == 1 )); then
   warn "Skipping CI check (--skip-ci-check)"
   success "Preflight complete"

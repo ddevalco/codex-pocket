@@ -37,6 +37,12 @@ jobs:
           set -euo pipefail
           bun scripts/ci/regression-guards.ts
 
+      - name: Phase 4 Capability Regression Guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/ci/phase4-guards.sh
+
       - name: Start server (local-orbit)
         shell: bash
         run: |

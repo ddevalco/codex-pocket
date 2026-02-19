@@ -226,6 +226,10 @@ class SocketStore {
     return this.send(message, { reliable: true });
   }
 
+  sendProtocol(message: Record<string, unknown>): SendResult {
+    return this.#sendRaw(message);
+  }
+
   onMessage(handler: (msg: RpcMessage) => void) {
     this.#messageHandlers.add(handler);
     return () => this.#messageHandlers.delete(handler);

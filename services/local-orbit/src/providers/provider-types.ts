@@ -322,28 +322,39 @@ export interface PromptInput {
 }
 
 /**
- * File attachment for prompts
+ * Attachment for prompt input (images, files, etc.)
+ * Unified shape for UI attachments, Codex-style attachments, and ACP-bound prompts.
  */
 export interface PromptAttachment {
   /**
-   * File path or URL
+   * Attachment type
    */
-  path: string;
+  type: "image" | "file";
 
   /**
-   * MIME type
+   * File name (required)
    */
-  mimeType?: string;
+  filename: string;
 
   /**
-   * Display name
+   * MIME type (required)
    */
-  name?: string;
+  mimeType: string;
 
   /**
-   * File content (if inline)
+   * Local file system path (for reading content)
    */
-  content?: string | ArrayBuffer;
+  localPath: string;
+
+  /**
+   * View URL (for UI display, optional)
+   */
+  viewUrl?: string;
+
+  /**
+   * File size in bytes (optional, for validation)
+   */
+  sizeBytes?: number;
 }
 
 /**
@@ -377,6 +388,39 @@ export interface PromptOptions {
 }
 
 /**
+ * ACP permission option kind literals
+ */
+export type AcpPermissionOptionKind =
+  | "allow_once"
+  | "allow_always"
+  | "reject_once"
+  | "reject_always";
+
+/**
+ * A single option presented to the user in an ACP approval request
+ */
+export interface AcpPermissionOption {
+  optionId: string;
+  name: string;
+  kind: AcpPermissionOptionKind;
+}
+
+/**
+ * Structured payload for an ACP `session/request_permission` event.
+ * Stored under NormalizedEvent.payload so the UI can render ApprovalPrompt
+ * and the relay can route the user's chosen option back to ACP via rpcId.
+ */
+export interface AcpApprovalPayload {
+  /** JSON-RPC request id — relay must echo this when responding */
+  rpcId: string | number;
+  sessionId: string;
+  toolCallId: string;
+  toolTitle?: string;
+  toolKind?: string;
+  options: AcpPermissionOption[];
+}
+
+/**
  * Event subscription handle
  */
 export interface EventSubscription {
@@ -399,4 +443,63 @@ export interface EventSubscription {
    * Unsubscribe callback (alternative to adapter.unsubscribe)
    */
   unsubscribe: () => Promise<void>;
+}
+
+/**
+ * Validate a prompt attachment
+ * @param attachment - Potential attachment object to validate
+ * @returns True if attachment is valid PromptAttachment
+ */
+export function isValidAttachment(attachment: any): attachment is PromptAttachment {
+  return (
+    attachment &&
+    typeof attachment === "object" &&
+    (attachment.type === "image" || attachment.type === "file") &&
+    typeof attachment.filename === "string" &&
+    typeof attachment.mimeType === "string" &&
+    typeof attachment.localPath === "string"
+  );
+}
+
+/**
+ * Normalize UI attachment to PromptAttachment
+ * Handles multiple input formats:
+ * - UI ImageAttachment: {kind, filename, mime, localPath, viewUrl}
+ * - Codex-style: {type: "image", path, url, mime, filename}
+ * - Direct PromptAttachment: pass-through if valid
+ *
+ * @param uiAttachment - Attachment from UI or other source
+ * @returns Normalized PromptAttachment or null if invalid
+ */
+export function normalizeAttachment(uiAttachment: any): PromptAttachment | null {
+  if (!uiAttachment || typeof uiAttachment !== "object") return null;
+
+  // Handle ImageAttachment from UI {kind, filename, mime, localPath, viewUrl}
+  if (uiAttachment.kind === "image") {
+    return {
+      type: "image",
+      filename: uiAttachment.filename || "image",
+      mimeType: uiAttachment.mime || "image/png",
+      localPath: uiAttachment.localPath,
+      viewUrl: uiAttachment.viewUrl,
+    };
+  }
+
+  // Handle Codex-style {type: "image", path, url, mime, filename}
+  if (uiAttachment.type === "image" && uiAttachment.path) {
+    return {
+      type: "image",
+      filename: uiAttachment.filename || "image",
+      mimeType: uiAttachment.mime || "image/png",
+      localPath: uiAttachment.path,
+      viewUrl: uiAttachment.url,
+    };
+  }
+
+  // Direct PromptAttachment pass-through
+  if (isValidAttachment(uiAttachment)) {
+    return uiAttachment;
+  }
+
+  return null;
 }

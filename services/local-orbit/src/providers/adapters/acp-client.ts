@@ -10,6 +10,8 @@
  * - Response format: {"jsonrpc":"2.0","id":1,"result":{...}}
  * - Error format: {"jsonrpc":"2.0","id":1,"error":{"code":-32600,"message":"..."}}
  * - Notifications: {"jsonrpc":"2.0","method":"name","params":{}} (no id field)
+ * - Server requests: {"jsonrpc":"2.0","id":1,"method":"name","params":{}} (has BOTH id and method)
+ *   These require a response from the client.
  */
 
 import type { ChildProcess } from "node:child_process";
@@ -80,6 +82,7 @@ export class AcpClient {
   private pendingRequests = new Map<number | string, PendingRequest>();
   private notificationHandlers: Array<(notification: JsonRpcNotification) => void> = [];
   private sessionEventHandlers = new Map<string, SessionEventHandler[]>();
+  private requestHandlers = new Map<string, (params: unknown, id: string | number) => Promise<unknown> | unknown>();
   private readline: ReadlineInterface | null = null;
   private defaultTimeout: number;
 
@@ -138,8 +141,11 @@ export class AcpClient {
     try {
       const message = JSON.parse(line);
 
-      // Check if it's a response (has id) or notification (no id)
-      if ("id" in message) {
+      // Distinguish server→client requests (has id AND method) from responses (id, no method)
+      if ("id" in message && "method" in message) {
+        // Server is sending us a request that requires a response
+        void this.handleIncomingRequest(message as JsonRpcRequest);
+      } else if ("id" in message) {
         this.handleResponse(message as JsonRpcResponse);
       } else if ("method" in message) {
         this.handleNotification(message as JsonRpcNotification);
@@ -148,6 +154,67 @@ export class AcpClient {
       }
     } catch (err) {
       console.error("[acp-client] Failed to parse JSON:", line, err);
+    }
+  }
+
+  /**
+   * Handle an incoming JSON-RPC request from the server (server → client).
+   * Dispatches to registered request handlers and sends back a response.
+   */
+  private async handleIncomingRequest(request: JsonRpcRequest): Promise<void> {
+    const handler = this.requestHandlers.get(request.method);
+    if (handler) {
+      try {
+        const result = await handler(request.params, request.id);
+        this.sendResponse(request.id, result);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[acp-client] Request handler error for ${request.method}:`, err);
+        this.sendErrorResponse(request.id, -32603, `Internal error: ${msg}`);
+      }
+    } else {
+      console.warn(`[acp-client] No handler registered for server request method: ${request.method}`);
+      this.sendErrorResponse(request.id, -32601, "Method not found");
+    }
+  }
+
+  /**
+   * Send a JSON-RPC response to the server (client → server, in reply to a server request).
+   */
+  private sendResponse(id: string | number, result: unknown): void {
+    if (!this.process.stdin) {
+      console.error("[acp-client] Cannot send response: process stdin is not available");
+      return;
+    }
+    try {
+      const line = JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n";
+      this.process.stdin.write(line, (err?: Error | null) => {
+        if (err) {
+          console.error(`[acp-client] Failed to write response for id=${id}:`, err);
+        }
+      });
+    } catch (err) {
+      console.error(`[acp-client] Failed to serialize response for id=${id}:`, err);
+    }
+  }
+
+  /**
+   * Send a JSON-RPC error response to the server.
+   */
+  private sendErrorResponse(id: string | number, code: number, message: string): void {
+    if (!this.process.stdin) {
+      console.error("[acp-client] Cannot send error response: process stdin is not available");
+      return;
+    }
+    try {
+      const line = JSON.stringify({ jsonrpc: "2.0", id, error: { code, message } }) + "\n";
+      this.process.stdin.write(line, (err?: Error | null) => {
+        if (err) {
+          console.error(`[acp-client] Failed to write error response for id=${id}:`, err);
+        }
+      });
+    } catch (err) {
+      console.error(`[acp-client] Failed to serialize error response for id=${id}:`, err);
     }
   }
 
@@ -287,6 +354,18 @@ export class AcpClient {
         reject(err);
       }
     });
+  }
+
+  /**
+   * Register a handler for server-initiated JSON-RPC requests.
+   * The server sends these when it needs a response from the client
+   * (e.g., `session/request_permission` for ACP approvals).
+   *
+   * @param method - JSON-RPC method name to handle
+   * @param handler - Callback invoked with (params, id); may return a value or Promise
+   */
+  onRequest(method: string, handler: (params: unknown, id: string | number) => Promise<unknown> | unknown): void {
+    this.requestHandlers.set(method, handler);
   }
 
   /**
