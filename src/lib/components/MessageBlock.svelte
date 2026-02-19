@@ -136,21 +136,21 @@
 
   const prefixConfig = $derived.by(() => {
     if (message.status === "sending") {
-      return { prefix: "◌", color: "var(--cli-text-muted)", bgClass: "user-bg sending" };
+      return { prefix: "◌", colorVar: "--color-cli-text-muted", bgClass: "user-bg sending" };
     }
     if (message.status === "error") {
-      return { prefix: "!", color: "var(--cli-error)", bgClass: "user-bg error" };
+      return { prefix: "!", colorVar: "--color-cli-error", bgClass: "user-bg error" };
     }
     if (message.role === "user") {
-      return { prefix: ">", color: "var(--cli-prefix-agent)", bgClass: "user-bg" };
+      return { prefix: ">", colorVar: "--color-cli-prefix-agent", bgClass: "user-bg" };
     }
     if (message.role === "assistant") {
-      return { prefix: "•", color: "var(--cli-prefix-agent)", bgClass: "" };
+      return { prefix: "•", colorVar: "--color-cli-prefix-agent", bgClass: "" };
     }
     if (message.role === "tool") {
-      return { prefix: "•", color: "var(--cli-prefix-tool)", bgClass: "" };
+      return { prefix: "•", colorVar: "--color-cli-prefix-tool", bgClass: "" };
     }
-    return { prefix: "•", color: "var(--cli-text-dim)", bgClass: "" };
+    return { prefix: "•", colorVar: "--color-cli-text-dim", bgClass: "" };
   });
 
   const terminalLines = $derived.by(() => {
@@ -296,9 +296,9 @@
     <Tool {message} />
   {:else if isWait}
     <div class="message-line wait row">
-      <span class="prefix" style:color={prefixConfig.color}>{prefixConfig.prefix}</span>
+      <span class="prefix" style:color={`oklch(var(${prefixConfig.colorVar}))`}>{prefixConfig.prefix}</span>
       <div class="wait-line row">
-        <ShimmerDot color="var(--cli-prefix-tool)" />
+        <ShimmerDot color="--color-cli-prefix-tool" />
         <span class="text dim">{message.text}</span>
       </div>
     </div>
@@ -309,7 +309,7 @@
     </div>
   {:else if isTerminal}
     <div class="message-line terminal row">
-      <span class="prefix" style:color={prefixConfig.color}>{prefixConfig.prefix}</span>
+      <span class="prefix" style:color={`oklch(var(${prefixConfig.colorVar}))`}>{prefixConfig.prefix}</span>
       <div class="terminal-lines stack">
         {#each terminalLines as line}
           <div class="terminal-line row">
@@ -320,7 +320,7 @@
     </div>
   {:else}
     <div class="message-line row">
-      <span class="prefix" style:color={prefixConfig.color}>{prefixConfig.prefix}</span>
+      <span class="prefix" style:color={`oklch(var(${prefixConfig.colorVar}))`}>{prefixConfig.prefix}</span>
       <div class="text markdown">{@html renderedHtml}</div>
     </div>
   {/if}
@@ -357,7 +357,7 @@
   .menu-btn {
     background: transparent;
     border: none;
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     cursor: pointer;
     padding: 2px 6px;
     border-radius: 6px;
@@ -366,8 +366,8 @@
   }
 
   .menu-btn:hover {
-    color: var(--cli-text);
-    background: var(--cli-bg-elevated);
+    color: oklch(var(--color-cli-text));
+    background: oklch(var(--color-cli-bg-elevated));
   }
 
   .menu {
@@ -375,7 +375,7 @@
     top: 22px;
     right: 0;
     min-width: 160px;
-    background: var(--cli-bg-elevated);
+    background: oklch(var(--color-cli-bg-elevated));
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     padding: 6px;
@@ -387,7 +387,7 @@
     text-align: left;
     background: transparent;
     border: none;
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     padding: 8px 10px;
@@ -400,7 +400,7 @@
   }
 
   .menu button:disabled {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     cursor: not-allowed;
   }
 
@@ -412,7 +412,7 @@
   }
 
   .message-block.user-bg {
-    background: var(--cli-bg-user);
+    background: oklch(var(--color-cli-bg-user));
     border-left: 0;
     box-shadow: none;
     padding-left: var(--space-md);
@@ -422,7 +422,7 @@
     margin-left: calc(var(--space-md) + 12px);
     margin-top: var(--space-xs);
     font-size: 0.8em;
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     display: flex;
     gap: var(--space-xs);
     align-items: center;
@@ -463,7 +463,7 @@
   }
 
   .compaction-icon {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-size: var(--text-xs);
   }
 
@@ -483,13 +483,13 @@
   }
 
   .text {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     word-break: break-word;
     min-width: 0;
   }
 
   .text.dim {
-    color: var(--cli-text-dim);
+    color: oklch(var(--color-cli-text-dim));
     font-style: italic;
   }
 
@@ -521,7 +521,7 @@
   }
 
   .markdown :global(a) {
-    color: var(--cli-link);
+    color: oklch(var(--color-cli-link));
   }
 
   .copy-btn {
@@ -530,9 +530,9 @@
     right: 10px;
     padding: 4px 10px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--cli-border);
+    border: 1px solid oklch(var(--color-cli-border));
     background: rgba(0, 0, 0, 0.25);
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-family: var(--font-mono);
     font-size: 11px;
     cursor: pointer;
@@ -546,19 +546,19 @@
   }
 
   .copy-btn:hover {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
   }
 
   .copy-btn.copied {
     opacity: 1;
-    border-color: #2c8a5a;
-    color: #9be3bf;
+    border-color: oklch(var(--color-cli-success));
+    color: oklch(var(--color-cli-success));
   }
 
   .copy-btn.error {
     opacity: 1;
-    border-color: var(--cli-error);
-    color: var(--cli-error);
+    border-color: oklch(var(--color-cli-error));
+    color: oklch(var(--color-cli-error));
   }
 
   @media (max-width: 520px) {

@@ -26,10 +26,10 @@
     other: "Perform action",
   };
 
-  const statusLabels: Record<string, { text: string; color: string }> = {
-    approved: { text: "Approved", color: "var(--cli-success)" },
-    declined: { text: "Declined", color: "var(--cli-error)" },
-    cancelled: { text: "Cancelled", color: "var(--cli-text-muted)" },
+  const statusLabels: Record<string, { text: string; colorVar: string }> = {
+    approved: { text: "Approved", colorVar: "--color-cli-success" },
+    declined: { text: "Declined", colorVar: "--color-cli-error" },
+    cancelled: { text: "Cancelled", colorVar: "--color-cli-text-muted" },
   };
 
   function handleOptionClick(index: number) {
@@ -108,7 +108,7 @@
         </button>
       {/each}
     {:else}
-      <div class="status-badge" style:color={statusLabels[approval.status].color}>
+      <div class="status-badge" style:color={`oklch(var(${statusLabels[approval.status].colorVar}))`}>
         {statusLabels[approval.status].text}
       </div>
     {/if}
@@ -118,9 +118,9 @@
 <style>
   .approval-card {
     margin: var(--space-xs) var(--space-md);
-    border: 1px solid var(--cli-border);
+    border: 1px solid oklch(var(--color-cli-border));
     border-radius: var(--radius-md);
-    background: var(--cli-bg-elevated);
+    background: oklch(var(--color-cli-bg-elevated));
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     overflow: hidden;
@@ -135,11 +135,11 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid var(--cli-border);
+    border-bottom: 1px solid oklch(var(--color-cli-border));
   }
 
   .header-label {
-    color: var(--cli-prefix-tool);
+    color: oklch(var(--color-cli-prefix-tool));
     font-size: var(--text-xs);
     font-weight: 600;
     text-transform: uppercase;
@@ -147,7 +147,7 @@
   }
 
   .header-type {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-size: var(--text-xs);
   }
 
@@ -162,28 +162,28 @@
     display: flex;
     gap: var(--space-sm);
     padding: var(--space-xs) var(--space-sm);
-    background: var(--cli-bg);
+    background: oklch(var(--color-cli-bg));
     border-radius: var(--radius-sm);
   }
 
   .prompt {
-    color: var(--cli-prefix-reasoning);
+    color: oklch(var(--color-cli-prefix-reasoning));
     font-weight: 600;
     flex-shrink: 0;
   }
 
   .command-text {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     word-break: break-all;
   }
 
   .file-path {
-    color: var(--cli-prefix-user);
+    color: oklch(var(--color-cli-prefix-user));
     font-size: var(--text-xs);
   }
 
   .description {
-    color: var(--cli-text-dim);
+    color: oklch(var(--color-cli-text-dim));
     font-size: var(--text-xs);
   }
 
@@ -191,7 +191,7 @@
     display: flex;
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-md);
-    border-top: 1px solid var(--cli-border);
+    border-top: 1px solid oklch(var(--color-cli-border));
     flex-wrap: wrap;
   }
 
@@ -201,9 +201,9 @@
     gap: var(--space-xs);
     padding: var(--space-xs) var(--space-sm);
     background: transparent;
-    border: 1px solid var(--cli-border);
+    border: 1px solid oklch(var(--color-cli-border));
     border-radius: var(--radius-sm);
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     cursor: pointer;
@@ -211,28 +211,28 @@
   }
 
   .option-btn:hover {
-    border-color: var(--cli-text-muted);
-    background: var(--cli-bg-hover);
+    border-color: oklch(var(--color-cli-text-muted));
+    background: oklch(var(--color-cli-bg-hover));
   }
 
   .option-btn.focused {
-    border-color: var(--cli-prefix-agent);
-    background: color-mix(in srgb, var(--cli-prefix-agent) 10%, transparent);
+    border-color: oklch(var(--color-cli-prefix-agent));
+    background: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 10%, transparent);
   }
 
   .option-btn.focused .option-label {
-    color: var(--cli-prefix-agent);
+    color: oklch(var(--color-cli-prefix-agent));
   }
 
   .option-key {
-    color: var(--cli-text-muted);
+    color: oklch(var(--color-cli-text-muted));
     font-size: var(--text-xs);
     min-width: 1.5ch;
     text-align: center;
   }
 
   .option-label {
-    color: var(--cli-text);
+    color: oklch(var(--color-cli-text));
   }
 
   .status-badge {
