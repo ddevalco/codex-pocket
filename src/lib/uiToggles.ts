@@ -82,7 +82,29 @@ function createUiToggleStore(): UIToggleStore {
     return state[key];
   }
 
+  function hasCopyActionEnabled(targetState: UITogglesState): boolean {
+    return (
+      targetState.showMessageCopyButton ||
+      targetState.showMessageCopyMarkdown ||
+      targetState.showMessageCopyQuoted
+    );
+  }
+
   function setToggleState(key: UIToggleKey, value: boolean) {
+    // Safety guardrail: ensure at least one message copy path is always enabled.
+    if (
+      !value &&
+      (key === "showMessageCopyButton" ||
+        key === "showMessageCopyMarkdown" ||
+        key === "showMessageCopyQuoted")
+    ) {
+      const nextState = { ...state, [key]: false };
+      if (!hasCopyActionEnabled(nextState)) {
+        // If everything would be disabled, force enable the primary button.
+        state.showMessageCopyButton = true;
+        return;
+      }
+    }
     state[key] = value;
   }
 
