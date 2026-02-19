@@ -5,7 +5,7 @@ export type ConnectionStatus =
   | "reconnecting"
   | "error";
 
-export type ProviderFilter = "all" | "codex" | "copilot-acp";
+export type ProviderFilter = "all" | "codex" | "copilot-acp" | "claude";
 export type StatusFilter = "all" | "active" | "archived";
 
 export interface ThreadFilterState {
@@ -29,7 +29,7 @@ export interface ThreadInfo {
   lastActivity?: number;
   lastActiveAt?: number;
   modelProvider?: string;
-  provider: "codex" | "copilot-acp";
+  provider: "codex" | "copilot-acp" | "claude";
   status?: string;
   archived: boolean;
   capabilities?: ProviderCapabilities & Partial<ThreadCapabilities>;
@@ -161,6 +161,13 @@ export interface UserInputRequest {
   status: "pending" | "answered";
 }
 
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  estimatedCost?: number;
+}
+
 export type MessageStatus = "sending" | "sent" | "error";
 
 export interface Message {
@@ -171,6 +178,7 @@ export interface Message {
   threadId: string;
   language?: string;
   metadata?: MessageMetadata;
+  tokenUsage?: TokenUsage;
   approval?: ApprovalRequest;
   userInputRequest?: UserInputRequest;
   planStatus?: "pending" | "approved";

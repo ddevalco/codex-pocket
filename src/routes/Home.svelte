@@ -30,7 +30,7 @@
       if (!parsed || typeof parsed !== "object") return DEFAULT_FILTERS;
 
       return {
-        provider: ["all", "codex", "copilot-acp"].includes(parsed.provider)
+        provider: ["all", "codex", "copilot-acp", "claude"].includes(parsed.provider)
           ? parsed.provider
           : DEFAULT_FILTERS.provider,
         status: ["all", "active", "archived"].includes(parsed.status)
@@ -177,7 +177,8 @@
     if (filters.provider !== "all") {
       list = list.filter((t) => {
         if (filters.provider === "copilot-acp") return t.provider === "copilot-acp";
-        if (filters.provider === "codex") return t.provider !== "copilot-acp"; // Default is Codex
+        if (filters.provider === "claude") return t.provider === "claude";
+        if (filters.provider === "codex") return t.provider === "codex";
         return true;
       });
     }
@@ -225,12 +226,15 @@
     const list = threads.list || [];
     let codex = 0;
     let copilot = 0;
+    let claude = 0;
     let active = 0;
     let archived = 0;
 
     for (const t of list) {
       if (t.provider === "copilot-acp") {
         copilot++;
+      } else if (t.provider === "claude") {
+        claude++;
       } else {
         codex++;
       }
@@ -246,6 +250,7 @@
       all: list.length,
       codex,
       copilot,
+      claude,
       active,
       archived,
     };
@@ -822,6 +827,12 @@
               aria-pressed={filters.provider === "copilot-acp"}
               onclick={() => (filters.provider = "copilot-acp")}
             >Copilot ({threadCounts.copilot})</button>
+            <button
+              class="filter-chip"
+              class:selected={filters.provider === "claude"}
+              aria-pressed={filters.provider === "claude"}
+              onclick={() => (filters.provider = "claude")}
+            >Claude ({threadCounts.claude})</button>
           </div>
         </div>
         <div class="filter-group row">

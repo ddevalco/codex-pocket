@@ -89,6 +89,9 @@ export {
   createEventNormalizer,
 } from "./normalizers/event-normalizer.js";
 
+export { ClaudeSessionNormalizer } from "./normalizers/claude-session-normalizer.js";
+export { ClaudeEventNormalizer } from "./normalizers/claude-event-normalizer.js";
+
 // Token usage and cost tracking
 export type { TokenUsage } from "./provider-types.js";
 export type { PricingTable } from "./cost-calculator.js";

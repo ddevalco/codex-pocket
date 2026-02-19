@@ -10,6 +10,12 @@ Date: 2026-02-16
 - ✅ **Phase 3**: Home UI Grouping + Filtering (PR #143, P4-05)
 - ✅ **Phase 4**: Capability Matrix + Graceful Degrade (ALL COMPLETE • 2026-02-18)
 - ✅ **Phase 5**: Hardening (COMPLETE • 2026-02-18)
+- ✅ **Phase 5.1**: Claude Integration (P5-01 Complete • 2026-02-19)
+  - Foundation: PR #212 • Full Implementation: PR #[pending]
+  - Anthropic SDK integration with streaming support
+  - Session/event normalizers
+  - UI provider filter includes Claude
+  - See [PHASE5_IMPLEMENTATION_SPECS.md](PHASE5_IMPLEMENTATION_SPECS.md) for details
 
 ## Summary
 
