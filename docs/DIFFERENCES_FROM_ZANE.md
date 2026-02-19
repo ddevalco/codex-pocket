@@ -11,40 +11,147 @@ Codex Pocket’s goal is narrower and more opinionated:
 
 ## High-Level Differences
 
-- **Multi-provider architecture with capability detection**
-  - Zane is Codex-only with static feature assumptions.
-  - Codex Pocket supports multiple AI providers (Codex, GitHub Copilot ACP) through a unified adapter interface.
-  - **Capability Matrix**: Each provider declares capabilities (`CAN_ATTACH_FILES`, `CAN_FILTER_HISTORY`, `SUPPORTS_APPROVALS`, `SUPPORTS_STREAMING`) dynamically.
-  - **Graceful Degradation**: UI elements automatically disable when capabilities are unavailable, with tooltips explaining why (no broken interactions).
+### Multi-Provider Architecture with Capability Detection
 
-- **No Cloudflare dependency**
-  - Zane's default architecture expects Cloudflare components (Orbit/Auth style flows).
-  - Codex Pocket replaces that with a single local server (`local-orbit`) plus token-based authentication.
+**Zane:**
 
-- **Tailnet-first (Tailscale) exposure**
-  - The service binds to `127.0.0.1`.
-  - Remote access is intended via `tailscale serve` so it stays inside your tailnet.
+- Single provider: Codex only
+- Static feature assumptions (all capabilities assumed available)
+- Hard-coded provider-specific UI logic
 
-- **Token-based auth + pairing**
-  - Legacy Access Token for bootstrap/admin access.
-  - Per-device token sessions (create/list/revoke in `/admin`).
-  - Session tokens support read-only mode with server-side enforcement.
-  - Pairing QR codes mint unique per-device tokens (not shared legacy token).
-  - `/admin` can mint short-lived one-time pairing codes and present them as QR.
+**Codex Pocket:**
 
-- **Approval workflows**
-  - Interactive tool permission prompts (shell commands, file operations).
-  - Persistent approval policies: "Always allow" or "Always reject" specific tools.
-  - Auto-approve mode detection with warning banners.
-  - Policy management UI in Settings.
+- Dual provider support: Codex + GitHub Copilot ACP (extensible to more)
+- Unified adapter interface (`ProviderAdapter` contract)
+- **Dynamic Capability Matrix**: Each provider declares four capability flags:
+  - `CAN_ATTACH_FILES`: File/image attachment support
+  - `CAN_FILTER_HISTORY`: Thread history filtering
+  - `SUPPORTS_APPROVALS`: Interactive tool permission prompts
+  - `SUPPORTS_STREAMING`: Real-time response streaming
+- **Graceful Degradation**: UI elements automatically disable when capabilities unavailable, with explanatory tooltips
+- **Provider Registry**: Centralized lifecycle management (start/stop/health) for all providers
+- **Session Normalization**: Provider-specific formats converted to common schema
 
-- **Advanced filtering + views**
-  - Filter threads by provider (All, Codex, Copilot).
-  - Filter threads by status (All, Active, Archived).
-  - Filter state persists across sessions via localStorage.
-  - Live thread counts on filter chips.
+**Current Provider Matrix:**
 
-- Installer + lifecycle UX
+| Capability | Codex | Copilot ACP |
+|------------|-------|-------------|
+| `CAN_ATTACH_FILES` | ✅ | ✅ |
+| `CAN_FILTER_HISTORY` | ✅ | ❌ |
+| `SUPPORTS_APPROVALS` | ✅ | ✅ (dynamic) |
+| `SUPPORTS_STREAMING` | ✅ | ✅ |
+
+**Benefits:**
+
+- Add new AI providers without UI changes (UI adapts to declared capabilities)
+- No broken interactions (disabled features show clear explanations)
+- Future-proof for Claude, GPT, and other providers
+
+### Approval Workflows
+
+**Zane:**
+
+- No approval system
+- All tool permissions implicitly granted
+
+**Codex Pocket:**
+
+- **Interactive Approval Prompts**: Shell commands, file operations require explicit user consent
+- **Four Decision Types**:
+  - `allow_once`: Single-use approval
+  - `allow_always`: Persistent auto-approve policy (saved to localStorage)
+  - `reject_once`: Single-use denial
+  - `reject_always`: Persistent auto-deny policy (saved to localStorage)
+- **Policy Store**: Specificity-based matching (exact tool name > tool kind > global default)
+- **localStorage Key**: `codex_pocket_acp_approval_policies`
+- **Policy Management UI**: View all saved policies in Settings, revoke individual rules
+- **Auto-Approve Detection**: Warning banner when provider started with `--allow-all-tools` flag
+- **Bidirectional JSON-RPC**: ACP adapter supports server-initiated permission requests with 60s timeout
+
+**Benefits:**
+
+- Security: Explicit control over file system and shell access
+- Persistence: Set preferences once, apply automatically in future sessions
+- Transparency: Always know what tools are running
+
+### Advanced Filtering + View Persistence
+
+**Zane:**
+
+- Basic filtering (if any)
+- No filter state persistence
+
+**Codex Pocket:**
+
+- **Dual-Axis Filtering**:
+  - **Provider Filter**: All / Codex / Copilot ACP (live thread counts)
+  - **Status Filter**: All / Active / Archived (live thread counts)
+- **localStorage Persistence**: Filter state survives page reloads (`codex_pocket_thread_filters`)
+- **Defensive Hydration**: Validates loaded state, falls back to defaults on corruption
+- **Mobile-Responsive Layout**: Flex-wrap filter chips, empty state handling
+- **Accessible Navigation**: ARIA attributes, keyboard navigation support
+
+**Benefits:**
+
+- Quickly isolate threads by provider (e.g., "Show only Copilot sessions")
+- Hide archived threads to reduce clutter
+- Filter preferences remembered across sessions
+
+### No Cloudflare Dependency
+
+**Zane:**
+
+- Default architecture expects Cloudflare components (Orbit/Auth style flows)
+- Cloudflare Auth for authentication
+- Public internet exposure considerations
+
+**Codex Pocket:**
+
+- Single local server (`local-orbit`) with token-based authentication
+- No Cloudflare components required
+- Tailnet-first design (binds to `127.0.0.1`, exposed via `tailscale serve`)
+
+### Token-Based Auth + Pairing
+
+**Zane:**
+
+- Cloudflare Auth-based authentication (passkeys/WebAuthn)
+
+**Codex Pocket:**
+
+- **Legacy Access Token**: Bootstrap/admin access (printed during install)
+- **Per-Device Session Tokens**: Create/list/revoke in `/admin`
+- **Read-Only Mode**: Session tokens support server-side enforcement (full vs. read-only)
+- **Pairing QR Codes**: Mint unique per-device tokens (not shared legacy token)
+- **Short-Lived Pairing**: `/admin` mints one-time pairing codes with expiration
+
+**Benefits:**
+
+- Simple token management (no external auth provider)
+- Per-device revocability (compromised device? Revoke its token only)
+- Read-only mode for untrusted devices
+
+### Copilot ACP Integration
+
+**Zane:**
+
+- Codex-only implementation
+- No support for other AI providers
+
+**Codex Pocket:**
+
+- **Process Management**: Spawns `gh copilot --acp` or `copilot --acp` child process
+- **JSON-RPC Protocol**: Bidirectional communication over stdio via `AcpClient`
+- **Full Capabilities**: Send prompts, stream responses, handle approvals, process attachments
+- **Graceful Degradation**: Returns degraded health if CLI not installed (doesn't block other providers)
+- **Config-Driven**: Enable/disable via `config.json` (`providers["copilot-acp"].enabled`)
+- **Attachment Handling**: Base64-encodes files for ACP protocol, automatic text-only fallback
+
+**Benefits:**
+
+- Unified interface for multiple AI models
+- GitHub Copilot accessible from same UI as Codex
+- Extensible architecture for future providers
   - One-line macOS installer that builds UI, writes config under `~/.codex-pocket`, attempts `launchd`, and falls back to background mode if `launchctl` is blocked.
   - CLI tooling for start/stop/restart/update/diagnose/ensure.
 

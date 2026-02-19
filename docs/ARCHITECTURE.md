@@ -215,10 +215,24 @@ Codex Pocket implements interactive approval workflows for tool permissions (she
 
 Persistent approval rules are managed via `approval-policy-store.svelte.ts`:
 
-- **Storage**: localStorage (`codex_pocket_approval_policies`)
-- **Scope**: Per tool name (e.g., `bash`, `read_file`)
+- **Storage**: localStorage (`codex_pocket_acp_approval_policies`)
+- **Scope**: Per provider (currently `"copilot-acp"` only)
+- **Matching**: Specificity-based (exact tool name > tool kind > global default)
 - **Actions**: `allow` (always approve) or `reject` (always deny)
 - **Management**: Users can revoke policies in Settings UI
+
+**Policy Interface:**
+
+```typescript
+interface AcpApprovalPolicy {
+  id: string;
+  toolKind?: string;      // e.g., "bash", "file_operations"
+  toolTitle?: string;     // e.g., "read_file", "execute_command"
+  decision: "allow" | "reject";
+  createdAt: number;
+  provider: "copilot-acp";
+}
+```
 
 ### Approval Flow
 
