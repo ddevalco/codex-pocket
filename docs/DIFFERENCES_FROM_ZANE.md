@@ -11,17 +11,37 @@ Codex Pocket’s goal is narrower and more opinionated:
 
 ## High-Level Differences
 
-- No Cloudflare dependency
-  - Zane’s default architecture expects Cloudflare components (Orbit/Auth style flows).
-  - Codex Pocket replaces that with a single local server (`local-orbit`) plus a shared token.
+- **Multi-provider architecture**
+  - Zane is Codex-only.
+  - Codex Pocket supports multiple AI providers (Codex, GitHub Copilot ACP) through a unified adapter interface.
+  - Capability-driven UI adapts to each provider's supported features.
 
-- Tailnet-first (Tailscale) exposure
+- **No Cloudflare dependency**
+  - Zane's default architecture expects Cloudflare components (Orbit/Auth style flows).
+  - Codex Pocket replaces that with a single local server (`local-orbit`) plus token-based authentication.
+
+- **Tailnet-first (Tailscale) exposure**
   - The service binds to `127.0.0.1`.
   - Remote access is intended via `tailscale serve` so it stays inside your tailnet.
 
-- Simplified auth + pairing
-  - One bearer Access Token protects WebSocket + admin endpoints.
+- **Token-based auth + pairing**
+  - Legacy Access Token for bootstrap/admin access.
+  - Per-device token sessions (create/list/revoke in `/admin`).
+  - Session tokens support read-only mode with server-side enforcement.
+  - Pairing QR codes mint unique per-device tokens (not shared legacy token).
   - `/admin` can mint short-lived one-time pairing codes and present them as QR.
+
+- **Approval workflows**
+  - Interactive tool permission prompts (shell commands, file operations).
+  - Persistent approval policies: "Always allow" or "Always reject" specific tools.
+  - Auto-approve mode detection with warning banners.
+  - Policy management UI in Settings.
+
+- **Advanced filtering + views**
+  - Filter threads by provider (All, Codex, Copilot).
+  - Filter threads by status (All, Active, Archived).
+  - Filter state persists across sessions via localStorage.
+  - Live thread counts on filter chips.
 
 - Installer + lifecycle UX
   - One-line macOS installer that builds UI, writes config under `~/.codex-pocket`, attempts `launchd`, and falls back to background mode if `launchctl` is blocked.

@@ -108,19 +108,22 @@ Prioritized engineering recommendations are maintained in:
 
 - 📱 Remote control for Codex on Mac from your iPhone
 - 🔐 Secure E2E connection via Tailscale
-- 🎨 Multi-provider support (Codex, GitHub Copilot)
+- 🎨 Multi-provider support (Codex, GitHub Copilot ACP)
 - 💾 Local-first data persistence
 - ⚡ Real-time WebSocket communication
 - 🧪 Bundle size guardrails and release preflight checks
+- 🔒 Approval workflows for tool permissions with persistent policies
+- 🔍 Advanced filtering (provider, status) with view persistence
+- 📎 Attachment support for both Codex and Copilot providers
 
 ## Multi-Provider Support
 
-Codex Pocket now supports multiple AI providers in a single interface:
+Codex Pocket supports multiple AI providers in a single interface:
 
-- **Codex**: Full read/write support (default)
-- **GitHub Copilot** (Phase 1): Read-only session viewing via ACP protocol
+- **Codex**: Full read/write support with all features (default)
+- **GitHub Copilot**: Full ACP (Agent Control Protocol) integration with send, streaming, approvals, and attachments
 
-### Viewing Copilot Sessions
+### Using Copilot Sessions
 
 If you have the GitHub Copilot CLI installed (`gh copilot` or `copilot`):
 
@@ -129,11 +132,36 @@ If you have the GitHub Copilot CLI installed (`gh copilot` or `copilot`):
 3. Navigate to the Home screen
 4. Your Copilot sessions appear in the "GitHub Copilot" section
 
-Phase 1 provides **read-only** access:
+**Full ACP capabilities:**
 
 - ✅ View Copilot sessions alongside Codex threads
-- ✅ See session titles, previews, and timestamps
-- ❌ Cannot send prompts or modify Copilot sessions (coming in Phase 2)
+- ✅ Send prompts and stream responses in real-time
+- ✅ Approve/deny tool permissions (shell commands, file operations)
+- ✅ Attach images and files to prompts
+- ✅ Filter by provider (All, Codex, Copilot)
+- ✅ Persistent approval policies (Always allow/reject specific tools)
+
+**Capability-driven UI:** The interface adapts automatically based on each provider's supported features. Disabled features show tooltips explaining why they're unavailable.
+
+### Approval Workflows
+
+When AI providers request tool permissions (e.g., running shell commands, reading files), you receive interactive prompts:
+
+- **Allow once**: Approve this specific action
+- **Always allow**: Auto-approve this tool for this session
+- **Reject once**: Deny this specific action
+- **Always reject**: Auto-deny this tool for this session
+
+Persistent policies are stored locally and can be managed in Settings. If the provider is started with `--allow-all-tools`, a warning banner appears.
+
+### Advanced Filtering
+
+Filter your thread list by:
+
+- **Provider**: All, Codex, or Copilot (with live counts)
+- **Status**: All, Active, or Archived
+
+Filter preferences persist across sessions.
 
 ### Adding More Providers
 
