@@ -7,6 +7,7 @@
   import { models } from "../lib/models.svelte";
   import { theme } from "../lib/theme.svelte";
   import { auth } from "../lib/auth.svelte";
+  import { canSendPrompt, getCapabilityTooltip } from "../lib/thread-capabilities";
   import AppHeader from "../lib/components/AppHeader.svelte";
   import ProjectPicker from "../lib/components/ProjectPicker.svelte";
   import ShimmerDot from "../lib/components/ShimmerDot.svelte";
@@ -621,7 +622,7 @@
   }
 </script>
 
-{#snippet threadSection(groups: any[], readonly = false)}
+{#snippet threadSection(groups: any[])}
   {#if groups.length > 0}
     {#each groups as group (group.label)}
       <div class="thread-group stack">
@@ -641,6 +642,8 @@
             {#each group.threads as thread (thread.id)}
               {@const repoLabel = threadRepoLabel(thread)}
               {@const projectLabel = threadProjectLabel(thread)}
+              {@const canManageThread = canSendPrompt(thread)}
+              {@const disabledReason = canManageThread ? "" : getCapabilityTooltip("SEND_PROMPT", false)}
               <li class="thread-item row">
                 <a
                   class="thread-link row"
@@ -717,16 +720,16 @@
                 <button
                   class="thread-action-btn rename-btn"
                   onclick={() => renameThread(thread)}
-                  disabled={readonly}
-                  title="Rename thread"
+                  disabled={!canManageThread}
+                  title={canManageThread ? "Rename thread" : disabledReason}
                 >
                   ✏️
                 </button>
                 <button
                   class="thread-action-btn archive-btn"
                   onclick={() => threads.archive(thread.id)}
-                  disabled={readonly}
-                  title="Archive thread"
+                  disabled={!canManageThread}
+                  title={canManageThread ? "Archive thread" : disabledReason}
                 >
                   📦
                 </button>
@@ -915,7 +918,7 @@
           </div>
 
           {#if copilotGrouped.groups.length > 0}
-            {@render threadSection(copilotGrouped.groups, true)}
+            {@render threadSection(copilotGrouped.groups)}
           {:else}
             <div class="empty-state">No Copilot sessions detected</div>
           {/if}

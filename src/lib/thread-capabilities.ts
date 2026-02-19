@@ -57,6 +57,23 @@ export function supportsStreaming(thread: ThreadInfo | null | undefined): boolea
 }
 
 /**
+ * Checks if a thread supports sending prompts.
+ * Defaults to true if capabilities are undefined (backward compatibility).
+ *
+ * @param thread - The thread to check capabilities for
+ * @returns boolean indicating if prompt input is supported
+ */
+export function canSendPrompt(thread: ThreadInfo | null | undefined): boolean {
+  if (!thread || !thread.capabilities) {
+    return true;
+  }
+  if (typeof thread.capabilities.sendPrompt === 'boolean') {
+    return thread.capabilities.sendPrompt;
+  }
+  return true;
+}
+
+/**
  * Returns a tooltip message for a disabled capability.
  * Returns an empty string if the capability is available.
  *
@@ -78,6 +95,9 @@ export function getCapabilityTooltip(capability: keyof ProviderCapabilities | st
       return 'This provider does not support interactive approvals';
     case 'SUPPORTS_STREAMING':
       return 'This provider does not support live streaming updates';
+    case 'SEND_PROMPT':
+    case 'sendPrompt':
+      return 'This provider does not allow sending prompts in this session';
     default:
       return 'This capability is not supported by the current provider';
   }
