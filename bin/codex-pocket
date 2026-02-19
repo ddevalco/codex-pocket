@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# codex-pocket CLI
+# coderelay CLI
 #
-# This CLI manages the local Codex Pocket service (launchd) and calls its admin API.
+# This CLI manages the local CodeRelay service (launchd) and calls its admin API.
 
-APP_DIR="${CODEX_POCKET_HOME:-$HOME/.codex-pocket}"
+APP_DIR="${CODEX_POCKET_HOME:-$HOME/.coderelay}"
 CONFIG_JSON="$APP_DIR/config.json"
 LABEL="com.codex.pocket"
 PID_FILE="$APP_DIR/server.pid"
@@ -15,7 +15,7 @@ reset=$'\033[0m'
 
 usage() {
   cat <<USAGE
-Usage: codex-pocket <command>
+Usage: coderelay <command>
 
 Commands:
   doctor                 Check dependencies and service health
@@ -36,7 +36,7 @@ Commands:
   update                 Update the installed app (git pull, rebuild, restart, ensure)
 
 Environment:
-  CODEX_POCKET_HOME       Defaults to ~/.codex-pocket
+  CODEX_POCKET_HOME       Defaults to ~/.coderelay
 USAGE
 }
 
@@ -357,7 +357,7 @@ ws_smoke_check() {
   tok="$(token)"
 
   local tmp
-  tmp="$(mktemp -t codex-pocket-ws.XXXXXX)"
+  tmp="$(mktemp -t coderelay-ws.XXXXXX)"
   cat >"$tmp" <<'JS'
 import WebSocket from "ws";
 
@@ -460,7 +460,7 @@ PY
 }
 
 kill_owned_listeners() {
-  # Kill existing Codex Pocket processes that are currently holding our ports.
+  # Kill existing CodeRelay processes that are currently holding our ports.
   # We intentionally do NOT kill unrelated processes.
   if ! command -v lsof >/dev/null 2>&1; then
     return 0
@@ -621,7 +621,7 @@ cmd_doctor() {
   if curl -fsS "$base/health" >/dev/null 2>&1; then
     echo "service: reachable at $base"
   else
-    echo "service: not reachable at $base (try: codex-pocket start)"
+    echo "service: not reachable at $base (try: coderelay start)"
   fi
 }
 
@@ -660,7 +660,7 @@ cmd_diagnose() {
   port="$(config_port)"
   pub="$(public_origin)"
 
-  echo "${bold}Codex Pocket Diagnose${reset}"
+  echo "${bold}CodeRelay Diagnose${reset}"
   echo "Home:   $APP_DIR"
   echo "Config: $CONFIG_JSON"
   echo "Base:   $base"
@@ -700,7 +700,7 @@ cmd_diagnose() {
   if curl -fsS "$base/health" >/dev/null 2>&1; then
     echo "health: ok"
   else
-    echo "health: FAILED (try: codex-pocket restart)"
+    echo "health: FAILED (try: coderelay restart)"
   fi
 
   local status_json
@@ -718,7 +718,7 @@ if status=="invalid":
   code=auth.get("code") or "unknown"
   at=auth.get("at") or ""
   print(f"anchor auth: INVALID ({code}) {('at '+at) if at else ''}".strip())
-  print("  hint: re-login in Codex desktop, then run: codex-pocket restart")
+  print("  hint: re-login in Codex desktop, then run: coderelay restart")
 PY
   fi
 
@@ -965,12 +965,12 @@ cmd_ensure() {
 
   if [[ "$code" == "401" ]]; then
     echo "Validate failed: 401 Unauthorised" >&2
-    echo "If /admin is asking for a token, run: codex-pocket token" >&2
+    echo "If /admin is asking for a token, run: coderelay token" >&2
     return 1
   fi
   if [[ -z "${body//[[:space:]]/}" ]]; then
     echo "Validate failed: empty response (HTTP $code)" >&2
-    echo "Next: codex-pocket diagnose" >&2
+    echo "Next: coderelay diagnose" >&2
     return 1
   fi
   if [[ "${body:0:1}" != "{" ]]; then
@@ -1021,7 +1021,7 @@ cmd_smoke_test() {
   local base
   base="$(base_url)"
 
-  echo "Codex Pocket smoke test"
+  echo "CodeRelay smoke test"
   echo "Base URL: $base"
 
   # 1) health
@@ -1030,7 +1030,7 @@ cmd_smoke_test() {
     cmd_restart || true
     if ! curl -fsS "$base/health" >/dev/null 2>&1; then
       echo "FAIL: /health unreachable" >&2
-      echo "Next: codex-pocket diagnose" >&2
+      echo "Next: coderelay diagnose" >&2
       return 1
     fi
   fi
@@ -1043,7 +1043,7 @@ cmd_smoke_test() {
   html="$(curl -fsS "$base/app" 2>/dev/null || true)"
   if [[ -z "${html//[[:space:]]/}" ]]; then
     echo "FAIL: /app returned empty" >&2
-    echo "Next: codex-pocket restart" >&2
+    echo "Next: coderelay restart" >&2
     return 1
   fi
   js="$(
@@ -1064,7 +1064,7 @@ cmd_smoke_test() {
   fi
   if ! curl -fsS -o /dev/null "$base$js" 2>/dev/null; then
     echo "FAIL: main JS asset not reachable: $js" >&2
-    echo "Next: codex-pocket restart" >&2
+    echo "Next: coderelay restart" >&2
     return 1
   fi
   echo "PASS: /app"
@@ -1078,7 +1078,7 @@ cmd_smoke_test() {
   code="$CODE"; body="$BODY"
   if [[ "$code" == "401" ]]; then
     echo "FAIL: /admin/validate unauthorised (token mismatch?)" >&2
-    echo "Run: codex-pocket token" >&2
+    echo "Run: coderelay token" >&2
     return 1
   fi
   if [[ -z "${body//[[:space:]]/}" ]]; then
@@ -1093,7 +1093,7 @@ cmd_smoke_test() {
   if ! printf '%s' "$body" | json_ok; then
     echo "FAIL: /admin/validate reported issues" >&2
     printf '%s\n' "$body" | python3 -m json.tool 2>/dev/null || true
-    echo "Try: codex-pocket ensure" >&2
+    echo "Try: coderelay ensure" >&2
     return 1
   fi
   echo "PASS: /admin/validate"
@@ -1109,7 +1109,7 @@ cmd_smoke_test() {
   if ws_smoke_check "$base"; then
     echo "PASS: /ws (client+anchor)"
   else
-    echo "WARN: /ws smoke check failed (possible WS regression). Try: codex-pocket restart" >&2
+    echo "WARN: /ws smoke check failed (possible WS regression). Try: coderelay restart" >&2
   fi
 
   # 5) Events endpoint (GET; auth-protected). This is the data path used to populate thread history.
@@ -1117,7 +1117,7 @@ cmd_smoke_test() {
   if ! curl_auth -sS -o /dev/null -D - \
     "$base/threads/00000000-0000-0000-0000-000000000000/events" | tr -d '\r' | grep -iq '^content-type:.*application/x-ndjson'; then
     echo "FAIL: /threads/<id>/events did not return application/x-ndjson" >&2
-    echo "Next: codex-pocket diagnose" >&2
+    echo "Next: coderelay diagnose" >&2
     return 1
   fi
   echo "PASS: /threads/<id>/events"
@@ -1144,7 +1144,7 @@ cmd_self_test() {
     echo "PASS: /ws strict"
   else
     echo "FAIL: /ws strict (client+anchor relay)" >&2
-    echo "Next: codex-pocket restart" >&2
+    echo "Next: coderelay restart" >&2
     return 1
   fi
 
@@ -1195,12 +1195,12 @@ cmd_update() {
   read_config
 
   local helper
-  helper="$(mktemp -t codex-pocket-update.XXXXXX)"
+  helper="$(mktemp -t coderelay-update.XXXXXX)"
   cat >"$helper" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${CODEX_POCKET_HOME:-$HOME/.codex-pocket}"
+APP_DIR="${CODEX_POCKET_HOME:-$HOME/.coderelay}"
 CONFIG_JSON="$APP_DIR/config.json"
 LABEL="com.codex.pocket"
 
@@ -1305,7 +1305,7 @@ kill_anchor_orphans() {
 }
 
 kill_owned_listeners() {
-  # Kill Codex Pocket processes holding our configured ports.
+  # Kill CodeRelay processes holding our configured ports.
   # Do NOT kill unrelated processes.
   command -v lsof >/dev/null 2>&1 || return 0
 
@@ -1380,7 +1380,7 @@ stop_service() {
 }
 
 restart_via_cli() {
-  local cli="$APP_DIR/bin/codex-pocket"
+  local cli="$APP_DIR/bin/coderelay"
   local base
   base="$(base_url)"
 
@@ -1428,7 +1428,7 @@ if ! git -C "$repo_dir" diff --cached --quiet 2>/dev/null; then
   exit 1
 fi
 
-echo "Updating Codex Pocket in $repo_dir"
+echo "Updating CodeRelay in $repo_dir"
 git -C "$repo_dir" fetch --prune origin >/dev/null
 git -C "$repo_dir" pull --ff-only origin main
 new="$(git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || true)"
@@ -1437,11 +1437,11 @@ echo "Building UI"
 (cd "$repo_dir" && "$bun_bin" install)
 (cd "$repo_dir" && "$bun_bin" run build)
 
-if [[ -f "$repo_dir/bin/codex-pocket" ]]; then
+if [[ -f "$repo_dir/bin/coderelay" ]]; then
   mkdir -p "$APP_DIR/bin" >/dev/null 2>&1 || true
-  cp "$repo_dir/bin/codex-pocket" "$APP_DIR/bin/codex-pocket.new" >/dev/null 2>&1 || true
-  chmod +x "$APP_DIR/bin/codex-pocket.new" >/dev/null 2>&1 || true
-  mv -f "$APP_DIR/bin/codex-pocket.new" "$APP_DIR/bin/codex-pocket" >/dev/null 2>&1 || true
+  cp "$repo_dir/bin/coderelay" "$APP_DIR/bin/coderelay.new" >/dev/null 2>&1 || true
+  chmod +x "$APP_DIR/bin/coderelay.new" >/dev/null 2>&1 || true
+  mv -f "$APP_DIR/bin/coderelay.new" "$APP_DIR/bin/coderelay" >/dev/null 2>&1 || true
 fi
 
   if ! restart_via_cli; then
@@ -1477,7 +1477,7 @@ SH
   if [[ "$ensure_rc" -ne 0 || "$smoke_rc" -ne 0 ]]; then
     echo "" >&2
     echo "Update completed, but checks failed (ensure=$ensure_rc smoke-test=$smoke_rc)." >&2
-    echo "Next: codex-pocket diagnose" >&2
+    echo "Next: coderelay diagnose" >&2
     return 1
   fi
 }

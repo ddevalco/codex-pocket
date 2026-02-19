@@ -4,7 +4,7 @@
 <div class="device-shell stack">
   <div class="device-card stack">
     <div class="title">Device code login removed</div>
-    <div class="subtitle">Codex Pocket now uses access tokens + Admin QR pairing only.</div>
+    <div class="subtitle">CodeRelay now uses access tokens + Admin QR pairing only.</div>
     <a href="/admin" class="primary-link">Open Admin pairing</a>
   </div>
 </div>

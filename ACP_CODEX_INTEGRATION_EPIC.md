@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document tracks the multi-phase integration of GitHub Copilot ACP (Agent Control Protocol) into Codex Pocket, enabling a unified multi-provider interface.
+This document tracks the multi-phase integration of GitHub Copilot ACP (Agent Control Protocol) into CodeRelay, enabling a unified multi-provider interface.
 
 ## Phase 1: Registry & Read-Only Adapter ✅ COMPLETE
 
@@ -112,7 +112,7 @@ This document tracks the multi-phase integration of GitHub Copilot ACP (Agent Co
 - [x] Status filter chips (All, Active, Archived) with live counts
 - [x] Mobile-responsive flex-wrap layout
 - [x] Empty state handling when no threads match filters
-- [x] localStorage persistence (key: `codex_pocket_thread_filters`)
+- [x] localStorage persistence (key: `coderelay_thread_filters`)
 - [x] Defensive hydration on page load for filter state
 - [x] Keyboard navigation and ARIA attributes for chip controls
 - [x] Types: `ThreadFilterState`, `ProviderFilter`, `StatusFilter`

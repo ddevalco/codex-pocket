@@ -1,6 +1,6 @@
 # Attribution
 
-Codex Pocket is based on and inspired by the Zane project by Z. Siddiqi:
+CodeRelay is based on and inspired by the Zane project by Z. Siddiqi:
 
 - Upstream project: <https://github.com/z-siddiqi/zane>
 

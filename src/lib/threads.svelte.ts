@@ -3,8 +3,25 @@ import { socket } from "./socket.svelte";
 import { messages } from "./messages.svelte";
 import { navigate } from "../router";
 
-const STORE_KEY = "__zane_threads_store__";
-const SETTINGS_STORAGE_KEY = "zane_thread_settings";
+// Migrate old localStorage keys to new CodeRelay keys
+if (typeof localStorage !== "undefined") {
+  const OLD_STORE_KEY = "__zane_threads_store__";
+  const NEW_STORE_KEY = "__coderelay_threads_store__";
+  const OLD_SETTINGS_KEY = "zane_thread_settings";
+  const NEW_SETTINGS_KEY = "coderelay_thread_settings";
+  
+  if (!localStorage.getItem(NEW_STORE_KEY)) {
+    const old = localStorage.getItem(OLD_STORE_KEY);
+    if (old) localStorage.setItem(NEW_STORE_KEY, old);
+  }
+  if (!localStorage.getItem(NEW_SETTINGS_KEY)) {
+    const old = localStorage.getItem(OLD_SETTINGS_KEY);
+    if (old) localStorage.setItem(NEW_SETTINGS_KEY, old);
+  }
+}
+
+const STORE_KEY = "__coderelay_threads_store__";
+const SETTINGS_STORAGE_KEY = "coderelay_thread_settings";
 
 const DEFAULT_SETTINGS: ThreadSettings = {
   model: "",

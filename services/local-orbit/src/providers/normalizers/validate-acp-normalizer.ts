@@ -26,8 +26,8 @@ const validSession = {
   created_at: "2026-02-16T10:00:00Z",
   updated_at: "2026-02-16T11:00:00Z",
   metadata: {
-    project: "codex-pocket",
-    repo: "github.com/example/codex-pocket",
+    project: "coderelay",
+    repo: "github.com/example/coderelay",
   },
   messages: [
     { role: "user", content: "Hello agent" },

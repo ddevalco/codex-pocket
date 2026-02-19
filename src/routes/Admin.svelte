@@ -7,8 +7,8 @@
   import { theme } from "../lib/theme.svelte";
   import { auth } from "../lib/auth.svelte";
 
-  const UI_COMMIT = String(import.meta.env.VITE_CODEX_POCKET_COMMIT ?? "");
-  const UI_BUILT_AT = String(import.meta.env.VITE_CODEX_POCKET_BUILT_AT ?? "");
+  const UI_COMMIT = String(import.meta.env.VITE_CODERELAY_COMMIT ?? "");
+  const UI_BUILT_AT = String(import.meta.env.VITE_CODERELAY_BUILT_AT ?? "");
 
   type Status = {
     tokenSessions?: { total: number; active: number };
@@ -659,7 +659,7 @@
     try {
       // Key includes a small token fingerprint so reinstall/new-token triggers auto-pair again.
       const fp = auth.token.slice(-8);
-      const key = `codex-pocket:autoPairDone:${location.origin}:${fp}`;
+      const key = `coderelay:autoPairDone:${location.origin}:${fp}`;
       if (localStorage.getItem(key) === "1") {
         autoPairTried = true;
         return;
@@ -771,7 +771,7 @@
                     {#if status.anchorAuth.message}
                       <div class="dim">{status.anchorAuth.message}</div>
                     {/if}
-                    <div class="hint hint-error">Re-login in Codex desktop, then run `codex-pocket restart`.</div>
+                    <div class="hint hint-error">Re-login in Codex desktop, then run `coderelay restart`.</div>
                   {:else if status.anchorAuth?.status === "ok"}
                     <span class="auth-ok">ok</span>
                     {#if status.anchorAuth.at} <span class="dim">since {status.anchorAuth.at}</span>{/if}
@@ -993,8 +993,8 @@
       <details class="advanced" bind:open={showCliAdvanced}>
         <summary id="advanced-cli-summary">Advanced: Remote CLI</summary>
         <div role="region" aria-labelledby="advanced-cli-summary">
-        <SectionCard title="CLI (Remote)" subtitle="Run a limited set of safe codex-pocket commands">
-          <p class="hint">Run a limited set of safe `codex-pocket` CLI commands from this page.</p>
+        <SectionCard title="CLI (Remote)" subtitle="Run a limited set of safe coderelay commands">
+          <p class="hint">Run a limited set of safe `coderelay` CLI commands from this page.</p>
           <div class="row buttons">
             <label class="field">
               <span>Command</span>

@@ -252,3 +252,22 @@ export interface CollaborationModeMask {
   reasoning_effort?: ReasoningEffort | null;
   developer_instructions?: string | null;
 }
+
+export interface CustomAgent {
+  id: string;
+  name: string;
+  description: string;
+  instructions?: string;
+  model?: string;
+  provider?: 'codex' | 'copilot-acp' | 'claude';
+  capabilities?: {
+    tools?: boolean;
+    files?: boolean;
+    web?: boolean;
+  };
+  metadata?: {
+    author?: string;
+    version?: string;
+    tags?: string[];
+  };
+}

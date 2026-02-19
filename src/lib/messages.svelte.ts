@@ -265,7 +265,7 @@ class MessagesStore {
   }
 
   async rehydrateFromEvents(threadId: string, opts?: { force?: boolean }) {
-    // Best-effort transcript restore from Codex Pocket's local-orbit event store.
+    // Best-effort transcript restore from CodeRelay's local-orbit event store.
     // This is used when upstream thread/resume/thread/read does not replay history.
     if (!threadId) return;
     if (this.#eventsReplayed.has(threadId)) return;

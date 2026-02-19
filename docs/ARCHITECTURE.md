@@ -1,6 +1,6 @@
 # Architecture
 
-Codex Pocket is a local-first, Tailscale-first remote control surface for Codex running on your Mac.
+CodeRelay is a local-first, Tailscale-first remote control surface for Codex running on your Mac.
 
 ## Components
 
@@ -44,7 +44,7 @@ Responsibilities:
 
 ## Provider Abstraction Layer
 
-Codex Pocket supports multiple AI provider backends through a unified adapter interface. This enables viewing and interacting with sessions from different providers (Codex, GitHub Copilot, etc.) in one UI.
+CodeRelay supports multiple AI provider backends through a unified adapter interface. This enables viewing and interacting with sessions from different providers (Codex, GitHub Copilot, etc.) in one UI.
 
 ### Architecture
 
@@ -156,13 +156,13 @@ See [ACP_CODEX_INTEGRATION_EPIC.md](../ACP_CODEX_INTEGRATION_EPIC.md) for implem
 
 ### Thread titles (Codex Desktop sync)
 
-Codex Pocket injects user-renamed thread titles by reading Codex Desktop's local title store:
+CodeRelay injects user-renamed thread titles by reading Codex Desktop's local title store:
 
 - `~/.codex/.codex-global-state.json` (`thread-titles.titles[threadId]`)
 
 This is done inside local-orbit as a presentation-only enrichment step for `thread/list` and `thread/read` payloads.
 
-Codex Pocket can also rename threads by updating the same title store file (Admin-token protected).
+CodeRelay can also rename threads by updating the same title store file (Admin-token protected).
 
 ### Image uploads + vision attachments
 
@@ -181,7 +181,7 @@ Codex Pocket can also rename threads by updating the same title store file (Admi
 
 ## Approval System
 
-Codex Pocket implements interactive approval workflows for tool permissions (shell commands, file operations, etc.).
+CodeRelay implements interactive approval workflows for tool permissions (shell commands, file operations, etc.).
 
 ### Architecture
 
@@ -215,7 +215,7 @@ Codex Pocket implements interactive approval workflows for tool permissions (she
 
 Persistent approval rules are managed via `approval-policy-store.svelte.ts`:
 
-- **Storage**: localStorage (`codex_pocket_acp_approval_policies`)
+- **Storage**: localStorage (`coderelay_acp_approval_policies`)
 - **Scope**: Per provider (currently `"copilot-acp"` only)
 - **Matching**: Specificity-based (exact tool name > tool kind > global default)
 - **Actions**: `allow` (always approve) or `reject` (always deny)
@@ -255,7 +255,7 @@ Thread list filtering state is persisted across sessions.
 
 ### Architecture
 
-- **Storage**: localStorage (`codex_pocket_thread_filters`)
+- **Storage**: localStorage (`coderelay_thread_filters`)
 - **State**: `ThreadFilterState` with `provider` and `status` filters
 - **Hydration**: Defensive load on page mount with fallback to defaults
 

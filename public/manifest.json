@@ -1,6 +1,6 @@
 {
-  "name": "Codex Pocket",
-  "short_name": "Codex Pocket",
+  "name": "CodeRelay",
+  "short_name": "CodeRelay",
   "start_url": "/app",
   "display": "standalone",
   "background_color": "#0a0a0a",

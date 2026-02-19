@@ -7,6 +7,7 @@ import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
 import { createRegistry } from "./providers/registry.js";
 import { CodexAdapter, CopilotAcpAdapter, ClaudeAdapter } from "./providers/adapters/index.js";
+import { AgentStore } from "./agents/agent-store.js";
 import type { PromptInput, PromptAttachment, NormalizedEvent, AcpApprovalPayload } from "./providers/provider-types.js";
 import { normalizeAttachment, isValidAttachment } from "./providers/provider-types.js";
 
@@ -25,20 +26,20 @@ const threadListRequests = new Map<number, number>(); // id -> timestamp
 // - Bind to 127.0.0.1
 // - Use `tailscale serve` to expose HTTPS/WSS externally on your tailnet.
 
-const PORT = Number(process.env.ZANE_LOCAL_PORT ?? 8790);
-const HOST = process.env.ZANE_LOCAL_HOST ?? "127.0.0.1";
-const CONFIG_JSON_PATH = (process.env.ZANE_LOCAL_CONFIG_JSON ?? "").trim();
-let AUTH_TOKEN = (process.env.ZANE_LOCAL_TOKEN ?? "").trim();
-const DB_PATH = process.env.ZANE_LOCAL_DB ?? `${homedir()}/.codex-pocket/codex-pocket.db`;
-const DB_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_RETENTION_DAYS ?? 14);
-const UI_DIST_DIR = process.env.ZANE_LOCAL_UI_DIST_DIR ?? `${process.cwd()}/dist`;
-const PUBLIC_ORIGIN = (process.env.ZANE_LOCAL_PUBLIC_ORIGIN ?? "").trim().replace(/\/$/, "");
+const PORT = Number(process.env.CODERELAY_LOCAL_PORT ?? process.env.ZANE_LOCAL_PORT ?? 8790);
+const HOST = process.env.CODERELAY_LOCAL_HOST ?? process.env.ZANE_LOCAL_HOST ?? "127.0.0.1";
+const CONFIG_JSON_PATH = (process.env.CODERELAY_LOCAL_CONFIG_JSON ?? process.env.ZANE_LOCAL_CONFIG_JSON ?? "").trim();
+let AUTH_TOKEN = (process.env.CODERELAY_LOCAL_TOKEN ?? process.env.ZANE_LOCAL_TOKEN ?? "").trim();
+const DB_PATH = process.env.CODERELAY_LOCAL_DB ?? process.env.ZANE_LOCAL_DB ?? `${homedir()}/.coderelay/coderelay.db`;
+const DB_RETENTION_DAYS = Number(process.env.CODERELAY_LOCAL_RETENTION_DAYS ?? process.env.ZANE_LOCAL_RETENTION_DAYS ?? 14);
+const UI_DIST_DIR = process.env.CODERELAY_LOCAL_UI_DIST_DIR ?? process.env.ZANE_LOCAL_UI_DIST_DIR ?? `${process.cwd()}/dist`;
+const PUBLIC_ORIGIN = (process.env.CODERELAY_LOCAL_PUBLIC_ORIGIN ?? process.env.ZANE_LOCAL_PUBLIC_ORIGIN ?? "").trim().replace(/\/$/, "");
 
 // Build/version info (best-effort).
 // UI_DIST_DIR typically points at <app>/dist, so its parent is the git repo root.
-const APP_REPO_DIR = (process.env.ZANE_LOCAL_APP_REPO_DIR ?? dirname(UI_DIST_DIR)).trim();
+const APP_REPO_DIR = (process.env.CODERELAY_LOCAL_APP_REPO_DIR ?? process.env.ZANE_LOCAL_APP_REPO_DIR ?? dirname(UI_DIST_DIR)).trim();
 const APP_COMMIT = (() => {
-  const env = (process.env.ZANE_LOCAL_APP_COMMIT ?? "").trim();
+  const env = (process.env.CODERELAY_LOCAL_APP_COMMIT ?? process.env.ZANE_LOCAL_APP_COMMIT ?? "").trim();
   if (env) return env;
   try {
     const proc = Bun.spawnSync({
@@ -56,18 +57,18 @@ const APP_COMMIT = (() => {
   return "";
 })();
 
-let UPLOAD_DIR = (process.env.ZANE_LOCAL_UPLOAD_DIR ?? `${homedir()}/.codex-pocket/uploads`).trim();
-let UPLOAD_RETENTION_DAYS = Number(process.env.ZANE_LOCAL_UPLOAD_RETENTION_DAYS ?? 0); // 0 = keep forever
+let UPLOAD_DIR = (process.env.CODERELAY_LOCAL_UPLOAD_DIR ?? process.env.ZANE_LOCAL_UPLOAD_DIR ?? `${homedir()}/.coderelay/uploads`).trim();
+let UPLOAD_RETENTION_DAYS = Number(process.env.CODERELAY_LOCAL_UPLOAD_RETENTION_DAYS ?? process.env.ZANE_LOCAL_UPLOAD_RETENTION_DAYS ?? 0); // 0 = keep forever
 const DEFAULT_UPLOAD_PRUNE_INTERVAL_HOURS = 6;
 const MIN_UPLOAD_PRUNE_INTERVAL_HOURS = 1;
 const MAX_UPLOAD_PRUNE_INTERVAL_HOURS = 168;
-let UPLOAD_PRUNE_INTERVAL_HOURS = Number(process.env.ZANE_LOCAL_UPLOAD_PRUNE_INTERVAL_HOURS ?? DEFAULT_UPLOAD_PRUNE_INTERVAL_HOURS);
-const UPLOAD_MAX_BYTES = Number(process.env.ZANE_LOCAL_UPLOAD_MAX_BYTES ?? 25 * 1024 * 1024);
-const UPLOAD_URL_TTL_SEC = Number(process.env.ZANE_LOCAL_UPLOAD_URL_TTL_SEC ?? 7 * 24 * 60 * 60);
+let UPLOAD_PRUNE_INTERVAL_HOURS = Number(process.env.CODERELAY_LOCAL_UPLOAD_PRUNE_INTERVAL_HOURS ?? process.env.ZANE_LOCAL_UPLOAD_PRUNE_INTERVAL_HOURS ?? DEFAULT_UPLOAD_PRUNE_INTERVAL_HOURS);
+const UPLOAD_MAX_BYTES = Number(process.env.CODERELAY_LOCAL_UPLOAD_MAX_BYTES ?? process.env.ZANE_LOCAL_UPLOAD_MAX_BYTES ?? 25 * 1024 * 1024);
+const UPLOAD_URL_TTL_SEC = Number(process.env.CODERELAY_LOCAL_UPLOAD_URL_TTL_SEC ?? process.env.ZANE_LOCAL_UPLOAD_URL_TTL_SEC ?? 7 * 24 * 60 * 60);
 
-const ANCHOR_CWD = process.env.ZANE_LOCAL_ANCHOR_CWD ?? `${process.cwd()}/services/anchor`;
+const ANCHOR_CWD = process.env.CODERELAY_LOCAL_ANCHOR_CWD ?? process.env.ZANE_LOCAL_ANCHOR_CWD ?? `${process.cwd()}/services/anchor`;
 function resolveAnchorCmd(): string {
-  const configured = process.env.ZANE_LOCAL_ANCHOR_CMD?.trim();
+  const configured = process.env.CODERELAY_LOCAL_ANCHOR_CMD ?? process.env.ZANE_LOCAL_ANCHOR_CMD?.trim();
   if (configured) return configured;
 
   const candidates: Array<string | null | undefined> = [
@@ -97,27 +98,35 @@ function resolveAnchorCmd(): string {
 }
 
 const ANCHOR_CMD = resolveAnchorCmd();
-const ANCHOR_ARGS = (process.env.ZANE_LOCAL_ANCHOR_ARGS?.trim() || "run src/index.ts").split(/\s+/);
-const ANCHOR_LOG_PATH = process.env.ZANE_LOCAL_ANCHOR_LOG ?? `${homedir()}/.codex-pocket/anchor.log`;
+const ANCHOR_ARGS = (process.env.CODERELAY_LOCAL_ANCHOR_ARGS ?? process.env.ZANE_LOCAL_ANCHOR_ARGS?.trim() || "run src/index.ts").split(/\s+/);
+const ANCHOR_LOG_PATH = process.env.CODERELAY_LOCAL_ANCHOR_LOG ?? process.env.ZANE_LOCAL_ANCHOR_LOG ?? `${homedir()}/.coderelay/anchor.log`;
 const ANCHOR_HOST = process.env.ANCHOR_HOST ?? "127.0.0.1";
 const ANCHOR_PORT = Number(process.env.ANCHOR_PORT ?? 8788);
-const AUTOSTART_ANCHOR = process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
+const AUTOSTART_ANCHOR = process.env.CODERELAY_LOCAL_AUTOSTART_ANCHOR ?? process.env.ZANE_LOCAL_AUTOSTART_ANCHOR !== "0";
 // A stable anchor id prevents duplicate "devices" when the Anchor reconnects.
 // Prefer an explicit env override, otherwise fall back to the machine hostname.
-const ANCHOR_ID = (process.env.ZANE_LOCAL_ANCHOR_ID ?? hostname()).trim() || "anchor";
-const PAIR_TTL_SEC = Number(process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
-const PAIR_NEW_RATE_LIMIT_MAX = Number(process.env.ZANE_LOCAL_PAIR_RATE_LIMIT_MAX ?? 6);
-const PAIR_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.ZANE_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC ?? 60);
-const UPLOAD_NEW_RATE_LIMIT_MAX = Number(process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX ?? 30);
-const UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC ?? 60);
+const ANCHOR_ID = (process.env.CODERELAY_LOCAL_ANCHOR_ID ?? process.env.ZANE_LOCAL_ANCHOR_ID ?? hostname()).trim() || "anchor";
+const PAIR_TTL_SEC = Number(process.env.CODERELAY_LOCAL_PAIR_TTL_SEC ?? process.env.ZANE_LOCAL_PAIR_TTL_SEC ?? 300);
+const PAIR_NEW_RATE_LIMIT_MAX = Number(process.env.CODERELAY_LOCAL_PAIR_RATE_LIMIT_MAX ?? process.env.ZANE_LOCAL_PAIR_RATE_LIMIT_MAX ?? 6);
+const PAIR_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.CODERELAY_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC ?? process.env.ZANE_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC ?? 60);
+const UPLOAD_NEW_RATE_LIMIT_MAX = Number(process.env.CODERELAY_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX ?? process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_MAX ?? 30);
+const UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC = Number(process.env.CODERELAY_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC ?? process.env.ZANE_LOCAL_UPLOAD_NEW_RATE_LIMIT_WINDOW_SEC ?? 60);
 const CLI_BIN =
-  process.env.ZANE_LOCAL_CLI_BIN?.trim() ||
-  `${homedir()}/.codex-pocket/bin/codex-pocket`;
+  process.env.CODERELAY_LOCAL_CLI_BIN ?? process.env.ZANE_LOCAL_CLI_BIN?.trim() ||
+  `${homedir()}/.coderelay/bin/coderelay`;
 
-const CLI_OUTPUT_LIMIT = Number(process.env.ZANE_LOCAL_CLI_OUTPUT_LIMIT ?? 20000);
-const CLI_TIMEOUT_MS = Number(process.env.ZANE_LOCAL_CLI_TIMEOUT_MS ?? 90_000);
+const CLI_OUTPUT_LIMIT = Number(process.env.CODERELAY_LOCAL_CLI_OUTPUT_LIMIT ?? process.env.ZANE_LOCAL_CLI_OUTPUT_LIMIT ?? 20000);
+const CLI_TIMEOUT_MS = Number(process.env.CODERELAY_LOCAL_CLI_TIMEOUT_MS ?? process.env.ZANE_LOCAL_CLI_TIMEOUT_MS ?? 90_000);
 
-const DEFAULT_CONFIG_JSON_PATH = join(homedir(), ".codex-pocket", "config.json");
+const DEFAULT_CONFIG_JSON_PATH = (() => {
+  const newPath = join(homedir(), ".coderelay", "config.json");
+  const oldPath = join(homedir(), ".codex-pocket", "config.json");
+  // Prefer new path, fallback to old if it exists and new does not
+  if (!existsSync(newPath) && existsSync(oldPath)) {
+    return oldPath;
+  }
+  return newPath;
+})();
 const EFFECTIVE_CONFIG_JSON_PATH =
   CONFIG_JSON_PATH || (existsSync(DEFAULT_CONFIG_JSON_PATH) ? DEFAULT_CONFIG_JSON_PATH : "");
 
@@ -171,6 +180,7 @@ uploadConfigFromConfigJson(loadedConfig);
 
 // Initialize provider registry
 const registry = createRegistry();
+const agentStore = new AgentStore(join(homedir(), ".coderelay"));
 
 // Register Codex adapter (placeholder)
 registry.register("codex", (cfg) => new CodexAdapter(cfg.extra), {
@@ -2054,7 +2064,7 @@ async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
   }
 
   // Best-effort: enrich thread objects with Codex desktop thread titles (if present locally).
-  // This keeps Codex Pocket thread list titles in sync with the Codex desktop UI.
+  // This keeps CodeRelay thread list titles in sync with the Codex desktop UI.
   // Only applies for server->client messages, since titles are a presentation concern.
   let msgOut: string = msgText;
   if (fromRole === "anchor") {
@@ -2164,6 +2174,56 @@ const server = Bun.serve<WsData>({
         version: { appCommit: APP_COMMIT },
       });
       return isHead ? new Response(null, { status: res.status, headers: res.headers }) : res;
+    }
+
+    // Custom Agent Management API
+    if (url.pathname.startsWith("/api/agents")) {
+      if (!authorised(req)) return unauth();
+
+      // List all agents
+      if (url.pathname === "/api/agents" && method === "GET") {
+        return okJson(agentStore.listAgents());
+      }
+      
+      // Import agent
+      if (url.pathname === "/api/agents/import" && method === "POST") {
+        const body = await req.json().catch(() => null);
+        const agent = agentStore.importAgent(body);
+        if (agent) {
+          return okJson(agent);
+        }
+        return new Response(JSON.stringify({ error: "Invalid agent format" }), { status: 400 });
+      }
+
+      // Export agent
+      if (url.pathname.match(/^\/api\/agents\/[^/]+\/export$/) && method === "GET") {
+        const id = url.pathname.split('/')[3];
+        const agent = agentStore.exportAgent(id);
+        if (agent) {
+           return new Response(JSON.stringify(agent, null, 2), {
+             headers: {
+               "Content-Type": "application/json",
+               "Content-Disposition": `attachment; filename="${agent.name}.json"`
+             }
+           });
+        }
+        return new Response("Agent not found", { status: 404 });
+      }
+
+       // Delete agent
+      if (url.pathname.match(/^\/api\/agents\/[^/]+$/) && method === "DELETE") {
+        const id = url.pathname.split('/')[3];
+        const deleted = agentStore.deleteAgent(id);
+        if (deleted) {
+          return okJson({ success: true });
+        }
+        return new Response("Agent not found", { status: 404 });
+      }
+
+      // Sync with VS Code
+      if (url.pathname.match(/^\/api\/agents\/[^/]+\/sync-vscode$/) && method === "POST") {
+          return okJson({ success: false, message: "VS Code sync not implemented yet" });
+      }
     }
 
 	    // Admin endpoints (token required)

@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Phase 4 focuses on making the Codex Pocket UI "smart" about what different providers can and cannot do. Not all providers support every feature (e.g., attachments, specific approval types, filtering).
+Phase 4 focuses on making the CodeRelay UI "smart" about what different providers can and cannot do. Not all providers support every feature (e.g., attachments, specific approval types, filtering).
 
 Instead of hard-coding checks like `if (provider === 'copilot')`, we will implement a **Capability Matrix** pattern:
 

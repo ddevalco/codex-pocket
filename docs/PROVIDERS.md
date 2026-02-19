@@ -1,10 +1,10 @@
 # Provider Adapter Development Guide
 
-This guide explains how to add support for new AI providers to Codex Pocket.
+This guide explains how to add support for new AI providers to CodeRelay.
 
 ## Overview
 
-Codex Pocket uses a **provider adapter pattern** to support multiple AI backends. Each provider implements the `ProviderAdapter` interface, which the `ProviderRegistry` manages.
+CodeRelay uses a **provider adapter pattern** to support multiple AI backends. Each provider implements the `ProviderAdapter` interface, which the `ProviderRegistry` manages.
 
 **Current providers:**
 

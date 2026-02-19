@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Local regression test for the `codex-pocket update` flow.
-# Runs everything under a temp HOME + CODEX_POCKET_HOME so it does NOT touch ~/.codex-pocket
+# Local regression test for the `coderelay update` flow.
+# Runs everything under a temp HOME + CODEX_POCKET_HOME so it does NOT touch ~/.coderelay
 # or ~/Library/LaunchAgents.
 
 ROOT_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Use a temp root under the repo so we can force TMPDIR to a guaranteed-writable location.
-# This test cleans up after itself and does NOT touch ~/.codex-pocket.
+# This test cleans up after itself and does NOT touch ~/.coderelay.
 TMP_ROOT="${CODEX_POCKET_TEST_TMP_ROOT:-$ROOT_REPO/.tmp}"
 mkdir -p "$TMP_ROOT"
-TMP="$(mktemp -d -p "$TMP_ROOT" codex-pocket-update-test.XXXXXX)"
+TMP="$(mktemp -d -p "$TMP_ROOT" coderelay-update-test.XXXXXX)"
 FAKE_HOME="$TMP/fake-home"
-APP_HOME="$TMP/codex-pocket-home"
+APP_HOME="$TMP/coderelay-home"
 ORIGIN="$TMP/origin.git"
 
 alloc_port() {
@@ -123,14 +123,14 @@ if [[ -d "$ROOT_REPO/node_modules" ]]; then
 fi
 
 # Install CLI into the test home.
-# Install a stable wrapper so `codex-pocket` always uses the current repo version.
-cat >"$APP_HOME/bin/codex-pocket" <<'SH'
+# Install a stable wrapper so `coderelay` always uses the current repo version.
+cat >"$APP_HOME/bin/coderelay" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-APP_DIR="${CODEX_POCKET_HOME:-$HOME/.codex-pocket}"
-exec "$APP_DIR/app/bin/codex-pocket" "$@"
+APP_DIR="${CODEX_POCKET_HOME:-$HOME/.coderelay}"
+exec "$APP_DIR/app/bin/coderelay" "$@"
 SH
-chmod +x "$APP_HOME/bin/codex-pocket"
+chmod +x "$APP_HOME/bin/coderelay"
 
 cat > "$APP_HOME/config.json" <<JSON
 {
@@ -138,7 +138,7 @@ cat > "$APP_HOME/config.json" <<JSON
   "port": $PORT,
   "token": "$TOKEN",
   "publicOrigin": "",
-  "db": "$APP_HOME/codex-pocket.db",
+  "db": "$APP_HOME/coderelay.db",
   "retentionDays": 1,
   "anchor": {"port": $APORT}
 }
@@ -220,7 +220,7 @@ env \
   CODEX_POCKET_HOME="$APP_HOME" \
   PATH="$PATH" \
   TMPDIR="$TMPDIR" \
-  "$APP_HOME/bin/codex-pocket" update
+  "$APP_HOME/bin/coderelay" update
 
 # Verify the stale owned listener is gone (update stop/start cleanup should remove it).
 if command -v lsof >/dev/null 2>&1; then

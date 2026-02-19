@@ -1,7 +1,7 @@
 /**
- * Provider Adapter Contracts for Codex Pocket
+ * Provider Adapter Contracts for CodeRelay
  *
- * This module defines the provider abstraction layer that allows Codex Pocket
+ * This module defines the provider abstraction layer that allows CodeRelay
  * to integrate with multiple agent providers (Codex app-server, GitHub Copilot ACP, etc.)
  * while maintaining a consistent internal interface.
  *
@@ -124,7 +124,7 @@ export interface ProviderAdapter {
   /**
    * Normalize a raw provider event into the unified event envelope.
    * This is the core translation layer that maps provider-specific event
-   * shapes into Codex Pocket's timeline model.
+   * shapes into CodeRelay's timeline model.
    *
    * @param rawEvent - Raw event payload from the provider
    * @returns Normalized event envelope (or null if event should be filtered)

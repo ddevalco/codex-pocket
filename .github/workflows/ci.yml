@@ -50,18 +50,18 @@ jobs:
 
           # Provide a config.json so local-orbit doesn't accidentally read a token
           # from a runner's default home dir config (which would break auth in CI).
-          cat > /tmp/codex-pocket-ci-config.json <<'JSON'
+          cat > /tmp/coderelay-ci-config.json <<'JSON'
           { "token": "ci-token" }
           JSON
 
           export ZANE_LOCAL_TOKEN='ci-token'
-          export ZANE_LOCAL_CONFIG_JSON='/tmp/codex-pocket-ci-config.json'
+          export ZANE_LOCAL_CONFIG_JSON='/tmp/coderelay-ci-config.json'
           export ZANE_LOCAL_HOST='127.0.0.1'
           export ZANE_LOCAL_PORT='8790'
-          export ZANE_LOCAL_DB='/tmp/codex-pocket-ci.db'
+          export ZANE_LOCAL_DB='/tmp/coderelay-ci.db'
           export ZANE_LOCAL_UI_DIST_DIR='${{ github.workspace }}/dist'
           export ZANE_LOCAL_AUTOSTART_ANCHOR='0'
-          export ZANE_LOCAL_UPLOAD_DIR='/tmp/codex-pocket-ci-uploads'
+          export ZANE_LOCAL_UPLOAD_DIR='/tmp/coderelay-ci-uploads'
           export ZANE_LOCAL_UPLOAD_RETENTION_DAYS='0'
           export ZANE_LOCAL_PAIR_RATE_LIMIT_MAX='2'
           export ZANE_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC='120'
@@ -70,8 +70,8 @@ jobs:
 
           mkdir -p "$ZANE_LOCAL_UPLOAD_DIR"
 
-          bun run services/local-orbit/src/index.ts > /tmp/codex-pocket-ci.log 2>&1 &
-          echo $! > /tmp/codex-pocket-ci.pid
+          bun run services/local-orbit/src/index.ts > /tmp/coderelay-ci.log 2>&1 &
+          echo $! > /tmp/coderelay-ci.pid
 
       - name: Wait for /health
         shell: bash
@@ -427,11 +427,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f /tmp/codex-pocket-ci.pid ]; then
-            kill "$(cat /tmp/codex-pocket-ci.pid)" || true
+          if [ -f /tmp/coderelay-ci.pid ]; then
+            kill "$(cat /tmp/coderelay-ci.pid)" || true
           fi
           echo "---- server log (tail) ----"
-          tail -n 200 /tmp/codex-pocket-ci.log || true
+          tail -n 200 /tmp/coderelay-ci.log || true
 
   capability-smoke:
     runs-on: ubuntu-latest
@@ -460,18 +460,18 @@ jobs:
 
           # Provide a config.json so local-orbit doesn't accidentally read a token
           # from a runner's default home dir config (which would break auth in CI).
-          cat > /tmp/codex-pocket-ci-config.json <<'JSON'
+          cat > /tmp/coderelay-ci-config.json <<'JSON'
           { "token": "ci-token" }
           JSON
 
           export ZANE_LOCAL_TOKEN='ci-token'
-          export ZANE_LOCAL_CONFIG_JSON='/tmp/codex-pocket-ci-config.json'
+          export ZANE_LOCAL_CONFIG_JSON='/tmp/coderelay-ci-config.json'
           export ZANE_LOCAL_HOST='127.0.0.1'
           export ZANE_LOCAL_PORT='8790'
-          export ZANE_LOCAL_DB='/tmp/codex-pocket-ci.db'
+          export ZANE_LOCAL_DB='/tmp/coderelay-ci.db'
           export ZANE_LOCAL_UI_DIST_DIR='${{ github.workspace }}/dist'
           export ZANE_LOCAL_AUTOSTART_ANCHOR='0'
-          export ZANE_LOCAL_UPLOAD_DIR='/tmp/codex-pocket-ci-uploads'
+          export ZANE_LOCAL_UPLOAD_DIR='/tmp/coderelay-ci-uploads'
           export ZANE_LOCAL_UPLOAD_RETENTION_DAYS='0'
           export ZANE_LOCAL_PAIR_RATE_LIMIT_MAX='2'
           export ZANE_LOCAL_PAIR_RATE_LIMIT_WINDOW_SEC='120'
@@ -480,8 +480,8 @@ jobs:
 
           mkdir -p "$ZANE_LOCAL_UPLOAD_DIR"
 
-          bun run services/local-orbit/src/index.ts > /tmp/codex-pocket-ci.log 2>&1 &
-          echo $! > /tmp/codex-pocket-ci.pid
+          bun run services/local-orbit/src/index.ts > /tmp/coderelay-ci.log 2>&1 &
+          echo $! > /tmp/coderelay-ci.pid
 
       - name: Wait for /health
         shell: bash
@@ -515,8 +515,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f /tmp/codex-pocket-ci.pid ]; then
-            kill "$(cat /tmp/codex-pocket-ci.pid)" || true
+          if [ -f /tmp/coderelay-ci.pid ]; then
+            kill "$(cat /tmp/coderelay-ci.pid)" || true
           fi
           echo "---- server log (tail) ----"
-          tail -n 200 /tmp/codex-pocket-ci.log || true
+          tail -n 200 /tmp/coderelay-ci.log || true

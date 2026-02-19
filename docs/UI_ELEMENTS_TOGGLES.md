@@ -22,7 +22,7 @@ All Phase 1 issues are complete, covering the store, Settings UI, and the high-i
 ## Defaults and Rationale
 
 - Default: All toggles ON to preserve existing behavior.
-- Storage: `localStorage` key `codex-pocket:ui-toggles` (per-device, per-browser).
+- Storage: `localStorage` key `coderelay:ui-toggles` (per-device, per-browser).
 - Safety guarantee: At least one message copy action always remains enabled.
 - Rationale: Users can reduce clutter without losing critical actions or accidentally hiding required flows.
 

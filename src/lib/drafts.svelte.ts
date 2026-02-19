@@ -1,7 +1,13 @@
 const browser = typeof window !== "undefined";
 import type { ImageAttachment } from "./types";
 
-const DRAFT_STORE_KEY = "codex_pocket_drafts";
+const OLD_DRAFT_STORE_KEY = "codex_pocket_drafts";
+const DRAFT_STORE_KEY = "coderelay_drafts";
+
+if (browser && !localStorage.getItem(DRAFT_STORE_KEY)) {
+  const old = localStorage.getItem(OLD_DRAFT_STORE_KEY);
+  if (old) localStorage.setItem(DRAFT_STORE_KEY, old);
+}
 
 export interface Draft {
   text: string;

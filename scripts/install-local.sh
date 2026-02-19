@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Codex Pocket installer (macOS + iPhone, local-only, Tailscale-first)
-# - Installs to ~/.codex-pocket/app (by default)
+# CodeRelay installer (macOS + iPhone, local-only, Tailscale-first)
+# - Installs to ~/.coderelay/app (by default)
 # - Builds the UI (Vite)
 # - Creates a launchd agent to run the local server on login
 
-APP_DIR="${CODEX_POCKET_HOME:-$HOME/.codex-pocket}"
-REPO_URL="${CODEX_POCKET_REPO:-https://github.com/ddevalco/codex-pocket.git}"
-BRANCH="${ZANE_LOCAL_BRANCH:-main}"
+APP_DIR="${CODERELAY_HOME:-$HOME/.coderelay}"
+REPO_URL="${CODERELAY_REPO:-https://github.com/ddevalco/coderelay.git}"
+BRANCH="${CODERELAY_BRANCH:-main}"
+
+# Migration check
+if [[ ! -d "$APP_DIR" && -d "$HOME/.coderelay" ]]; then
+    echo "NOTICE: Migrating existing installation from ~/.coderelay to $APP_DIR..."
+    mv "$HOME/.coderelay" "$APP_DIR"
+fi
+
 
 bold=$'\033[1m'
 reset=$'\033[0m'
@@ -122,7 +129,7 @@ wait_for_admin_auth() {
   local url="http://127.0.0.1:${LOCAL_PORT}/admin/status"
   local i
   for i in {1..30}; do
-    if curl -fsS -H "Authorization: Bearer ${ZANE_LOCAL_TOKEN}" "$url" >/dev/null 2>&1; then
+    if curl -fsS -H "Authorization: Bearer ${CODERELAY_LOCAL_TOKEN}" "$url" >/dev/null 2>&1; then
       return 0
     fi
     sleep 0.5
@@ -165,8 +172,8 @@ step "Checking dependencies"
 need_cmd git
 
 # Default ports (may be auto-adjusted if in use)
-LOCAL_PORT="${ZANE_LOCAL_PORT:-8790}"
-ANCHOR_PORT="${ZANE_LOCAL_ANCHOR_PORT:-8788}"
+LOCAL_PORT="${CODERELAY_LOCAL_PORT:-8790}"
+ANCHOR_PORT="${CODERELAY_LOCAL_ANCHOR_PORT:-8788}"
 
 BUN_BIN="$(resolve_bun || true)"
 if [[ -z "${BUN_BIN:-}" ]]; then
@@ -213,7 +220,7 @@ else
     "$TAILSCALE_BIN" up
   else
     cat <<'EOT' >&2
-You can still use Codex Pocket locally at http://127.0.0.1:8790 once installed,
+You can still use CodeRelay locally at http://127.0.0.1:8790 once installed,
 but iPhone access requires Tailscale.
 EOT
   fi
@@ -237,6 +244,12 @@ except Exception:
 fi
 
 mkdir -p "$APP_DIR"
+  # DB Migration check
+  if [[ -f "$APP_DIR/coderelay.db" && ! -f "$APP_DIR/coderelay.db" ]]; then
+    echo "Renaming DB from coderelay.db to coderelay.db..."
+    mv "$APP_DIR/coderelay.db" "$APP_DIR/coderelay.db"
+  fi
+
 
 step "Installing app to $APP_DIR/app"
 if [[ -d "$APP_DIR/app/.git" ]]; then
@@ -267,11 +280,11 @@ step "Installing dependencies"
 (cd "$APP_DIR/app/services/anchor" && "$BUN_BIN" install)
 
 step "Generating access token"
-if [[ -z "${ZANE_LOCAL_TOKEN:-}" ]]; then
+if [[ -z "${CODERELAY_LOCAL_TOKEN:-}" ]]; then
   if command -v openssl >/dev/null 2>&1; then
-    ZANE_LOCAL_TOKEN="$(openssl rand -hex 32)"
+    CODERELAY_LOCAL_TOKEN="$(openssl rand -hex 32)"
   else
-    ZANE_LOCAL_TOKEN="$(python3 - <<'PY'
+    CODERELAY_LOCAL_TOKEN="$(python3 - <<'PY'
 import secrets
 print(secrets.token_hex(32))
 PY
@@ -281,20 +294,20 @@ fi
 
 # Convenience: copy token to clipboard on macOS (best-effort).
 if command -v pbcopy >/dev/null 2>&1; then
-  printf "%s" "$ZANE_LOCAL_TOKEN" | pbcopy >/dev/null 2>&1 || true
+  printf "%s" "$CODERELAY_LOCAL_TOKEN" | pbcopy >/dev/null 2>&1 || true
 fi
 
 step "Building UI"
 (cd "$APP_DIR/app" && VITE_ZANE_LOCAL=1 "$BUN_BIN" run build)
 
 CONFIG_JSON="$APP_DIR/config.json"
-DB_PATH="$APP_DIR/codex-pocket.db"
+DB_PATH="$APP_DIR/coderelay.db"
 ANCHOR_LOG="$APP_DIR/anchor.log"
 
 step "Writing config to $CONFIG_JSON"
 cat > "$CONFIG_JSON" <<JSON
 {
-  "token": "${ZANE_LOCAL_TOKEN}",
+  "token": "${CODERELAY_LOCAL_TOKEN}",
   "host": "127.0.0.1",
   "port": ${LOCAL_PORT},
   "db": "${DB_PATH}",
@@ -312,7 +325,7 @@ JSON
 chmod 600 "$CONFIG_JSON" || true
 
 LA_DIR="$HOME/Library/LaunchAgents"
-PLIST="$LA_DIR/com.codex.pocket.plist"
+PLIST="$LA_DIR/com.coderelay.plist"
 PID_FILE="$APP_DIR/server.pid"
 STARTED_VIA="unknown"
 mkdir -p "$LA_DIR"
@@ -322,20 +335,20 @@ start_background() {
   rm -f "$PID_FILE" >/dev/null 2>&1 || true
   touch "$APP_DIR/server.log" >/dev/null 2>&1 || true
   nohup env \
-    ZANE_LOCAL_TOKEN="$ZANE_LOCAL_TOKEN" \
-    ZANE_LOCAL_CONFIG_JSON="$CONFIG_JSON" \
-    ZANE_LOCAL_HOST="127.0.0.1" \
-    ZANE_LOCAL_PORT="${LOCAL_PORT}" \
-    ZANE_LOCAL_DB="$DB_PATH" \
-    ZANE_LOCAL_PUBLIC_ORIGIN="$PUBLIC_ORIGIN" \
-    ZANE_LOCAL_RETENTION_DAYS="14" \
-    ZANE_LOCAL_UI_DIST_DIR="$APP_DIR/app/dist" \
-    ZANE_LOCAL_ANCHOR_CWD="$APP_DIR/app/services/anchor" \
-    ZANE_LOCAL_ANCHOR_LOG="$ANCHOR_LOG" \
-    ZANE_LOCAL_ANCHOR_CMD="$BUN_BIN" \
+    CODERELAY_LOCAL_TOKEN="$CODERELAY_LOCAL_TOKEN" \
+    CODERELAY_LOCAL_CONFIG_JSON="$CONFIG_JSON" \
+    CODERELAY_LOCAL_HOST="127.0.0.1" \
+    CODERELAY_LOCAL_PORT="${LOCAL_PORT}" \
+    CODERELAY_LOCAL_DB="$DB_PATH" \
+    CODERELAY_LOCAL_PUBLIC_ORIGIN="$PUBLIC_ORIGIN" \
+    CODERELAY_LOCAL_RETENTION_DAYS="14" \
+    CODERELAY_LOCAL_UI_DIST_DIR="$APP_DIR/app/dist" \
+    CODERELAY_LOCAL_ANCHOR_CWD="$APP_DIR/app/services/anchor" \
+    CODERELAY_LOCAL_ANCHOR_LOG="$ANCHOR_LOG" \
+    CODERELAY_LOCAL_ANCHOR_CMD="$BUN_BIN" \
     ANCHOR_HOST="127.0.0.1" \
     ANCHOR_PORT="${ANCHOR_PORT}" \
-    ZANE_LOCAL_AUTOSTART_ANCHOR="1" \
+    CODERELAY_LOCAL_AUTOSTART_ANCHOR="1" \
     "$BUN_BIN" run "$APP_DIR/app/services/local-orbit/src/index.ts" >>"$APP_DIR/server.log" 2>&1 </dev/null &
   disown >/dev/null 2>&1 || true
   echo $! >"$PID_FILE"
@@ -349,7 +362,7 @@ cat > "$PLIST" <<PLISTXML
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.codex.pocket</string>
+  <string>com.coderelay</string>
   <key>ProgramArguments</key>
   <array>
     <string>${BUN_BIN}</string>
@@ -360,33 +373,33 @@ cat > "$PLIST" <<PLISTXML
   <string>${APP_DIR}/app</string>
   <key>EnvironmentVariables</key>
 <dict>
-  <key>ZANE_LOCAL_TOKEN</key>
-  <string>${ZANE_LOCAL_TOKEN}</string>
-  <key>ZANE_LOCAL_CONFIG_JSON</key>
+  <key>CODERELAY_LOCAL_TOKEN</key>
+  <string>${CODERELAY_LOCAL_TOKEN}</string>
+  <key>CODERELAY_LOCAL_CONFIG_JSON</key>
   <string>${CONFIG_JSON}</string>
-  <key>ZANE_LOCAL_HOST</key>
+  <key>CODERELAY_LOCAL_HOST</key>
   <string>127.0.0.1</string>
-  <key>ZANE_LOCAL_PORT</key>
+  <key>CODERELAY_LOCAL_PORT</key>
   <string>${LOCAL_PORT}</string>
-  <key>ZANE_LOCAL_DB</key>
+  <key>CODERELAY_LOCAL_DB</key>
   <string>${DB_PATH}</string>
-  <key>ZANE_LOCAL_PUBLIC_ORIGIN</key>
+  <key>CODERELAY_LOCAL_PUBLIC_ORIGIN</key>
   <string>${PUBLIC_ORIGIN}</string>
-  <key>ZANE_LOCAL_RETENTION_DAYS</key>
+  <key>CODERELAY_LOCAL_RETENTION_DAYS</key>
   <string>14</string>
-    <key>ZANE_LOCAL_UI_DIST_DIR</key>
+    <key>CODERELAY_LOCAL_UI_DIST_DIR</key>
     <string>${APP_DIR}/app/dist</string>
-    <key>ZANE_LOCAL_ANCHOR_CWD</key>
+    <key>CODERELAY_LOCAL_ANCHOR_CWD</key>
     <string>${APP_DIR}/app/services/anchor</string>
-    <key>ZANE_LOCAL_ANCHOR_LOG</key>
+    <key>CODERELAY_LOCAL_ANCHOR_LOG</key>
     <string>${ANCHOR_LOG}</string>
-    <key>ZANE_LOCAL_ANCHOR_CMD</key>
+    <key>CODERELAY_LOCAL_ANCHOR_CMD</key>
     <string>${BUN_BIN}</string>
     <key>ANCHOR_HOST</key>
     <string>127.0.0.1</string>
   <key>ANCHOR_PORT</key>
   <string>${ANCHOR_PORT}</string>
-    <key>ZANE_LOCAL_AUTOSTART_ANCHOR</key>
+    <key>CODERELAY_LOCAL_AUTOSTART_ANCHOR</key>
     <string>1</string>
   </dict>
   <key>RunAtLoad</key>
@@ -412,7 +425,7 @@ is_our_pid() {
 }
 
 kill_owned_listeners() {
-  # Kill any stale Codex Pocket processes holding our ports.
+  # Kill any stale CodeRelay processes holding our ports.
   # This intentionally does NOT kill unrelated services.
   if ! command -v lsof >/dev/null 2>&1; then
     return 0
@@ -432,7 +445,7 @@ kill_owned_listeners() {
   sleep 0.1
 }
 
-step "Stopping any existing Codex Pocket service"
+step "Stopping any existing CodeRelay service"
 # Try to stop a prior install cleanly to avoid EADDRINUSE on port 8790.
 launchctl unload "$PLIST" >/dev/null 2>&1 || true
 if [[ -f "$PID_FILE" ]]; then
@@ -446,7 +459,7 @@ fi
 pkill -f "$APP_DIR/app/services/local-orbit/src/index.ts" >/dev/null 2>&1 || true
 pkill -f "$APP_DIR/app/services/anchor/src/index.ts" >/dev/null 2>&1 || true
 
-# Final safety net: kill stale Codex Pocket listeners on our ports (but never unrelated processes).
+# Final safety net: kill stale CodeRelay listeners on our ports (but never unrelated processes).
 kill_owned_listeners
 
 find_free_port() {
@@ -477,9 +490,9 @@ if command -v lsof >/dev/null 2>&1; then
     fi
     echo "" >&2
 
-    # If it looks like a previous codex-pocket/local-orbit Bun process, we can kill it safely.
+    # If it looks like a previous coderelay/local-orbit Bun process, we can kill it safely.
     if ps -p "$listener_pid" -o args= 2>/dev/null | grep -q "$APP_DIR/app/services/local-orbit/src/index.ts"; then
-      echo "Detected an old Codex Pocket server on port ${LOCAL_PORT}. Stopping it..." >&2
+      echo "Detected an old CodeRelay server on port ${LOCAL_PORT}. Stopping it..." >&2
       kill "$listener_pid" >/dev/null 2>&1 || true
       sleep 0.3
     else
@@ -490,14 +503,14 @@ if command -v lsof >/dev/null 2>&1; then
         LOCAL_PORT="$new_port"
         echo "Using port ${LOCAL_PORT}." >&2
       else
-        echo "Aborting install. Re-run after stopping the process, or set ZANE_LOCAL_PORT to use a different port." >&2
+        echo "Aborting install. Re-run after stopping the process, or set CODERELAY_LOCAL_PORT to use a different port." >&2
         exit 1
       fi
     fi
 
     # Re-check after attempting to kill.
     if lsof -nP -t -iTCP:${LOCAL_PORT} -sTCP:LISTEN 2>/dev/null | head -n 1 | rg -q .; then
-      echo "Error: port ${LOCAL_PORT} is still in use. Re-run after freeing it, or set ZANE_LOCAL_PORT to use a different port." >&2
+      echo "Error: port ${LOCAL_PORT} is still in use. Re-run after freeing it, or set CODERELAY_LOCAL_PORT to use a different port." >&2
       exit 1
     fi
   fi
@@ -506,7 +519,7 @@ fi
 # Re-write config + launchd agent in case we had to switch ports due to conflicts.
 cat > "$CONFIG_JSON" <<JSON
 {
-  "token": "${ZANE_LOCAL_TOKEN}",
+  "token": "${CODERELAY_LOCAL_TOKEN}",
   "host": "127.0.0.1",
   "port": ${LOCAL_PORT},
   "db": "${DB_PATH}",
@@ -531,7 +544,7 @@ cat > "$PLIST" <<PLISTXML
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.codex.pocket</string>
+  <string>com.coderelay</string>
   <key>ProgramArguments</key>
   <array>
     <string>${BUN_BIN}</string>
@@ -542,33 +555,33 @@ cat > "$PLIST" <<PLISTXML
   <string>${APP_DIR}/app</string>
   <key>EnvironmentVariables</key>
   <dict>
-    <key>ZANE_LOCAL_TOKEN</key>
-    <string>${ZANE_LOCAL_TOKEN}</string>
-    <key>ZANE_LOCAL_CONFIG_JSON</key>
+    <key>CODERELAY_LOCAL_TOKEN</key>
+    <string>${CODERELAY_LOCAL_TOKEN}</string>
+    <key>CODERELAY_LOCAL_CONFIG_JSON</key>
     <string>${CONFIG_JSON}</string>
-    <key>ZANE_LOCAL_HOST</key>
+    <key>CODERELAY_LOCAL_HOST</key>
     <string>127.0.0.1</string>
-    <key>ZANE_LOCAL_PORT</key>
+    <key>CODERELAY_LOCAL_PORT</key>
     <string>${LOCAL_PORT}</string>
-    <key>ZANE_LOCAL_DB</key>
+    <key>CODERELAY_LOCAL_DB</key>
     <string>${DB_PATH}</string>
-    <key>ZANE_LOCAL_PUBLIC_ORIGIN</key>
+    <key>CODERELAY_LOCAL_PUBLIC_ORIGIN</key>
     <string>${PUBLIC_ORIGIN}</string>
-    <key>ZANE_LOCAL_RETENTION_DAYS</key>
+    <key>CODERELAY_LOCAL_RETENTION_DAYS</key>
     <string>14</string>
-    <key>ZANE_LOCAL_UI_DIST_DIR</key>
+    <key>CODERELAY_LOCAL_UI_DIST_DIR</key>
     <string>${APP_DIR}/app/dist</string>
-    <key>ZANE_LOCAL_ANCHOR_CWD</key>
+    <key>CODERELAY_LOCAL_ANCHOR_CWD</key>
     <string>${APP_DIR}/app/services/anchor</string>
-    <key>ZANE_LOCAL_ANCHOR_LOG</key>
+    <key>CODERELAY_LOCAL_ANCHOR_LOG</key>
     <string>${ANCHOR_LOG}</string>
-    <key>ZANE_LOCAL_ANCHOR_CMD</key>
+    <key>CODERELAY_LOCAL_ANCHOR_CMD</key>
     <string>${BUN_BIN}</string>
     <key>ANCHOR_HOST</key>
     <string>127.0.0.1</string>
     <key>ANCHOR_PORT</key>
     <string>${ANCHOR_PORT}</string>
-    <key>ZANE_LOCAL_AUTOSTART_ANCHOR</key>
+    <key>CODERELAY_LOCAL_AUTOSTART_ANCHOR</key>
     <string>1</string>
   </dict>
   <key>RunAtLoad</key>
@@ -651,21 +664,21 @@ except Exception:
   print("<your-magicdns-host>")')
 
 Access Token (save this):
-  ${ZANE_LOCAL_TOKEN}
+  ${CODERELAY_LOCAL_TOKEN}
 
 EON
 
 step "Install CLI"
 mkdir -p "$APP_DIR/bin"
-# Install a stable wrapper so `codex-pocket` always uses the current repo version
-# (avoids stale CLI copies after `codex-pocket update`).
-cat >"$APP_DIR/bin/codex-pocket" <<'SH'
+# Install a stable wrapper so `coderelay` always uses the current repo version
+# (avoids stale CLI copies after `coderelay update`).
+cat >"$APP_DIR/bin/coderelay" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-APP_DIR="${CODEX_POCKET_HOME:-$HOME/.codex-pocket}"
-exec "$APP_DIR/app/bin/codex-pocket" "$@"
+APP_DIR="${CODERELAY_HOME:-$HOME/.coderelay}"
+exec "$APP_DIR/app/bin/coderelay" "$@"
 SH
-chmod +x "$APP_DIR/bin/codex-pocket"
+chmod +x "$APP_DIR/bin/coderelay"
 
 echo ""
 step "Summary"
@@ -673,7 +686,7 @@ echo "Install dir:      $APP_DIR/app"
 echo "Config:           $CONFIG_JSON"
 echo "Local URL:        http://127.0.0.1:${LOCAL_PORT}"
 echo "Admin URL:        http://127.0.0.1:${LOCAL_PORT}/admin"
-echo "Access Token:     $ZANE_LOCAL_TOKEN"
+echo "Access Token:     $CODERELAY_LOCAL_TOKEN"
 echo "Service started via: $STARTED_VIA"
 echo "Launchd agent:    $PLIST"
 echo "Logs:             $APP_DIR/server.log"
@@ -694,8 +707,8 @@ echo "Add to PATH (zsh):"
 echo "  echo 'export PATH=\"$APP_DIR/bin:$PATH\"' >> ~/.zshrc"
 echo ""
 echo "Then you can run:"
-echo "  codex-pocket doctor"
-echo "  codex-pocket status"
+echo "  coderelay doctor"
+echo "  coderelay status"
 
 echo "Installed."
 

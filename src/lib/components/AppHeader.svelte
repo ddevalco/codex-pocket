@@ -82,7 +82,7 @@
                 navigate("/app");
             }}
         >
-            codex-pocket
+            coderelay
         </a>
         <span class="separator">·</span>
         <button

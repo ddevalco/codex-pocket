@@ -1,7 +1,7 @@
 # Testing Playbook (Canonical)
 
 Last updated: 2026-02-17  
-Scope: Codex Pocket web UI + local-orbit server + multi-provider (Codex + Copilot ACP Phase 1 read-only)
+Scope: CodeRelay web UI + local-orbit server + multi-provider (Codex + Copilot ACP Phase 1 read-only)
 
 ## 1) Environment Setup
 
@@ -26,8 +26,8 @@ gh auth status -h github.com
 ### Clone and install
 
 ```bash
-git clone https://github.com/ddevalco/codex-pocket.git
-cd codex-pocket
+git clone https://github.com/ddevalco/coderelay.git
+cd coderelay
 bun install
 ```
 
@@ -165,7 +165,7 @@ Validate both UI-level and API-level protections.
 
 **Prerequisites:**
 
-- Codex Pocket running locally
+- CodeRelay running locally
 - Copilot ACP session available
 - Image file for attachment testing
 
@@ -174,7 +174,7 @@ Validate both UI-level and API-level protections.
 1. **Build and Compile**
 
    ```bash
-   cd /Users/danedevalcourt/iPhoneApp/codex-pocket
+   cd /Users/danedevalcourt/iPhoneApp/coderelay
    bun run type-check
    cd services/local-orbit
    bun test src/providers/adapters/__tests__/copilot-acp-adapter.test.ts

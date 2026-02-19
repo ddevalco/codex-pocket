@@ -50,9 +50,9 @@ If you want to disable persistence entirely, we can add a flag to stop writing e
 
 ## 5) Limit What Gets Logged
 
-- The Anchor log (`~/.codex-pocket/anchor.log`) can include sensitive content.
+- The Anchor log (`~/.coderelay/anchor.log`) can include sensitive content.
 - Prefer reviewing diffs/approvals rather than dumping secrets into prompts.
 
 ## 6) Separate Users (Optional)
 
-If multiple people use the same Mac account, create a dedicated macOS user for Codex Pocket.
+If multiple people use the same Mac account, create a dedicated macOS user for CodeRelay.

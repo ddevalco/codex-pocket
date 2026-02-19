@@ -254,8 +254,8 @@ function startCopilotACP(config: CopilotACPConfig) {
 
 ### Created Files
 
-- `/Users/danedevalcourt/iPhoneApp/codex-pocket/scripts/debug/test-acp-approvals.ts` - Automated test script (blocked by Bun API issues)
-- `/Users/danedevalcourt/iPhoneApp/codex-pocket/scripts/debug/test-acp-simple.sh` - Shell-based test
+- `/Users/danedevalcourt/iPhoneApp/coderelay/scripts/debug/test-acp-approvals.ts` - Automated test script (blocked by Bun API issues)
+- `/Users/danedevalcourt/iPhoneApp/coderelay/scripts/debug/test-acp-simple.sh` - Shell-based test
 - This findings document
 
 ### Test Commands That Worked

@@ -19,7 +19,7 @@ Date: 2026-02-16
 
 ## Summary
 
-Codex Pocket currently integrates deeply with Codex app-server. This epic defines how to add an additional provider path based on ACP (starting with GitHub Copilot CLI ACP server) so users can view and operate both sources in one UI.
+CodeRelay currently integrates deeply with Codex app-server. This epic defines how to add an additional provider path based on ACP (starting with GitHub Copilot CLI ACP server) so users can view and operate both sources in one UI.
 
 Desired UX:
 
@@ -33,7 +33,7 @@ Desired UX:
 
 - ACP is becoming a standard ecosystem protocol for editor/agent interoperability.
 - Users increasingly run both Codex and Copilot agent workflows and need one operational surface.
-- Codex Pocket already has strong transport, persistence, and timeline UX that can host multi-provider aggregation.
+- CodeRelay already has strong transport, persistence, and timeline UX that can host multi-provider aggregation.
 
 ## Reality Check: Equivalent vs Compatible
 
@@ -472,10 +472,10 @@ Phase 2 complete when:
 - This gives the agent the same access as the user account with zero oversight
 - Equivalent flags: `--allow-all`, `--yolo`
 - Finer-grained: `--allow-tool <name>` and `--deny-tool <name>` exist
-- Impact on Codex Pocket: approval UI is never shown, tool actions appear as immediately executed
+- Impact on CodeRelay: approval UI is never shown, tool actions appear as immediately executed
 - Recommendation: Don't use `--allow-all-tools` unless you fully understand and accept the risk
 
-### How Codex Pocket handles this
+### How CodeRelay handles this
 
 - Adapter detects whether auto-approve mode is active via its own config/launch args
 - `SUPPORTS_APPROVALS` capability flag: set to `false` when auto-approve mode is on, `true` otherwise

@@ -5,7 +5,14 @@ export type HelperProfile = {
   prompt: string;
 };
 
-export const HELPER_PROFILES_STORAGE_KEY = "codex_pocket_helper_profiles_v1";
+const OLD_HELPER_PROFILES_STORAGE_KEY = "codex_pocket_helper_profiles_v1";
+export const HELPER_PROFILES_STORAGE_KEY = "coderelay_helper_profiles_v1";
+const browser = typeof window !== "undefined";
+
+if (browser && !localStorage.getItem(HELPER_PROFILES_STORAGE_KEY)) {
+  const old = localStorage.getItem(OLD_HELPER_PROFILES_STORAGE_KEY);
+  if (old) localStorage.setItem(HELPER_PROFILES_STORAGE_KEY, old);
+}
 export const MAX_HELPER_PROFILES = 24;
 
 function newProfileId(): string {

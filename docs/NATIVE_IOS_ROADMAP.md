@@ -9,7 +9,7 @@ Status:
 
 ## Goals
 
-- Replicate core Codex Pocket behavior in a native SwiftUI client.
+- Replicate core CodeRelay behavior in a native SwiftUI client.
 - Keep tailnet-only networking assumptions.
 - Preserve existing backend/API model (`local-orbit`) and pairing flow.
 - Add native-only value where web cannot match well (notifications/background UX).

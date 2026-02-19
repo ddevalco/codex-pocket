@@ -38,7 +38,7 @@ Phase 5 foundation items, focusing on provider expansion and telemetry visibilit
   - `bunx tsc --noEmit`
   - `bun test`
   - `bun run build`
-  - `~/.codex-pocket/bin/codex-pocket self-test`
+  - `~/.coderelay/bin/coderelay self-test`
   - Manual smoke test: open `/app`, list sessions, open thread, send prompt (Codex + Copilot ACP)
 
 ## P5-01: Claude Integration (Issue #200)

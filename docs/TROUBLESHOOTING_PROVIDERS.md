@@ -15,15 +15,15 @@ which copilot
 which gh
 
 # View server logs
-codex-pocket logs server
+coderelay logs server
 
 # Run full diagnostics
-codex-pocket diagnose
+coderelay diagnose
 ```
 
 ## Understanding Provider Architecture
 
-Codex Pocket uses a **provider adapter system** to support multiple agent backends:
+CodeRelay uses a **provider adapter system** to support multiple agent backends:
 
 - **Codex** (default): Uses local anchor process to relay to Codex desktop app
 - **Copilot ACP** (Phase 1 - read-only): Uses GitHub Copilot CLI via Agent Control Protocol
@@ -88,7 +88,7 @@ which copilot
    ```bash
    # Set environment variable before starting
    export COPILOT_CLI_PATH="/custom/path/to/copilot"
-   codex-pocket restart
+   coderelay restart
    ```
 
 **Note:** The system will gracefully degrade if Copilot is not found. Codex sessions will continue to work normally.
@@ -137,7 +137,7 @@ which copilot
    pkill -f "copilot --acp"
 
    # Restart server
-   codex-pocket restart
+   coderelay restart
    ```
 
 4. **Resource limits**
@@ -155,7 +155,7 @@ which copilot
 
 ```bash
 # View detailed spawn errors
-codex-pocket logs server | grep "copilot-acp"
+coderelay logs server | grep "copilot-acp"
 
 # Typical error pattern:
 # [copilot-acp] Spawning: /usr/local/bin/copilot --acp
@@ -167,8 +167,8 @@ codex-pocket logs server | grep "copilot-acp"
 Restart the server after fixing the underlying issue:
 
 ```bash
-codex-pocket restart
-codex-pocket self-test
+coderelay restart
+coderelay self-test
 ```
 
 ---
@@ -213,10 +213,10 @@ echo '{"jsonrpc":"2.0","id":1,"method":"list_sessions","params":{}}' | copilot -
 
 ```bash
 # Look for handshake timeout
-codex-pocket logs server | grep "handshake"
+coderelay logs server | grep "handshake"
 
 # Check for JSON-RPC errors
-codex-pocket logs server | grep "jsonrpc"
+coderelay logs server | grep "jsonrpc"
 
 # Example error:
 # [copilot-acp] Request 1 (list_sessions) timed out after 5000ms
@@ -236,7 +236,7 @@ codex-pocket logs server | grep "jsonrpc"
    ```bash
    # Set via environment (future enhancement)
    export ACP_TIMEOUT_MS=10000
-   codex-pocket restart
+   coderelay restart
    ```
 
 3. If persistent, disable Copilot provider temporarily:
@@ -281,7 +281,7 @@ lsof -i :8790
    kill -9 <PID>
 
    # Restart
-   codex-pocket restart
+   coderelay restart
    ```
 
 2. **Change port:**
@@ -289,7 +289,7 @@ lsof -i :8790
    ```bash
    # Set custom port
    export PORT=8791
-   codex-pocket restart
+   coderelay restart
 
    # Update Tailscale serve
    tailscale serve --bg http://127.0.0.1:8791
@@ -298,12 +298,12 @@ lsof -i :8790
 3. **Check for multiple instances:**
 
    ```bash
-   # List all codex-pocket processes
-   ps aux | grep "codex-pocket\|local-orbit"
+   # List all coderelay processes
+   ps aux | grep "coderelay\|local-orbit"
 
    # Kill all and restart
    pkill -f "local-orbit"
-   codex-pocket restart
+   coderelay restart
    ```
 
 ---
@@ -353,7 +353,7 @@ curl http://127.0.0.1:8790/admin/health | jq '.providers["copilot-acp"]'
 **Via Server Logs:**
 
 ```bash
-codex-pocket logs server | grep "degraded"
+coderelay logs server | grep "degraded"
 
 # Example output:
 # [copilot-acp] Copilot CLI not found in PATH
@@ -363,7 +363,7 @@ codex-pocket logs server | grep "degraded"
 **Via CLI:**
 
 ```bash
-codex-pocket diagnose | grep -A 5 "provider"
+coderelay diagnose | grep -A 5 "provider"
 ```
 
 ### Recovery from Degraded Mode
@@ -372,7 +372,7 @@ Once the underlying issue is fixed (e.g., Copilot CLI installed):
 
 ```bash
 # Restart server to re-initialize providers
-codex-pocket restart
+coderelay restart
 
 # Verify health
 curl http://127.0.0.1:8790/admin/health | jq '.providers["copilot-acp"].status'
@@ -493,7 +493,7 @@ curl -X POST http://127.0.0.1:8790/api/threads/copilot-acp/test-123 \
 #### Test 3: Check Logs
 
 ```bash
-codex-pocket logs server | grep "read.only\|Phase 1"
+coderelay logs server | grep "read.only\|Phase 1"
 
 # Expected:
 # [copilot-acp] openSession not implemented in Phase 1 (read-only)
@@ -729,23 +729,23 @@ chmod +x /tmp/test-acp.sh
 
 ```bash
 # Via CLI
-codex-pocket logs server
+coderelay logs server
 
 # Direct file (if using launchd)
-tail -f ~/Library/Logs/codex-pocket/server.log
+tail -f ~/Library/Logs/coderelay/server.log
 
 # Direct file (if using systemd on Linux)
-journalctl -u codex-pocket -f
+journalctl -u coderelay -f
 ```
 
 **Anchor Logs:**
 
 ```bash
 # Via CLI
-codex-pocket logs anchor
+coderelay logs anchor
 
 # Direct file
-tail -f ~/Library/Logs/codex-pocket/anchor.log
+tail -f ~/Library/Logs/coderelay/anchor.log
 ```
 
 **Provider-Specific Logs:**
@@ -754,13 +754,13 @@ All provider logs are prefixed with `[provider-id]` in server logs:
 
 ```bash
 # Filter for Copilot ACP
-codex-pocket logs server | grep "copilot-acp"
+coderelay logs server | grep "copilot-acp"
 
 # Filter for Codex
-codex-pocket logs server | grep "codex"
+coderelay logs server | grep "codex"
 
 # Filter for provider errors
-codex-pocket logs server | grep -i "provider.*error\|degraded\|unhealthy"
+coderelay logs server | grep -i "provider.*error\|degraded\|unhealthy"
 ```
 
 ### What to Look For in Logs
@@ -827,7 +827,7 @@ ls -la $(which copilot)
 # Should show: -rwxr-xr-x
 
 # Restart
-codex-pocket restart
+coderelay restart
 ```
 
 ---
@@ -863,7 +863,7 @@ pkill -9 -f "copilot --acp"
 kill -9 <PID>
 
 # Restart server (will spawn fresh process)
-codex-pocket restart
+coderelay restart
 
 # Verify no zombies
 ps aux | grep "copilot --acp"
@@ -871,7 +871,7 @@ ps aux | grep "copilot --acp"
 
 **Prevention:**
 
-- Always use `codex-pocket restart` instead of killing processes manually
+- Always use `coderelay restart` instead of killing processes manually
 - Ensure graceful shutdown handlers are working (SIGTERM before SIGKILL)
 
 ---
@@ -898,7 +898,7 @@ ps aux | grep "copilot --acp"
 curl http://127.0.0.1:8790/admin/health | jq '.providers["copilot-acp"]'
 
 # Check server logs for errors
-codex-pocket logs server | grep "copilot-acp\|list_sessions"
+coderelay logs server | grep "copilot-acp\|list_sessions"
 
 # Try manual ACP test
 echo '{"jsonrpc":"2.0","id":1,"method":"list_sessions","params":{}}' | copilot --acp
@@ -909,7 +909,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"list_sessions","params":{}}' | copilot -
 1. **Restart provider:**
 
    ```bash
-   codex-pocket restart
+   coderelay restart
    ```
 
 2. **Clear browser cache:**
@@ -960,7 +960,7 @@ top -pid $(pgrep -f local-orbit)
 time curl http://127.0.0.1:8790/admin/health
 
 # Check number of sessions (if available)
-codex-pocket logs server | grep "list_sessions" | tail -20
+coderelay logs server | grep "list_sessions" | tail -20
 ```
 
 **Solutions:**
@@ -970,7 +970,7 @@ codex-pocket logs server | grep "list_sessions" | tail -20
    ```bash
    # Future: set via environment
    export ACP_TIMEOUT_MS=10000
-   codex-pocket restart
+   coderelay restart
    ```
 
 2. **Limit session fetching:**
@@ -982,7 +982,7 @@ codex-pocket logs server | grep "list_sessions" | tail -20
 
    ```bash
    # Add to cron for daily restart
-   0 4 * * * ~/.codex-pocket/bin/codex-pocket restart
+   0 4 * * * ~/.coderelay/bin/coderelay restart
    ```
 
 4. **Check Copilot CLI version:**
@@ -1002,21 +1002,21 @@ If provider issues persist:
 1. **Gather diagnostics:**
 
    ```bash
-   codex-pocket diagnose > /tmp/diagnose.txt
-   codex-pocket logs server > /tmp/server.log
-   codex-pocket logs anchor > /tmp/anchor.log
+   coderelay diagnose > /tmp/diagnose.txt
+   coderelay logs server > /tmp/server.log
+   coderelay logs anchor > /tmp/anchor.log
    curl http://127.0.0.1:8790/admin/health > /tmp/health.json
    ```
 
 2. **Open GitHub issue:**
 
-   - Repository: <https://github.com/ddevalco/codex-pocket/issues>
+   - Repository: <https://github.com/ddevalco/coderelay/issues>
    - Include: diagnostics files, error messages, steps to reproduce
    - Tag with: `provider`, `copilot-acp`, `bug`
 
 3. **Check existing issues:**
 
-   - <https://github.com/ddevalco/codex-pocket/issues?q=label%3Aprovider>
+   - <https://github.com/ddevalco/coderelay/issues?q=label%3Aprovider>
 
 4. **Disable problematic provider temporarily:**
 

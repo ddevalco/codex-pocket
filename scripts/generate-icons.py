@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Codex Pocket PNG icons.
+"""Generate CodeRelay PNG icons.
 
 Uses Pillow (PIL) only.
 """
