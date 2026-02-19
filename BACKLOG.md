@@ -27,7 +27,7 @@ Issues are canonical for work items:
 - ✅ Corrected build environment variable
 - ✅ Added local repo source support via rsync
 - ✅ Improved error handling and messaging
-- 🐛 Created Issue #251 for ACP adapter bug (separate fix needed)
+- ✅ Fixed Issue #251 - ACP adapter now correctly spawns `gh copilot --acp` (commit eaa3143)
 
 **Impact:** Installer now works correctly from both GitHub and local sources. App installs and runs without manual dependency fixes.
 
