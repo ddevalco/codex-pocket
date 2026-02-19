@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
 import { createRegistry } from "./providers/registry.js";
-import { CodexAdapter, CopilotAcpAdapter } from "./providers/adapters/index.js";
+import { CodexAdapter, CopilotAcpAdapter, ClaudeAdapter } from "./providers/adapters/index.js";
 import type { PromptInput, PromptAttachment, NormalizedEvent, AcpApprovalPayload } from "./providers/provider-types.js";
 import { normalizeAttachment, isValidAttachment } from "./providers/provider-types.js";
 
@@ -189,6 +189,17 @@ registry.register(
   },
 );
 
+// Register Claude adapter (foundation-only)
+const claudeCfg = providersConfig["claude"] || {};
+registry.register(
+  "claude",
+  (cfg) => new ClaudeAdapter(cfg.extra),
+  {
+    enabled: claudeCfg.enabled === true, // Disabled by default (explicit opt-in)
+    extra: claudeCfg,
+  },
+);
+
 // Prefer config.json (so token rotation persists across restarts), fall back to env.
 AUTH_TOKEN = tokenFromConfigJson(loadedConfig) ?? AUTH_TOKEN;
 
@@ -300,6 +311,12 @@ const PROVIDER_CAPABILITIES: Record<string, ProviderCapabilities> = {
     CAN_FILTER_HISTORY: false,
     SUPPORTS_APPROVALS: true,
     SUPPORTS_STREAMING: true,
+  },
+  claude: {
+    CAN_ATTACH_FILES: true,  // Claude supports vision/file attachments
+    CAN_FILTER_HISTORY: false,  // Not applicable in foundation phase
+    SUPPORTS_APPROVALS: false,  // TBD based on implementation approach
+    SUPPORTS_STREAMING: true,  // Claude API supports streaming
   },
 };
 
