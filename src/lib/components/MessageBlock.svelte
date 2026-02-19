@@ -2,10 +2,10 @@
   import { marked } from "marked";
   import DOMPurify from "dompurify";
   import type { Message } from "../types";
+  import { uiToggles } from "../uiToggles";
   import ShimmerDot from "./ShimmerDot.svelte";
   import Reasoning from "./Reasoning.svelte";
   import Tool from "./Tool.svelte";
-  import { uiToggles } from "../uiToggles";
 
   interface Props {
     message: Message;
@@ -18,6 +18,17 @@
   type CopyState = "idle" | "copied" | "error";
   let copyState = $state<CopyState>("idle");
   let menuOpen = $state(false);
+
+  // Safety guarantee: ensure at least one copy action remains enabled.
+  $effect(() => {
+    const anyCopyEnabled =
+      uiToggles.showMessageCopyButton ||
+      uiToggles.showMessageCopyMarkdown ||
+      uiToggles.showMessageCopyQuoted;
+    if (!anyCopyEnabled) {
+      uiToggles.showMessageCopyButton = true;
+    }
+  });
 
   $effect(() => {
     if (!menuOpen) return;
@@ -199,50 +210,52 @@
     }
   }}
 >
-  <div class="message-actions" data-message-menu={message.id}>
-    <button
-      type="button"
-      class="menu-btn"
-      onclick={(e) => {
-        e.stopPropagation();
-        menuOpen = !menuOpen;
-      }}
-      title="Message actions"
-      aria-label="Message actions"
-    >
-      ⋯
-    </button>
-    {#if menuOpen}
-      <div class="menu" role="menu" aria-label="Message actions">
-        {#if uiToggles.showMessageCopyButton}
-          <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyMessage(); }}>Copy</button>
-        {/if}
-        {#if uiToggles.showMessageCopyMarkdown}
-          <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyRawMarkdown(); }}>Copy markdown</button>
-        {/if}
-        {#if uiToggles.showMessageCopyQuoted}
+  {#if uiToggles.showMessageCopyButton || uiToggles.showMessageCopyMarkdown || uiToggles.showMessageCopyQuoted}
+    <div class="message-actions" data-message-menu={message.id}>
+      <button
+        type="button"
+        class="menu-btn"
+        onclick={(e) => {
+          e.stopPropagation();
+          menuOpen = !menuOpen;
+        }}
+        title="Message actions"
+        aria-label="Message actions"
+      >
+        ⋯
+      </button>
+      {#if menuOpen}
+        <div class="menu" role="menu" aria-label="Message actions">
+          {#if uiToggles.showMessageCopyButton}
+            <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyMessage(); }}>Copy</button>
+          {/if}
+          {#if uiToggles.showMessageCopyMarkdown}
+            <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyRawMarkdown(); }}>Copy markdown</button>
+          {/if}
+          {#if uiToggles.showMessageCopyQuoted}
+            <button
+              type="button"
+              role="menuitem"
+              onclick={() => {
+                menuOpen = false;
+                onCopyQuoted?.(message);
+              }}
+              disabled={!onCopyQuoted}
+            >Copy quoted</button>
+          {/if}
           <button
             type="button"
             role="menuitem"
             onclick={() => {
               menuOpen = false;
-              onCopyQuoted?.(message);
+              onCopyFromHere?.(message.id);
             }}
-            disabled={!onCopyQuoted}
-          >Copy quoted</button>
-        {/if}
-        <button
-          type="button"
-          role="menuitem"
-          onclick={() => {
-            menuOpen = false;
-            onCopyFromHere?.(message.id);
-          }}
-          disabled={!onCopyFromHere}
-        >Copy from here</button>
-      </div>
-    {/if}
-  </div>
+            disabled={!onCopyFromHere}
+          >Copy from here</button>
+        </div>
+      {/if}
+    </div>
+  {/if}
   {#if uiToggles.showMessageCopyButton}
     <button
       type="button"

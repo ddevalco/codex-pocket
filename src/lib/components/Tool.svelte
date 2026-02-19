@@ -318,7 +318,7 @@
     {/if}
     </button>
 
-    {#if uiToggles.showToolOutputCopy && hasContent}
+  {#if hasContent && uiToggles.showToolOutputCopy}
       <button
         type="button"
         class="copy-btn"
