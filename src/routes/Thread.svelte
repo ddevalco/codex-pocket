@@ -50,6 +50,13 @@
         return threadId?.startsWith("copilot-acp:") ? "copilot-acp" : "codex";
     });
 
+    const canSendPrompt = $derived.by(() => {
+        if (threadProvider !== "copilot-acp") return true;
+        const capabilities = (currentThread as any)?.capabilities;
+        if (typeof capabilities?.sendPrompt === "boolean") return capabilities.sendPrompt;
+        return true;
+    });
+
     const pendingAcpApproval = $derived.by(() => {
         const id = threadId;
         if (!id || threadProvider !== "copilot-acp") return null;
@@ -60,7 +67,7 @@
         return threadProvider === "copilot-acp" && !supportsApprovals(currentThread);
     });
 
-    const composerDisabled = $derived.by(() => isInProgress || !socket.isHealthy);
+    const composerDisabled = $derived.by(() => isInProgress || !socket.isHealthy || !canSendPrompt);
 
 
     const threadTitle = $derived.by(() => {
@@ -516,6 +523,11 @@
         messages.addPending(threadId, inputText, clientRequestId);
 
         if (threadProvider === "copilot-acp") {
+            if (!canSendPrompt) {
+                promptError = "Copilot provider does not support prompt input for this session.";
+                messages.updateStatus(threadId, clientRequestId, "error");
+                return;
+            }
             promptLoading = true;
 
             const params: Record<string, unknown> = {
