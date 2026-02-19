@@ -79,9 +79,9 @@
   });
 </script>
 
-<div class="reasoning">
-  <button class="reasoning-trigger row" onclick={toggle} type="button">
-    <svg class="brain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<div class="font-mono text-sm">
+  <button class="flex w-full cursor-pointer items-center gap-sm border-none bg-transparent py-xs text-left font-inherit text-inherit text-cli-text-dim transition-colors hover:text-cli-text" onclick={toggle} type="button">
+    <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
       <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
       <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
@@ -92,9 +92,9 @@
       <path d="M6 18a4 4 0 0 1-1.967-.516"/>
       <path d="M19.967 17.484A4 4 0 0 1 18 18"/>
     </svg>
-    <span class="trigger-text">
+    <span class="min-w-0 flex-1 px-sm">
       {#if isStreaming}
-        <span class="trigger-text-inline">
+        <span class="inline-block">
           <ShimmerText text="Thinking..." duration={1} />
         </span>
       {:else}
@@ -102,8 +102,8 @@
       {/if}
     </span>
     <svg
-      class="chevron"
-      class:open={isOpen}
+      class="ml-auto h-4 w-4 shrink-0 transition-transform duration-200"
+      class:rotate-180={isOpen}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -114,85 +114,22 @@
   </button>
 
   {#if isOpen}
-    <div class="reasoning-content">
-      <div class="reasoning-text markdown">{@html renderedHtml}</div>
+    <div class="mt-sm pl-[calc(1rem+var(--spacing-sm))]" style:animation="slideIn 0.2s ease">
+      <div class="markdown m-0 break-words leading-relaxed text-cli-text-dim">{@html renderedHtml}</div>
     </div>
   {/if}
 </div>
 
 <style>
-  .reasoning {
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-  }
-
-  .reasoning-trigger {
-    --row-gap: var(--space-sm);
-    width: 100%;
-    padding: var(--space-xs) 0;
-    background: none;
-    border: none;
-    color: var(--cli-text-dim);
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    font-size: inherit;
-    transition: color 0.15s ease;
-  }
-
-  .reasoning-trigger:hover {
-    color: var(--cli-text);
-  }
-
-  .brain-icon {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-  }
-
-  .trigger-text {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .trigger-text-inline {
-    display: inline-block;
-  }
-
-  .chevron {
-    margin-left: auto;
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-    transition: transform 0.2s ease;
-  }
-
-  .chevron.open {
-    transform: rotate(180deg);
-  }
-
-  .reasoning-content {
-    margin-top: var(--space-sm);
-    padding-left: calc(1rem + var(--space-sm));
-    animation: slideIn 0.2s ease;
-  }
-
-  .reasoning-text {
-    color: var(--cli-text-dim);
-    line-height: 1.6;
-    word-break: break-word;
-    margin: 0;
-  }
-
   .markdown :global(p) {
     margin: 0;
   }
 
   .markdown :global(pre) {
     margin: 0;
-    padding: var(--space-sm);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: var(--spacing-sm);
+    background: color-mix(in srgb, black, transparent 65%);
+    border: 1px solid color-mix(in srgb, white, transparent 92%);
     border-radius: var(--radius-sm);
     overflow: auto;
   }
