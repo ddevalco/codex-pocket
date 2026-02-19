@@ -1,0 +1,237 @@
+/* Tailwind v4 @theme definition */
+/* This file defines design tokens for Tailwind utilities */
+/* Existing CSS variables in tokens.css remain for backward compatibility */
+
+@theme inline {
+  /* ==================== */
+  /* SPACING SCALE        */
+  /* ==================== */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* ==================== */
+  /* BORDER RADIUS        */
+  /* ==================== */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  
+  /* ==================== */
+  /* TYPOGRAPHY           */
+  /* ==================== */
+  --font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  
+  /* ==================== */
+  /* LIGHT MODE COLORS    */
+  /* ==================== */
+  
+  /* CLI Terminal Colors */
+  --color-cli-bg: oklch(98.5% 0 0);
+  --color-cli-bg-elevated: oklch(100% 0 0);
+  --color-cli-bg-user: oklch(75% 0.15 145 / 0.12);
+  --color-cli-text: oklch(25% 0.01 240);
+  --color-cli-text-dim: oklch(45% 0.01 240);
+  --color-cli-text-muted: oklch(65% 0.01 240);
+  
+  /* Role prefix colors */
+  --color-cli-prefix-user: oklch(55% 0.18 250);
+  --color-cli-prefix-agent: oklch(55% 0.18 145);
+  --color-cli-prefix-tool: oklch(60% 0.15 60);
+  --color-cli-prefix-reasoning: oklch(55% 0.20 285);
+  --color-cli-prefix-file: oklch(55% 0.15 210);
+  --color-cli-prefix-mcp: oklch(55% 0.20 285);
+  --color-cli-prefix-web: oklch(55% 0.15 180);
+  --color-cli-prefix-image: oklch(55% 0.20 340);
+  --color-cli-prefix-review: oklch(55% 0.18 265);
+  
+  /* Status colors */
+  --color-cli-success: oklch(55% 0.18 145);
+  --color-cli-warning: oklch(60% 0.15 60);
+  --color-cli-error: oklch(55% 0.20 25);
+  --color-cli-border: oklch(92% 0.005 240);
+  --color-cli-bg-hover: oklch(96% 0.005 240);
+  --color-cli-selection: oklch(75% 0.15 145 / 0.1);
+  
+  /* Chrome (non-code UI) */
+  --color-bg: oklch(100% 0 0);
+  --color-bg-muted: oklch(98.5% 0.005 240);
+  --color-bg-code: oklch(15% 0 0);
+  --color-border: oklch(92% 0.005 240);
+  --color-border-strong: oklch(85% 0.01 240);
+  --color-text: oklch(18% 0.01 240);
+  --color-text-muted: oklch(50% 0.01 240);
+  --color-text-inverse: oklch(100% 0 0);
+  
+  /* Button colors */
+  --color-btn-primary-bg: oklch(18% 0.01 240);
+  --color-btn-primary-text: oklch(100% 0 0);
+  --color-btn-secondary-bg: oklch(96% 0.005 240);
+  --color-btn-secondary-text: oklch(35% 0.01 240);
+  --color-btn-danger-bg: oklch(97% 0.02 25);
+  --color-btn-danger-text: oklch(55% 0.20 25);
+  --color-btn-success-bg: oklch(97% 0.08 145);
+  --color-btn-success-text: oklch(55% 0.18 145);
+  
+  /* Message role colors */
+  --color-user: oklch(55% 0.18 250);
+  --color-assistant: oklch(55% 0.18 145);
+  --color-reasoning: oklch(55% 0.20 285);
+  --color-tool: oklch(60% 0.15 60);
+  --color-approval: oklch(60% 0.15 60);
+  --color-error: oklch(55% 0.20 25);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px oklch(0% 0 0 / 0.1);
+  --shadow-focus: 0 0 0 3px oklch(100% 0 0 / 0.05);
+  --shadow-popover: 0 4px 12px oklch(0% 0 0 / 0.3);
+  
+  /* UI surfaces */
+  --cli-error-bg: oklch(55% 0.20 25 / 0.1);
+  
+  /* Layout */
+  --app-max-width: 1100px;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  
+  /* Sizes */
+  --size-progress-width: 100px;
+  --size-progress-height: 4px;
+}
+
+/* ==================== */
+/* DARK MODE COLORS     */
+/* ==================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* CLI Terminal Colors */
+    --color-cli-bg: oklch(15% 0 0);
+    --color-cli-bg-elevated: oklch(18% 0 0);
+    --color-cli-bg-user: oklch(75% 0.18 145 / 0.18);
+    --color-cli-text: oklch(92% 0.005 240);
+    --color-cli-text-dim: oklch(65% 0.01 240);
+    --color-cli-text-muted: oklch(50% 0.01 240);
+    
+    /* Role prefix colors - brighter for dark */
+    --color-cli-prefix-user: oklch(75% 0.15 250);
+    --color-cli-prefix-agent: oklch(75% 0.18 145);
+    --color-cli-prefix-tool: oklch(80% 0.12 70);
+    --color-cli-prefix-reasoning: oklch(75% 0.18 285);
+    --color-cli-prefix-file: oklch(75% 0.15 210);
+    --color-cli-prefix-mcp: oklch(75% 0.18 285);
+    --color-cli-prefix-web: oklch(75% 0.15 180);
+    --color-cli-prefix-image: oklch(75% 0.18 340);
+    --color-cli-prefix-review: oklch(75% 0.15 265);
+    
+    /* Status colors */
+    --color-cli-success: oklch(75% 0.18 145);
+    --color-cli-warning: oklch(80% 0.12 70);
+    --color-cli-error: oklch(75% 0.18 25);
+    --color-cli-border: oklch(35% 0.01 240);
+    --color-cli-bg-hover: oklch(20% 0 0);
+    --color-cli-selection: oklch(75% 0.18 145 / 0.2);
+    
+    /* Chrome (non-code UI) */
+    --color-bg: oklch(18% 0.01 240);
+    --color-bg-muted: oklch(22% 0.01 240);
+    --color-bg-code: oklch(10% 0 0);
+    --color-border: oklch(35% 0.01 240);
+    --color-border-strong: oklch(45% 0.01 240);
+    --color-text: oklch(98% 0.005 240);
+    --color-text-muted: oklch(65% 0.01 240);
+    --color-text-inverse: oklch(18% 0.01 240);
+    
+    /* Button colors */
+    --color-btn-primary-bg: oklch(98% 0.005 240);
+    --color-btn-primary-text: oklch(18% 0.01 240);
+    --color-btn-secondary-bg: oklch(35% 0.01 240);
+    --color-btn-secondary-text: oklch(92% 0.005 240);
+    --color-btn-danger-bg: oklch(75% 0.18 25 / 0.2);
+    --color-btn-danger-text: oklch(75% 0.18 25);
+    --color-btn-success-bg: oklch(75% 0.18 145 / 0.2);
+    --color-btn-success-text: oklch(75% 0.18 145);
+    
+    /* Message role colors - brighter */
+    --color-user: oklch(75% 0.15 250);
+    --color-assistant: oklch(75% 0.18 145);
+    --color-reasoning: oklch(75% 0.18 285);
+    --color-tool: oklch(80% 0.12 70);
+    --color-approval: oklch(80% 0.12 70);
+    --color-error: oklch(75% 0.18 25);
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px oklch(0% 0 0 / 0.4);
+    --shadow-focus: 0 0 0 3px oklch(100% 0 0 / 0.05);
+    --shadow-popover: 0 4px 12px oklch(0% 0 0 / 0.3);
+    
+    /* UI surfaces */
+    --cli-error-bg: oklch(55% 0.20 25 / 0.15);
+  }
+}
+
+/* ==================== */
+/* DARK MODE OVERRIDE   */
+/* ==================== */
+/* Manual data-theme="dark" selector matches media query tokens */
+:root[data-theme="dark"] {
+  --color-cli-bg: oklch(15% 0 0);
+  --color-cli-bg-elevated: oklch(18% 0 0);
+  --color-cli-bg-user: oklch(75% 0.18 145 / 0.18);
+  --color-cli-text: oklch(92% 0.005 240);
+  --color-cli-text-dim: oklch(65% 0.01 240);
+  --color-cli-text-muted: oklch(50% 0.01 240);
+  --color-cli-prefix-user: oklch(75% 0.15 250);
+  --color-cli-prefix-agent: oklch(75% 0.18 145);
+  --color-cli-prefix-tool: oklch(80% 0.12 70);
+  --color-cli-prefix-reasoning: oklch(75% 0.18 285);
+  --color-cli-prefix-file: oklch(75% 0.15 210);
+  --color-cli-prefix-mcp: oklch(75% 0.18 285);
+  --color-cli-prefix-web: oklch(75% 0.15 180);
+  --color-cli-prefix-image: oklch(75% 0.18 340);
+  --color-cli-prefix-review: oklch(75% 0.15 265);
+  --color-cli-success: oklch(75% 0.18 145);
+  --color-cli-warning: oklch(80% 0.12 70);
+  --color-cli-error: oklch(75% 0.18 25);
+  --color-cli-border: oklch(35% 0.01 240);
+  --color-cli-bg-hover: oklch(20% 0 0);
+  --color-cli-selection: oklch(75% 0.18 145 / 0.2);
+  --color-bg: oklch(18% 0.01 240);
+  --color-bg-muted: oklch(22% 0.01 240);
+  --color-bg-code: oklch(10% 0 0);
+  --color-border: oklch(35% 0.01 240);
+  --color-border-strong: oklch(45% 0.01 240);
+  --color-text: oklch(98% 0.005 240);
+  --color-text-muted: oklch(65% 0.01 240);
+  --color-text-inverse: oklch(18% 0.01 240);
+  --color-btn-primary-bg: oklch(98% 0.005 240);
+  --color-btn-primary-text: oklch(18% 0.01 240);
+  --color-btn-secondary-bg: oklch(35% 0.01 240);
+  --color-btn-secondary-text: oklch(92% 0.005 240);
+  --color-btn-danger-bg: oklch(75% 0.18 25 / 0.2);
+  --color-btn-danger-text: oklch(75% 0.18 25);
+  --color-btn-success-bg: oklch(75% 0.18 145 / 0.2);
+  --color-btn-success-text: oklch(75% 0.18 145);
+  --color-user: oklch(75% 0.15 250);
+  --color-assistant: oklch(75% 0.18 145);
+  --color-reasoning: oklch(75% 0.18 285);
+  --color-tool: oklch(80% 0.12 70);
+  --color-approval: oklch(80% 0.12 70);
+  --color-error: oklch(75% 0.18 25);
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px oklch(0% 0 0 / 0.4);
+  --shadow-focus: 0 0 0 3px oklch(100% 0 0 / 0.05);
+  --shadow-popover: 0 4px 12px oklch(0% 0 0 / 0.3);
+  --cli-error-bg: oklch(55% 0.20 25 / 0.15);
+}
