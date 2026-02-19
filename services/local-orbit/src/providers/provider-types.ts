@@ -105,6 +105,37 @@ export type EventCategory =
   | "metadata"; // Metadata updates (title change, etc.)
 
 /**
+ * Token usage and cost tracking for agent responses.
+ * Provider-agnostic telemetry for token consumption and estimated costs.
+ */
+export interface TokenUsage {
+  /**
+   * Number of tokens in the prompt/input
+   */
+  promptTokens: number;
+
+  /**
+   * Number of tokens in the completion/output
+   */
+  completionTokens: number;
+
+  /**
+   * Total tokens (prompt + completion)
+   */
+  totalTokens: number;
+
+  /**
+   * Estimated cost in USD (null if pricing unavailable)
+   */
+  estimatedCost?: number;
+
+  /**
+   * Model identifier for cost calculation reference
+   */
+  model?: string;
+}
+
+/**
  * Normalized event envelope for timeline storage and rendering.
  * All provider events are transformed into this shape for consistent UI treatment.
  */
@@ -151,6 +182,12 @@ export interface NormalizedEvent {
    * - approval_request: { requestId, approvalType, details }
    */
   payload?: Record<string, unknown>;
+
+  /**
+   * Token usage and cost tracking (if available from provider)
+   * Null if provider does not emit usage metadata
+   */
+  tokenUsage?: TokenUsage;
 
   /**
    * Raw provider event payload for debugging/replay
