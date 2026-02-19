@@ -32,8 +32,35 @@
   } from "../lib/helperProfiles";
   import { approvalPolicyStore } from "../lib/approval-policy-store.svelte";
   import { getToggleState, resetToggles, setToggleState, type UIToggleKey } from "../lib/uiToggles";
+  import { agents } from "../lib/agents.svelte";
 
-  const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
+  const OLD_ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
+  const ENTER_BEHAVIOR_KEY = "coderelay_enter_behavior";
+
+  if (typeof localStorage !== "undefined" && !localStorage.getItem(ENTER_BEHAVIOR_KEY)) {
+    const old = localStorage.getItem(OLD_ENTER_BEHAVIOR_KEY);
+    if (old) localStorage.setItem(ENTER_BEHAVIOR_KEY, old);
+  }
+  
+  let customAgentImportInput = $state<HTMLInputElement | null>(null);
+  let customAgentImportError = $state<string | null>(null);
+
+  $effect(() => {
+    agents.load();
+  });
+
+  async function handleCustomAgentImport(e: Event) {
+    customAgentImportError = null;
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) {
+      const res = await agents.import(file);
+      if (!res.success) {
+        customAgentImportError = res.error || "Import failed";
+      }
+      if (customAgentImportInput) customAgentImportInput.value = "";
+    }
+  }
+
   type EnterBehavior = "newline" | "send";
   let enterBehavior = $state<EnterBehavior>("newline");
   let quickReplies = $state<QuickReply[]>([]);
@@ -290,7 +317,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "codex-pocket-presets.json";
+      a.download = "coderelay-presets.json";
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
     } catch {
@@ -322,8 +349,8 @@
   import { anchors } from "../lib/anchors.svelte";
   const LOCAL_MODE = true;
 
-  const UI_COMMIT = String(import.meta.env.VITE_CODEX_POCKET_COMMIT ?? "");
-  const UI_BUILT_AT = String(import.meta.env.VITE_CODEX_POCKET_BUILT_AT ?? "");
+  const UI_COMMIT = String(import.meta.env.VITE_CODERELAY_COMMIT ?? "");
+  const UI_BUILT_AT = String(import.meta.env.VITE_CODERELAY_BUILT_AT ?? "");
 
   type Health = { version?: { appCommit?: string } };
   let appCommit = $state<string>("");
@@ -624,6 +651,43 @@
     </div>
 
     <div class="panel panel-wide">
+      <SectionCard title="Custom Agents">
+         {#if customAgentImportError}
+           <div class="error-msg">{customAgentImportError}</div>
+         {/if}
+         <div class="stack custom-agents">
+            {#if agents.list.length === 0}
+               <p class="hint">No custom agents imported yet.</p>
+            {/if}
+            {#each agents.list as agent (agent.id)}
+               <div class="agent-row">
+                  <div class="agent-info">
+                     <strong>{agent.name}</strong>
+                     <span class="muted">{agent.description}</span>
+                     {#if agent.model}
+                       <span class="badge">{agent.model}</span>
+                     {/if}
+                  </div>
+                  <div class="agent-actions">
+                     <button class="plain-btn" onclick={() => agents.export(agent.id)}>Export</button>
+                     <button class="plain-btn danger" onclick={() => agents.delete(agent.id)}>Delete</button>
+                  </div>
+               </div>
+            {/each}
+            
+            <input
+               bind:this={customAgentImportInput}
+               type="file"
+               accept=".json"
+               class="file-input-hidden"
+               onchange={handleCustomAgentImport}
+               style="display:none"
+            />
+            <div class="actions">
+               <button class="plain-btn" onclick={() => customAgentImportInput?.click()}>Import Agent JSON</button>
+            </div>
+         </div>
+      </SectionCard>
       <SectionCard title="Presets">
         <div class="stack preset-settings">
           <input
@@ -1330,4 +1394,28 @@
   }
   .mono { font-family: var(--font-mono); }
   .dim { color: var(--cli-text-dim); }
+
+  .custom-agents {
+    gap: 0.75rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .agent-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid var(--cli-border);
+    border-radius: 6px;
+    background: var(--cli-bg-subtle);
+  }
+  .agent-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .agent-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
 </style>

@@ -1,6 +1,6 @@
-# Codex Pocket
+# CodeRelay
 
-![ci](https://github.com/ddevalco/codex-pocket/actions/workflows/ci.yml/badge.svg)
+![ci](https://github.com/ddevalco/coderelay/actions/workflows/ci.yml/badge.svg)
 
 Remote control for your local Codex on your Mac from your iPhone.
 
@@ -14,10 +14,10 @@ This project started as a local-only fork of Zane (credit: <https://github.com/z
 
 1. Create a (free) Tailscale account: <https://tailscale.com/>
 2. Install Tailscale on your Mac + iPhone and sign in to both.
-3. Install Codex Pocket on your Mac:
+3. Install CodeRelay on your Mac:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ddevalco/codex-pocket/main/scripts/install-local.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ddevalco/coderelay/main/scripts/install-local.sh | bash
 ```
 
 1. Expose it on your tailnet (Mac):
@@ -35,7 +35,7 @@ tailscale serve --bg http://127.0.0.1:8790
 If anything doesn’t work, run:
 
 ```bash
-~/.codex-pocket/bin/codex-pocket ensure
+~/.coderelay/bin/coderelay ensure
 ```
 
 ### Docs
@@ -63,7 +63,7 @@ We track the canonical backlog in GitHub Projects:
 
 All bugs, features, and reliability work are tracked as GitHub Issues:
 
-- <https://github.com/ddevalco/codex-pocket/issues>
+- <https://github.com/ddevalco/coderelay/issues>
 
 Workflow rules:
 
@@ -77,13 +77,13 @@ Prioritized engineering recommendations are maintained in:
 
 ## Common First-Run Issues
 
-- **`codex-pocket: command not found`**
-  - The CLI is installed at `~/.codex-pocket/bin/codex-pocket`.
-  - Quick run: `~/.codex-pocket/bin/codex-pocket summary`
+- **`coderelay: command not found`**
+  - The CLI is installed at `~/.coderelay/bin/coderelay`.
+  - Quick run: `~/.coderelay/bin/coderelay summary`
   - Add to PATH (zsh):
-    - `echo 'export PATH="$HOME/.codex-pocket/bin:$PATH"' >> ~/.zshrc`
+    - `echo 'export PATH="$HOME/.coderelay/bin:$PATH"' >> ~/.zshrc`
     - `exec zsh`
-  - From this repo, run `./bin/codex-pocket ...` (if you `cd bin`, use `./codex-pocket`, not `codex-pocket`).
+  - From this repo, run `./bin/coderelay ...` (if you `cd bin`, use `./coderelay`, not `coderelay`).
 
 - **"Serve is not enabled on your tailnet"**
   - Tailscale may require you to explicitly enable Serve in your tailnet admin settings.
@@ -91,18 +91,18 @@ Prioritized engineering recommendations are maintained in:
 
 - **Admin shows "Failed to fetch" or stays on "Loading..."**
   - The browser can’t reach the local server.
-  - Run `~/.codex-pocket/bin/codex-pocket ensure`.
+  - Run `~/.coderelay/bin/coderelay ensure`.
 
 - **Admin asks for the Access Token again**
   - If you reinstalled or rotated the token, the browser must re-auth.
-  - Run `~/.codex-pocket/bin/codex-pocket token` to print it.
+  - Run `~/.coderelay/bin/coderelay token` to print it.
 
 - **iPhone opens the tailnet URL but shows disconnected / no device**
   - Confirm Tailscale is connected on iPhone and Mac.
   - Open `/admin` on the Mac and click **Validate** then **Repair**.
 
 - **Port conflict / service won’t start**
-  - Run `~/.codex-pocket/bin/codex-pocket diagnose` to see what’s listening and the latest logs.
+  - Run `~/.coderelay/bin/coderelay diagnose` to see what’s listening and the latest logs.
 
 ## Features
 
@@ -123,23 +123,23 @@ Prioritized engineering recommendations are maintained in:
 
 - **🎛️ Graceful Degradation UX** — UI elements automatically disable when capabilities are unavailable. Disabled buttons show tooltips explaining why (e.g., "This provider does not support attachments"). No broken interactions.
 
-- **📎 Full Attachment Support** — Upload images and files to Codex and Copilot ACP. Files are stored locally (`~/.codex-pocket/uploads`), base64-encoded for ACP protocol, with automatic text-only fallback if attachments are rejected.
+- **📎 Full Attachment Support** — Upload images and files to Codex and Copilot ACP. Files are stored locally (`~/.coderelay/uploads`), base64-encoded for ACP protocol, with automatic text-only fallback if attachments are rejected.
 
 - **🔒 ACP Approval System** — Interactive prompts for tool permissions (shell commands, file operations, etc.):
   - Four decision types: `allow_once`, `allow_always`, `reject_once`, `reject_always`
-  - Persistent policy store in localStorage (`codex_pocket_acp_approval_policies`)
+  - Persistent policy store in localStorage (`coderelay_acp_approval_policies`)
   - Policies managed in Settings with revoke capability
   - Auto-approve detection (shows warning when `--allow-all-tools` is enabled)
 
 - **🔍 Advanced Filtering** — Dual-axis thread filtering:
   - **Provider Filter**: All, Codex, or Copilot ACP (live counts)
   - **Status Filter**: All, Active, or Archived (live counts)
-  - Filter state persists to localStorage (`codex_pocket_thread_filters`)
+  - Filter state persists to localStorage (`coderelay_thread_filters`)
   - Mobile-responsive flex-wrap layout with empty state handling
 
 ## Multi-Provider Architecture
 
-Codex Pocket supports multiple AI providers through a unified adapter interface:
+CodeRelay supports multiple AI providers through a unified adapter interface:
 
 ### Providers
 
@@ -189,7 +189,7 @@ When Copilot ACP requests tool permissions (e.g., running shell commands, readin
 
 **Policy Management:**
 
-- Policies stored in localStorage (`codex_pocket_acp_approval_policies`)
+- Policies stored in localStorage (`coderelay_acp_approval_policies`)
 - Specificity-based matching: exact tool name > tool kind > global default
 - Manage policies in Settings: view all rules, revoke individual policies
 - Auto-approve detection: warning banner shown when provider started with `--allow-all-tools`
@@ -223,7 +223,7 @@ Filter your thread list with dual-axis filtering:
 **Features:**
 
 - Live thread counts on filter chips
-- Filter state persists to localStorage (`codex_pocket_thread_filters`)
+- Filter state persists to localStorage (`coderelay_thread_filters`)
 - Defensive hydration on page load with validation fallback
 - Empty state UI when no threads match filters
 - Mobile-responsive flex-wrap layout
@@ -231,7 +231,7 @@ Filter your thread list with dual-axis filtering:
 
 ## Architecture Overview
 
-Codex Pocket is a **local-first, multi-provider AI interface** with secure Tailscale-based remote access.
+CodeRelay is a **local-first, multi-provider AI interface** with secure Tailscale-based remote access.
 
 ### Core Components
 
@@ -277,9 +277,9 @@ iPhone/Mac Browser
 
 ### LocalStorage Keys
 
-- `codex_pocket_thread_filters`: Provider and status filter state
-- `codex_pocket_acp_approval_policies`: ACP tool permission policies
-- `codex_pocket_enter_behavior`: Composer Enter key behavior (per-device)
+- `coderelay_thread_filters`: Provider and status filter state
+- `coderelay_acp_approval_policies`: ACP tool permission policies
+- `coderelay_enter_behavior`: Composer Enter key behavior (per-device)
 - Quick replies, agent presets, helper profiles (various keys)
 
 ### Database Schema
@@ -299,7 +299,7 @@ iPhone/Mac Browser
 - Per-device session tokens with mode enforcement (full/read-only)
 - Indexed on `revoked_at` for active session queries
 
-## How Codex Pocket Differs From Zane
+## How CodeRelay Differs From Zane
 
 See [docs/DIFFERENCES_FROM_ZANE.md](docs/DIFFERENCES_FROM_ZANE.md) for a complete architectural comparison.
 
@@ -327,7 +327,7 @@ See [docs/DIFFERENCES_FROM_ZANE.md](docs/DIFFERENCES_FROM_ZANE.md) for a complet
 
 ## Demo
 
-[![Codex Pocket demo](https://img.youtube.com/vi/kmH0hEY6Y7o/hqdefault.jpg)](https://www.youtube.com/watch?v=kmH0hEY6Y7o)
+[![CodeRelay demo](https://img.youtube.com/vi/kmH0hEY6Y7o/hqdefault.jpg)](https://www.youtube.com/watch?v=kmH0hEY6Y7o)
 
 ## CI (GitHub Actions)
 
@@ -346,7 +346,7 @@ This repo includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that b
 
 ## Why Tailscale?
 
-Codex Pocket is built around a simple security goal: **don’t expose your local Codex to the public internet**.
+CodeRelay is built around a simple security goal: **don’t expose your local Codex to the public internet**.
 Tailscale is what makes that practical.
 
 What it provides in this setup:
@@ -356,22 +356,22 @@ What it provides in this setup:
 - **Stable device URL**: **MagicDNS** gives your Mac a stable hostname (e.g. `my-mac.tailXXXX.ts.net`).
 - **No public tunnel vendor**: you don’t need Cloudflare (or any third-party tunnel) to make the UI reachable.
 
-How it fits Codex Pocket:
+How it fits CodeRelay:
 
-- Codex Pocket binds locally to `127.0.0.1`.
+- CodeRelay binds locally to `127.0.0.1`.
 - `tailscale serve` publishes that local-only service to your tailnet over HTTPS/WSS.
-- The Admin/WS endpoints remain protected by your Codex Pocket **Access Token** (and the iPhone pairing QR).
+- The Admin/WS endpoints remain protected by your CodeRelay **Access Token** (and the iPhone pairing QR).
 
 ## Uploads (Images)
 
-- Uploads are stored locally on your Mac (default: `~/.codex-pocket/uploads`).
+- Uploads are stored locally on your Mac (default: `~/.coderelay/uploads`).
 - Upload retention is **permanent by default** (`0` days). You can set retention (days) in `/admin`.
 - Uploaded images are served via capability URLs (`/u/<token>`). This avoids putting your **Access Token** in image URLs and allows `<img>` tags to load on iPhone.
 
 ## Install (macOS)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ddevalco/codex-pocket/main/scripts/install-local.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ddevalco/coderelay/main/scripts/install-local.sh | bash
 ```
 
 After install:
@@ -383,22 +383,22 @@ What the installer does:
 
 - Checks dependencies (git, bun, tailscale) and helps you install missing pieces.
 - Builds the web UI (so you get a single self-contained local server + static UI).
-- Writes state/config under `~/.codex-pocket/`.
+- Writes state/config under `~/.coderelay/`.
 - Attempts to install a `launchd` agent. If your system blocks `launchctl` (common on managed Macs), it will fall back to running in the background and prints `Service started via: ...`.
 - Optionally configures `tailscale serve` so your iPhone can reach the service via MagicDNS.
 
 ## Wipe / Reset
 
-If you want a clean slate (stop service, disable `tailscale serve`, remove launchd agent, delete `~/.codex-pocket`):
+If you want a clean slate (stop service, disable `tailscale serve`, remove launchd agent, delete `~/.coderelay`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ddevalco/codex-pocket/main/scripts/reset-and-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ddevalco/coderelay/main/scripts/reset-and-install.sh | bash
 ```
 
 If you only want to wipe without reinstalling, run the local script after install:
 
 ```bash
-~/.codex-pocket/app/scripts/wipe-local.sh
+~/.coderelay/app/scripts/wipe-local.sh
 ```
 
 ## Enable iPhone Access (Tailscale)
@@ -431,12 +431,12 @@ Then open on your Mac (to pair your iPhone):
 What to expect after pairing:
 
 - Your iPhone will open `https://<your-mac-magicdns-host>/` and connect automatically (no manual “server URL” setup).
-- Threads/models populate after the Anchor connects (usually a few seconds). If you see “No device connected”, check `/admin` and `~/.codex-pocket/anchor.log`.
+- Threads/models populate after the Anchor connects (usually a few seconds). If you see “No device connected”, check `/admin` and `~/.coderelay/anchor.log`.
 - Existing threads may appear immediately, but some Codex versions do not replay full historical transcripts into third-party UIs. In that case, only new activity will show up. (We’re iterating on better backfill.)
 
 Note about the Codex desktop app:
 
-- Codex Pocket is its own UI. Messages you send from Codex Pocket may not immediately appear in the Codex desktop app UI without a refresh/restart of the desktop app.
+- CodeRelay is its own UI. Messages you send from CodeRelay may not immediately appear in the Codex desktop app UI without a refresh/restart of the desktop app.
 
 ## Developer Notes
 

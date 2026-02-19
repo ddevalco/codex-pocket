@@ -277,13 +277,13 @@
                 try {
                     const f = new File([md], `${title}.md`, { type: "text/markdown" });
                     if (nav.canShare?.({ files: [f] })) {
-                        await nav.share({ title: `Codex Pocket: ${title}`, files: [f] });
+                        await nav.share({ title: `CodeRelay: ${title}`, files: [f] });
                         return;
                     }
                 } catch {
                     // ignore and fall back to text share
                 }
-                await nav.share({ title: `Codex Pocket: ${title}`, text: md });
+                await nav.share({ title: `CodeRelay: ${title}`, text: md });
                 return;
             }
         } catch {
@@ -304,13 +304,13 @@
                 try {
                     const f = new File([json], `${title}.json`, { type: "application/json" });
                     if (nav.canShare?.({ files: [f] })) {
-                        await nav.share({ title: `Codex Pocket: ${title}`, files: [f] });
+                        await nav.share({ title: `CodeRelay: ${title}`, files: [f] });
                         return;
                     }
                 } catch {
                     // fall back to text share
                 }
-                await nav.share({ title: `Codex Pocket: ${title}`, text: json });
+                await nav.share({ title: `CodeRelay: ${title}`, text: json });
                 return;
             }
         } catch {
@@ -331,13 +331,13 @@
                 try {
                     const f = new File([html], `${title}.html`, { type: "text/html" });
                     if (nav.canShare?.({ files: [f] })) {
-                        await nav.share({ title: `Codex Pocket: ${title}`, files: [f] });
+                        await nav.share({ title: `CodeRelay: ${title}`, files: [f] });
                         return;
                     }
                 } catch {
                     // fall back to text share
                 }
-                await nav.share({ title: `Codex Pocket: ${title}`, text: html });
+                await nav.share({ title: `CodeRelay: ${title}`, text: html });
                 return;
             }
         } catch {

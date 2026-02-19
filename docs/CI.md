@@ -1,6 +1,6 @@
 # CI (GitHub Actions)
 
-Codex Pocket uses GitHub Actions to catch regressions on every push and pull request.
+CodeRelay uses GitHub Actions to catch regressions on every push and pull request.
 
 The workflow is defined in:
 

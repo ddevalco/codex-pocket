@@ -568,7 +568,7 @@ async function startup() {
   // local-orbit passes a shared bearer token via env.
   ZANE_ANCHOR_JWT_SECRET = (process.env.ZANE_ANCHOR_JWT_SECRET ?? "").trim();
 
-console.log(`\nCodex Pocket Anchor`);
+console.log(`\nCodeRelay Anchor`);
   console.log(`  Local:     disabled (no local listen)`);
 
   if (ORBIT_URL && !ZANE_ANCHOR_JWT_SECRET) {

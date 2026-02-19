@@ -13,7 +13,7 @@ This document lays out recommended work from the architecture and protocol revie
 ## Tracking Policy
 
 - Canonical tracker: GitHub Issues
-  - <https://github.com/ddevalco/codex-pocket/issues>
+  - <https://github.com/ddevalco/coderelay/issues>
 - Canonical planning board: GitHub Project 2
   - <https://github.com/users/ddevalco/projects/2>
 - For each item below:

@@ -1,4 +1,4 @@
-# Codex Pocket Protocol (local-orbit)
+# CodeRelay Protocol (local-orbit)
 
 This document describes the lightweight protocol used between:
 
@@ -6,11 +6,11 @@ This document describes the lightweight protocol used between:
 - **local-orbit**: the local server (`services/local-orbit/src/index.ts`)
 - **Anchor**: the Mac agent (`services/anchor/src/index.ts`) which spawns `codex app-server`
 
-Codex Pocket aims to be permissive about upstream `codex app-server` response shapes, but this document captures what Codex Pocket itself sends and expects.
+CodeRelay aims to be permissive about upstream `codex app-server` response shapes, but this document captures what CodeRelay itself sends and expects.
 
 ## Provider Abstraction Layer (New in #129)
 
-Codex Pocket now supports multi-provider integration through a unified adapter system. This enables integration with Codex app-server, GitHub Copilot ACP, and future agent providers.
+CodeRelay now supports multi-provider integration through a unified adapter system. This enables integration with Codex app-server, GitHub Copilot ACP, and future agent providers.
 
 ### Normalized Event Model
 
@@ -175,7 +175,7 @@ local-orbit will broadcast the message to all anchors so the anchor can observe 
 
 ## Persistence
 
-local-orbit stores events in SQLite (default `~/.codex-pocket/codex-pocket.db`).
+local-orbit stores events in SQLite (default `~/.coderelay/coderelay.db`).
 
 - `GET /threads/:id/events` (auth required)
   - returns NDJSON (one JSON object per line)

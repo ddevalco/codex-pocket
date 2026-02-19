@@ -4,10 +4,10 @@ This project is designed to be local-first and tailnet-only. When something goes
 
 ## Quick Checks
 
-1. `codex-pocket self-test`
-2. `codex-pocket diagnose`
-3. `codex-pocket logs server`
-4. `codex-pocket logs anchor`
+1. `coderelay self-test`
+2. `coderelay diagnose`
+3. `coderelay logs server`
+4. `coderelay logs anchor`
 
 ## Provider-Specific Issues
 
@@ -17,47 +17,47 @@ For issues related to provider adapters (Copilot ACP, Codex, etc.), see:
 
 ## Common Issues
 
-### `codex-pocket: command not found`
+### `coderelay: command not found`
 
 This means your shell PATH does not include the install bin directory yet.
 
 Immediate workaround:
 
 ```bash
-~/.codex-pocket/bin/codex-pocket summary
+~/.coderelay/bin/coderelay summary
 ```
 
 Permanent fix (zsh/macOS):
 
 ```bash
-echo 'export PATH="$HOME/.codex-pocket/bin:$PATH"' >> ~/.zshrc
+echo 'export PATH="$HOME/.coderelay/bin:$PATH"' >> ~/.zshrc
 exec zsh
 ```
 
 If you are running from the git repo, use:
 
 ```bash
-./bin/codex-pocket summary
+./bin/coderelay summary
 ```
 
-If you `cd bin`, run `./codex-pocket`, not `codex-pocket`.
+If you `cd bin`, run `./coderelay`, not `coderelay`.
 
 ### Admin Page Asks For Access Token
 
 Get the current token:
 
 ```bash
-codex-pocket token
+coderelay token
 ```
 
-If you recently reinstalled or deleted `~/.codex-pocket/config.json`, the token changed and you may need to re-pair your phone.
+If you recently reinstalled or deleted `~/.coderelay/config.json`, the token changed and you may need to re-pair your phone.
 
 ### Pairing Code Expired (iPhone Pairing)
 
 Generate a new one-time pairing link:
 
 ```bash
-codex-pocket pair
+coderelay pair
 ```
 
 Then open the printed URL (or scan it with your iPhone).
@@ -74,8 +74,8 @@ Hard refresh:
 If it persists:
 
 ```bash
-codex-pocket restart
-codex-pocket self-test
+coderelay restart
+coderelay self-test
 ```
 
 ### Threads Are Empty / History Does Not Populate
@@ -89,15 +89,15 @@ This is usually one of:
 Run:
 
 ```bash
-codex-pocket self-test
+coderelay self-test
 ```
 
 If it fails:
 
 ```bash
-codex-pocket diagnose
-codex-pocket logs server
-codex-pocket logs anchor
+coderelay diagnose
+coderelay logs server
+coderelay logs anchor
 ```
 
 ### Messages Won't Send / Stuck After Long Runs
@@ -111,10 +111,10 @@ Fix:
 2. Restart Pocket so Anchor re-spawns app-server with fresh auth:
 
 ```bash
-codex-pocket restart
+coderelay restart
 ```
 
-`codex-pocket diagnose` will now warn if it detects invalid upstream auth.
+`coderelay diagnose` will now warn if it detects invalid upstream auth.
 
 ### Duplicate Devices Showing In Settings
 
@@ -123,11 +123,11 @@ This can happen when orphaned anchor processes are left behind after restarts/up
 Fix:
 
 ```bash
-codex-pocket restart
-codex-pocket self-test
+coderelay restart
+coderelay self-test
 ```
 
-If it keeps happening, `codex-pocket diagnose` will show whether multiple anchors are running.
+If it keeps happening, `coderelay diagnose` will show whether multiple anchors are running.
 
 ### Update Completed But Service Is Not Reachable
 
@@ -136,8 +136,8 @@ The updater does best-effort restarts, but macOS `launchctl` can be blocked and 
 Run:
 
 ```bash
-codex-pocket restart
-codex-pocket self-test
+coderelay restart
+coderelay self-test
 ```
 
 If the service repeatedly becomes unreachable shortly after starting, confirm you are on the latest version (some older
@@ -145,7 +145,7 @@ background-start paths were not fully detached from the parent process).
 
 ### Tailscale Not Found
 
-Codex Pocket expects Tailscale for tailnet-only access.
+CodeRelay expects Tailscale for tailnet-only access.
 
 Install Tailscale:
 
@@ -155,7 +155,7 @@ Install Tailscale:
 Then verify serve is configured:
 
 ```bash
-codex-pocket diagnose
+coderelay diagnose
 ```
 
 ### Anchor Log Shows `Executable not found in $PATH: "codex"`
@@ -166,7 +166,7 @@ Anchor now auto-checks common locations (`/opt/homebrew/bin/codex`, `/usr/local/
 
 ```bash
 export ANCHOR_CODEX_PATH="/full/path/to/codex"
-codex-pocket restart
+coderelay restart
 ```
 
 If you use launchd, add the same env var to your launch configuration so it survives reboots.

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "codex-pocket-local-orbit",
+      "name": "coderelay-local-orbit",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.77.0",
       },

@@ -64,7 +64,13 @@
   let presetOpen = $state(false);
   let quickReplies = $state<QuickReply[]>([]);
 
-  const ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
+  const OLD_ENTER_BEHAVIOR_KEY = "codex_pocket_enter_behavior";
+  const ENTER_BEHAVIOR_KEY = "coderelay_enter_behavior";
+
+  if (typeof localStorage !== "undefined" && !localStorage.getItem(ENTER_BEHAVIOR_KEY)) {
+    const old = localStorage.getItem(OLD_ENTER_BEHAVIOR_KEY);
+    if (old) localStorage.setItem(ENTER_BEHAVIOR_KEY, old);
+  }
   type EnterBehavior = "newline" | "send";
   let enterBehavior = $state<EnterBehavior>("newline");
 

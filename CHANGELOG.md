@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **Codex Pocket** will be documented here.
+All notable changes to **CodeRelay** will be documented here.
 
 This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. See `docs/ATTRIBUTION.md`.
 
@@ -8,6 +8,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ### Added
 
+- **Rebrand**: Renamed to **CodeRelay** (formerly CodeRelay). Includes migration logic for existing installs.
 - **ACP Approvals & Tool Permissions**: Interactive prompts for Copilot tool actions (shell commands, file ops, etc.)
 - Support for "Allow once", "Always allow", "Reject once", and "Always reject" decisions
 - 60-second timeout auto-cancel for pending approvals
@@ -52,7 +53,7 @@ The following features were added during early development:
 - Providers: added read-only Copilot ACP (Agent Control Plane) adapter to surface active Copilot sessions (PR #143).
 - API: added unified provider and session listing endpoints to support discovery across different backend adapters (PR #143).
 - UI: home page threads are now grouped by provider, allowing for discovery of external sessions (PR #143).
-- CLI: added `codex-pocket self-test` and expanded `smoke-test` to cover the NDJSON events replay endpoint (helps catch “blank threads” regressions).
+- CLI: added `coderelay self-test` and expanded `smoke-test` to cover the NDJSON events replay endpoint (helps catch “blank threads” regressions).
 - CLI: smoke-test now also verifies `/app` serves HTML and the main JS bundle is fetchable (catches "blank app" incidents when the service is unhealthy or UI dist is mismatched).
 - CLI: background-mode start is now fully detached (prevents "service starts then immediately dies" when invoked from install/update helpers).
 - UI: harden thread list parsing/normalization so upstream `thread/list` response shape changes (nested `data`, `thread_id`) don't collapse the list to empty.
@@ -68,7 +69,7 @@ The following features were added during early development:
 - UI: message actions menu (copy, copy markdown, copy quoted, copy from here) + thread header “copy last 20”.
 - UI: mobile thread list shows more of the title by allowing 2-line titles while keeping the date visible.
 - UI/Admin/CLI: detect upstream Codex app-server auth invalidation and surface a clear recovery warning.
-- Admin: add a limited remote CLI runner for safe `codex-pocket` commands (with output capture).
+- Admin: add a limited remote CLI runner for safe `coderelay` commands (with output capture).
 - UI: Admin page refreshed with a structured, settings-style layout and clearer hierarchy.
 - Docs/UX: added `docs/ADMIN_REDESIGN_PROPOSAL.md` and aligned backlog/project planning for phased Admin + Settings UI redesign work.
 - Docs: added `docs/NATIVE_IOS_ROADMAP.md` with phased native-client milestones, constraints, and decision gates.
@@ -117,16 +118,16 @@ The following features were added during early development:
 
 - CLI: `start` now falls back to background mode if the launchd plist is missing (keeps update/restart usable even if the agent file is deleted).
 - CLI: improved owned-process detection by also checking process CWD (helps kill stale listeners from older installs where the command line is just `bun run src/index.ts`).
-- `codex-pocket update` stop/restart now more aggressively cleans up *owned* stale listeners and orphaned anchors before rebuilding/restarting.
+- `coderelay update` stop/restart now more aggressively cleans up *owned* stale listeners and orphaned anchors before rebuilding/restarting.
 - CLI/update stale-listener cleanup now has a bounded `SIGKILL` fallback for **owned** listeners that ignore `SIGTERM` (reduces post-update restart flakiness without killing unrelated processes).
 - `ensure`/`smoke-test` now retry `/admin/validate` a few times to avoid false failures immediately after restart.
 - Start/stop/restart now kill stale listeners using the configured ports (not hard-coded 8790).
-- `codex-pocket update` now always prints a final `summary` and exits non-zero if `ensure` or `smoke-test` fail (next: `codex-pocket diagnose`).
+- `coderelay update` now always prints a final `summary` and exits non-zero if `ensure` or `smoke-test` fail (next: `coderelay diagnose`).
 - Config parsing is now validated early to avoid Python stack traces when config.json is empty/corrupt.
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.
 - Update-flow regression script now simulates a stale Pocket-owned listener on the configured port and asserts cleanup behavior (plus a default-port guard when available) to catch hardcoded-port regressions.
 - Fixed `ensure`/`smoke-test` validation parsing so `/admin/validate` results are read correctly (no more false "empty response" failures).
-- Installer now writes `~/.codex-pocket/bin/codex-pocket` as a small wrapper that delegates to `~/.codex-pocket/app/bin/codex-pocket` to avoid stale CLI copies after updates.
+- Installer now writes `~/.coderelay/bin/coderelay` as a small wrapper that delegates to `~/.coderelay/app/bin/coderelay` to avoid stale CLI copies after updates.
 
 ### Cache / Versioning
 
@@ -187,7 +188,7 @@ The following features were added during early development:
 ### Thread Titles / Rename Sync
 
 - Thread list titles now match Codex Desktop renamed titles by reading `~/.codex/.codex-global-state.json` and injecting `title/name/displayName` into `thread/list` + `thread/read` payloads. (commits `74db0ba`, `93c2702`)
-- Added a thread rename action in Codex Pocket that updates Codex Desktop's title store (Admin token required). (commit `133d3da`)
+- Added a thread rename action in CodeRelay that updates Codex Desktop's title store (Admin token required). (commit `133d3da`)
 
 ### Vision / Attachments
 
@@ -196,7 +197,7 @@ The following features were added during early development:
 
 ### Branding
 
-- Replaced the legacy Zane favicon with a Codex Pocket icon (`/icons/icon.svg`). (commit `01ba786`)
+- Replaced the legacy Zane favicon with a CodeRelay icon (`/icons/icon.svg`). (commit `01ba786`)
 
 ### iOS Upload UX
 
@@ -212,8 +213,8 @@ The following features were added during early development:
 
 ### CLI / Lifecycle
 
-- Added `codex-pocket update`: pulls latest app, installs deps, rebuilds UI, restarts service. (commit `a2b4450`)
-- Improved `start/stop/restart` reliability: auto-kill stale Codex Pocket listeners, wait for `/health`, and handle common port conflict cases. (commits `27aa998`, `6d2c959`)
+- Added `coderelay update`: pulls latest app, installs deps, rebuilds UI, restarts service. (commit `a2b4450`)
+- Improved `start/stop/restart` reliability: auto-kill stale CodeRelay listeners, wait for `/health`, and handle common port conflict cases. (commits `27aa998`, `6d2c959`)
 
 ### Installer UX & Reliability
 

@@ -7,7 +7,7 @@ Open `/admin` in the browser.
 - Service status (UI dist, DB path/retention, anchor status)
 - Anchor auth status (detects when the upstream Codex app-server token is invalid)
 - Anchor log stream
-- Remote CLI (a limited allowlist of `codex-pocket` commands)
+- Remote CLI (a limited allowlist of `coderelay` commands)
 
 ## Pair iPhone
 
@@ -26,15 +26,15 @@ Open `/admin` in the browser.
 
 ## Thread titles (Codex Desktop sync)
 
-Codex Pocket keeps thread titles in sync with the Codex desktop app by reading:
+CodeRelay keeps thread titles in sync with the Codex desktop app by reading:
 
 - `~/.codex/.codex-global-state.json` (`thread-titles.titles[threadId]`)
 
 This is necessary because many `codex app-server` versions do not include the user-renamed title in `thread/list` payloads.
 
-### Renaming threads from Codex Pocket
+### Renaming threads from CodeRelay
 
-Codex Pocket can rename a thread by updating the same Codex title store file.
+CodeRelay can rename a thread by updating the same Codex title store file.
 
 - In the thread list (desktop UI), click the ✎ icon next to a thread.
 - This requires you to be signed into `/admin` in that browser session (uses the Admin bearer token).
@@ -47,7 +47,7 @@ Codex Pocket can rename a thread by updating the same Codex title store file.
 
 ## Remote CLI
 
-The Admin UI includes a limited command runner for safe, hardcoded `codex-pocket` commands. This is useful when
+The Admin UI includes a limited command runner for safe, hardcoded `coderelay` commands. This is useful when
 you’re remote and need to troubleshoot.
 
 Notes:
@@ -57,7 +57,7 @@ Notes:
 
 ## SQLite persistence
 
-- local-orbit stores selected events in SQLite (default `~/.codex-pocket/codex-pocket.db`).
+- local-orbit stores selected events in SQLite (default `~/.coderelay/coderelay.db`).
 - Retention is configured via `ZANE_LOCAL_RETENTION_DAYS` (default 14 days).
 
 ## Debug tools

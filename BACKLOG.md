@@ -8,9 +8,16 @@ If the two ever disagree, treat GitHub Projects as the source of truth and updat
 
 Issues are canonical for work items:
 
-- [GitHub Issues](https://github.com/ddevalco/codex-pocket/issues)
+- [GitHub Issues](https://github.com/ddevalco/coderelay/issues)
 
 ## Recently Done
+
+### 2026-02-19: Rebrand to CodeRelay
+
+- Phase 5: Rebrand to CodeRelay - COMPLETE (2026-02-19)
+- Renamed project to CodeRelay.
+- Updated documentation and branding.
+- Migrated legacy installs.
 
 ### 2026-02-19: Phase 2 - Claude & Token Cost Foundations
 
@@ -55,7 +62,7 @@ Issues are canonical for work items:
 - [x] UI: Added Status filter chips (All, Active, Archived) with live counts
 - [x] UI: Implemented mobile-responsive flex-wrap layout for filters
 - [x] UI: Added empty state handling when no threads match filters
-- [x] Logic: Implemented localStorage persistence (key: "codex_pocket_thread_filters")
+- [x] Logic: Implemented localStorage persistence (key: "coderelay_thread_filters")
 - [x] Logic: Added defensive hydration on page load for filter state
 - [x] Accessibility: Added keyboard navigation and ARIA attributes for chip controls
 - [x] Types: Added ThreadFilterState, ProviderFilter, StatusFilter to types.ts
@@ -141,7 +148,7 @@ Issues are canonical for work items:
 - CI now smoke-tests the WebSocket relay path (client ↔ anchor).
 - CI now smoke-tests safe `/admin/repair` actions (`ensureUploadDir`, `pruneUploads`) to cover self-heal endpoint regressions.
 - CI now smoke-tests `/admin/repair` safe actions and non-Tailscale `fixTailscaleServe` behavior.
-- `codex-pocket update` now always prints a final `summary` block and exits non-zero if post-update `ensure`/`smoke-test` fail.
+- `coderelay update` now always prints a final `summary` block and exits non-zero if post-update `ensure`/`smoke-test` fail.
 - Fixed `ensure`/`smoke-test` validation parsing to avoid false failures.
 - CLI now validates `config.json` early (avoids Python stack traces when config is missing/empty/corrupt).
 - Added a local update-flow regression script: `scripts/test-update-flow.sh`.

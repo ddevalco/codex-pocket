@@ -1,4 +1,4 @@
-# PHASE4_PLAN.md for codex-pocket
+# PHASE4_PLAN.md for coderelay
 
 ## P4-03 (ACP Attachments)
 

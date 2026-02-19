@@ -2,7 +2,7 @@
 
 Date: 2026-02-12  
 Status: Proposed  
-Owner: Codex Pocket maintainers
+Owner: CodeRelay maintainers
 
 ## Goals
 

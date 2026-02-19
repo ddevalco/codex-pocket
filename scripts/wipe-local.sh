@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Codex Pocket: wipe local install + state (macOS)
+# CodeRelay: wipe local install + state (macOS)
 #
 # This script:
-# - stops Codex Pocket (if installed)
+# - stops CodeRelay (if installed)
 # - disables tailscale serve on this node (best-effort)
 # - removes the launchd agent (best-effort)
-# - deletes ~/.codex-pocket
+# - deletes ~/.coderelay
 #
 # It does NOT uninstall bun or tailscale.
 
@@ -18,9 +18,9 @@ step() { echo "${bold}$*${reset}"; }
 TS_BIN="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
 PLIST="$HOME/Library/LaunchAgents/com.codex.pocket.plist"
 
-step "Stopping Codex Pocket (if present)"
-if [[ -x "$HOME/.codex-pocket/bin/codex-pocket" ]]; then
-  "$HOME/.codex-pocket/bin/codex-pocket" stop 2>/dev/null || true
+step "Stopping CodeRelay (if present)"
+if [[ -x "$HOME/.coderelay/bin/coderelay" ]]; then
+  "$HOME/.coderelay/bin/coderelay" stop 2>/dev/null || true
 fi
 
 step "Disabling Tailscale Serve on this node (best-effort)"
@@ -33,8 +33,8 @@ step "Removing launchd agent (best-effort)"
 launchctl unload "$PLIST" 2>/dev/null || true
 rm -f "$PLIST" 2>/dev/null || true
 
-step "Removing Codex Pocket state (~/.codex-pocket)"
-rm -rf "$HOME/.codex-pocket"
+step "Removing CodeRelay state (~/.coderelay)"
+rm -rf "$HOME/.coderelay"
 
 echo ""
 echo "Wipe complete."

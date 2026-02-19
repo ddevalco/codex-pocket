@@ -31,12 +31,12 @@
 </script>
 
 <svelte:head>
-  <title>Codex Pocket</title>
+  <title>CodeRelay</title>
 </svelte:head>
 
 <div class="landing stack">
   <header class="landing-header">
-    <div class="brand">codex-pocket</div>
+    <div class="brand">coderelay</div>
     <div class="header-actions">
       {#if pwa.canInstall && !pwa.isStandalone}
         <button class="ghost-btn" type="button" onclick={() => pwa.install()}>Install app</button>
@@ -80,7 +80,7 @@
   </section>
 
   <footer class="landing-footer">
-    <a class="footer-link" href="https://github.com/ddevalco/codex-pocket" target="_blank" rel="noopener">GitHub</a>
+    <a class="footer-link" href="https://github.com/ddevalco/coderelay" target="_blank" rel="noopener">GitHub</a>
   </footer>
 
   {#if showAuthModal}
@@ -125,7 +125,7 @@
             I need a token
           </button>
         {:else}
-          <p class="auth-help">Use <code>codex-pocket token</code> on your Mac, or pair from <code>/admin</code> by scanning the QR on your mobile device.</p>
+          <p class="auth-help">Use <code>coderelay token</code> on your Mac, or pair from <code>/admin</code> by scanning the QR on your mobile device.</p>
           <button
             class="link-btn"
             type="button"

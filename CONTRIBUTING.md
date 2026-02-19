@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to Codex Pocket.
+Thanks for contributing to CodeRelay.
 
 ## Branching + Sync Policy
 
@@ -38,7 +38,7 @@ git config --global fetch.prune true
 ## Backlog + Issue Tracking (Required)
 
 - GitHub is the canonical system for planning and tracking:
-  - Issues: <https://github.com/ddevalco/codex-pocket/issues>
+  - Issues: <https://github.com/ddevalco/coderelay/issues>
   - Project board: <https://github.com/users/ddevalco/projects/2>
 - Every feature/bug/chore starts as a GitHub issue (use templates).
 - Every PR must reference its issue (`Fixes #<id>` or `Refs #<id>`).
@@ -69,13 +69,13 @@ PR description should include:
 - Required baseline:
 
 ```bash
-~/.codex-pocket/bin/codex-pocket self-test
+~/.coderelay/bin/coderelay self-test
 ```
 
 - If UI is touched:
 
 ```bash
-VITE_ZANE_LOCAL=1 bunx --bun vite build
+VITE_CODERELAY_LOCAL=1 bunx --bun vite build
 ```
 
 ## Pre-Release / Tagging Guard

@@ -139,7 +139,7 @@ codex: {
 **Evidence:**
 
 - **Source:** [src/lib/approval-policy-store.svelte.ts](../src/lib/approval-policy-store.svelte.ts) lines 1-117
-- **LocalStorage key:** `"codex_pocket_acp_approval_policies"` (line 3)
+- **LocalStorage key:** `"coderelay_acp_approval_policies"` (line 3)
 - **Interface:** `AcpApprovalPolicy` (lines 5-11)
   - `id: string` - unique policy ID
   - `toolKind?: string` - tool category filter
@@ -227,7 +227,7 @@ codex: {
 **Evidence:**
 
 - **Source:** [src/routes/Home.svelte](../src/routes/Home.svelte) lines 14-55
-- **LocalStorage key:** `"codex_pocket_thread_filters"` (line 14)
+- **LocalStorage key:** `"coderelay_thread_filters"` (line 14)
 - **Default:** `{ provider: "all", status: "all" }` (lines 16-19)
 - **Load:** Lines 21-40 - loads from localStorage with validation
 - **Save:** Lines 43-50 - persists on change
@@ -303,7 +303,7 @@ if (filters.status !== "all") {
   - Columns: token, path, mime, bytes, created_at, expires_at
   - Indexed on expires_at for cleanup
 
-**LocalStorage:** Upload files stored in `UPLOAD_DIR` (env: `ZANE_LOCAL_UPLOAD_DIR`, default: `~/.codex-pocket/uploads`)
+**LocalStorage:** Upload files stored in `UPLOAD_DIR` (env: `ZANE_LOCAL_UPLOAD_DIR`, default: `~/.coderelay/uploads`)
 
 **Retention:** Configurable via `ZANE_LOCAL_UPLOAD_RETENTION_DAYS` (default: 0 = keep forever)
 
@@ -400,9 +400,9 @@ CREATE INDEX IF NOT EXISTS idx_token_sessions_revoked ON token_sessions(revoked_
 
 **Evidence:**
 
-- Filter state: `"codex_pocket_thread_filters"` - [src/routes/Home.svelte](../src/routes/Home.svelte) line 14
-- Approval policies: `"codex_pocket_acp_approval_policies"` - [src/lib/approval-policy-store.svelte.ts](../src/lib/approval-policy-store.svelte.ts) line 3
-- Enter behavior: `"codex_pocket_enter_behavior"` - [src/routes/Settings.svelte](../src/routes/Settings.svelte) line 38
+- Filter state: `"coderelay_thread_filters"` - [src/routes/Home.svelte](../src/routes/Home.svelte) line 14
+- Approval policies: `"coderelay_acp_approval_policies"` - [src/lib/approval-policy-store.svelte.ts](../src/lib/approval-policy-store.svelte.ts) line 3
+- Enter behavior: `"coderelay_enter_behavior"` - [src/routes/Settings.svelte](../src/routes/Settings.svelte) line 38
 - Quick replies: Managed by `loadQuickReplies()` / `saveQuickReplies()`
 - Agent presets: Managed by `loadAgentPresets()` / `saveAgentPresets()`
 - Helper profiles: Managed by `loadHelperProfiles()` / `saveHelperProfiles()`
@@ -416,8 +416,8 @@ CREATE INDEX IF NOT EXISTS idx_token_sessions_revoked ON token_sessions(revoked_
 - **Host:** `ZANE_LOCAL_HOST` (default: 127.0.0.1) - line 24
 - **Config:** `ZANE_LOCAL_CONFIG_JSON` - line 25
 - **Token:** `ZANE_LOCAL_TOKEN` - line 26
-- **Database:** `ZANE_LOCAL_DB` (default: `~/.codex-pocket/codex-pocket.db`) - line 27
-- **Upload dir:** `ZANE_LOCAL_UPLOAD_DIR` (default: `~/.codex-pocket/uploads`) - line 67
+- **Database:** `ZANE_LOCAL_DB` (default: `~/.coderelay/coderelay.db`) - line 27
+- **Upload dir:** `ZANE_LOCAL_UPLOAD_DIR` (default: `~/.coderelay/uploads`) - line 67
 - **Upload retention:** `ZANE_LOCAL_UPLOAD_RETENTION_DAYS` (default: 0) - line 68
 - **Upload prune interval:** `ZANE_LOCAL_UPLOAD_PRUNE_INTERVAL_HOURS` (default: 6) - line 72
 

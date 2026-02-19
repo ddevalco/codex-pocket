@@ -1,6 +1,12 @@
 const browser = typeof window !== "undefined";
 
-const POLICY_STORE_KEY = "codex_pocket_acp_approval_policies";
+const OLD_POLICY_STORE_KEY = "codex_pocket_acp_approval_policies";
+const POLICY_STORE_KEY = "coderelay_acp_approval_policies";
+
+if (browser && !localStorage.getItem(POLICY_STORE_KEY)) {
+  const old = localStorage.getItem(OLD_POLICY_STORE_KEY);
+  if (old) localStorage.setItem(POLICY_STORE_KEY, old);
+}
 
 export interface AcpApprovalPolicy {
   id: string;

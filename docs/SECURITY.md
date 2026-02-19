@@ -1,6 +1,6 @@
 # Security
 
-Codex Pocket gives remote control of a local Codex session. Treat it like remote admin access.
+CodeRelay gives remote control of a local Codex session. Treat it like remote admin access.
 
 ## Threat Model
 
@@ -39,7 +39,7 @@ Codex Pocket gives remote control of a local Codex session. Treat it like remote
 
 ### Local persistence
 
-- Events are stored in SQLite at `ZANE_LOCAL_DB` (default `~/.codex-pocket/codex-pocket.db`).
+- Events are stored in SQLite at `ZANE_LOCAL_DB` (default `~/.coderelay/coderelay.db`).
 - Retention is controlled by `ZANE_LOCAL_RETENTION_DAYS` (default 14).
 
 ## Operational Guidance

@@ -94,7 +94,7 @@ npm run lint
    ```
 
 3. **Open Home UI on iPhone/browser:**
-   - Navigate to Codex Pocket app
+   - Navigate to CodeRelay app
    - Go to Home screen
 
    **Expected:**

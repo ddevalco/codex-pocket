@@ -1,113 +1,113 @@
 # CLI
 
-The `codex-pocket` CLI manages the service and talks to the local Admin API.
+The `coderelay` CLI manages the service and talks to the local Admin API.
 
 Binary location after install:
 
-- `~/.codex-pocket/bin/codex-pocket` (wrapper that delegates to the repo copy in `~/.codex-pocket/app/bin/codex-pocket`)
+- `~/.coderelay/bin/coderelay` (wrapper that delegates to the repo copy in `~/.coderelay/app/bin/coderelay`)
 
 ## Running the CLI
 
 Preferred (installed copy):
 
 ```bash
-codex-pocket summary
+coderelay summary
 ```
 
 If your shell says `command not found`, either:
 
-- call it directly: `~/.codex-pocket/bin/codex-pocket summary`, or
+- call it directly: `~/.coderelay/bin/coderelay summary`, or
 - add it to PATH (`~/.zshrc` on macOS zsh):
 
 ```bash
-echo 'export PATH="$HOME/.codex-pocket/bin:$PATH"' >> ~/.zshrc
+echo 'export PATH="$HOME/.coderelay/bin:$PATH"' >> ~/.zshrc
 exec zsh
 ```
 
 Repo-local development usage:
 
 ```bash
-./bin/codex-pocket summary
+./bin/coderelay summary
 ```
 
-Inside the `bin/` directory, use `./codex-pocket` (shells do not run `.` by default).
+Inside the `bin/` directory, use `./coderelay` (shells do not run `.` by default).
 
 Custom home installs (`CODEX_POCKET_HOME`) use:
 
 ```bash
-$CODEX_POCKET_HOME/bin/codex-pocket summary
+$CODEX_POCKET_HOME/bin/coderelay summary
 ```
 
 ## Most-Used Commands
 
-- `codex-pocket summary`
+- `coderelay summary`
   - Prints URLs, logs, token prefix, DB path, uploads dir.
 
-- `codex-pocket restart`
+- `coderelay restart`
   - Stop/start and wait for `GET /health`.
 
-- `codex-pocket ensure`
+- `coderelay ensure`
   - Best-effort self-heal: restart if needed, validate, run safe repairs, re-validate.
 
-- `codex-pocket diagnose`
+- `coderelay diagnose`
   - One command bug report (versions, ports, tailscale serve status, log tails).
   - Warns if the upstream Codex app-server auth token is invalid.
 
 ## Commands
 
-- `codex-pocket doctor`
+- `coderelay doctor`
   - Checks dependencies and basic reachability.
   - Safe: does not modify the machine.
 
-- `codex-pocket start`
+- `coderelay start`
   - Starts the service using `launchd` (agent: `com.codex.pocket`).
   - If `launchctl` is blocked (common on managed/MDM Macs), it falls back to a background process.
 
-- `codex-pocket stop`
+- `coderelay stop`
   - Stops the `launchd` agent.
-  - Also kills any stray Codex Pocket listeners it owns (port safety net).
+  - Also kills any stray CodeRelay listeners it owns (port safety net).
 
-- `codex-pocket restart`
+- `coderelay restart`
   - Equivalent of `stop` + `start`, then waits for `GET /health`.
 
-- `codex-pocket status`
+- `coderelay status`
   - Prints `/admin/status` JSON (includes anchor auth status).
 
-- `codex-pocket logs [anchor|server]`
+- `coderelay logs [anchor|server]`
   - Prints logs via the Admin API.
 
-- `codex-pocket token`
-  - Prints the current **Access Token** from `~/.codex-pocket/config.json`.
+- `coderelay token`
+  - Prints the current **Access Token** from `~/.coderelay/config.json`.
   - Use this when `/admin` asks you to sign in again.
 
-- `codex-pocket urls`
+- `coderelay urls`
   - Prints the current local and tailnet URLs from config.
 
-- `codex-pocket pair`
+- `coderelay pair`
   - Mints a short-lived pairing code (same as clicking “New pairing code” in `/admin`).
 
-- `codex-pocket open-admin`
+- `coderelay open-admin`
   - Opens the Admin page in your default browser.
 
-- `codex-pocket smoke-test`
+- `coderelay smoke-test`
   - Fast PASS/FAIL check against `GET /health` and the Admin validation endpoint.
   - Also verifies the events replay endpoint returns NDJSON (this is the data path that populates thread history).
 
-- `codex-pocket self-test`
+- `coderelay self-test`
   - Stricter test suite intended to catch “blank threads” regressions.
   - Requires WebSocket relay (client+anchor) to be working.
 
-- `codex-pocket ensure`
+- `coderelay ensure`
   - Runs:
   - Validate (`/admin/validate`)
   - Safe repair (`/admin/repair`) when needed
   - Re-validate
 
-- `codex-pocket update`
-  - Updates the installed app in `~/.codex-pocket/app` (git pull), rebuilds the UI, then restarts.
-  - Runs `codex-pocket ensure` and `codex-pocket smoke-test` after restart.
-  - Always prints a final `codex-pocket summary` so you can quickly copy URLs/token/log paths.
-  - Returns non-zero if post-update checks fail (next: `codex-pocket diagnose`).
+- `coderelay update`
+  - Updates the installed app in `~/.coderelay/app` (git pull), rebuilds the UI, then restarts.
+  - Runs `coderelay ensure` and `coderelay smoke-test` after restart.
+  - Always prints a final `coderelay summary` so you can quickly copy URLs/token/log paths.
+  - Returns non-zero if post-update checks fail (next: `coderelay diagnose`).
   - If your install uses a non-default port (because the installer detected a conflict), the CLI uses the configured port.
   - After updating, clients may need a hard refresh (`Cmd+Shift+R`) if the browser cached a bad bundle.
 
@@ -115,4 +115,4 @@ $CODEX_POCKET_HOME/bin/codex-pocket summary
 
 The CLI reads:
 
-- `~/.codex-pocket/config.json`
+- `~/.coderelay/config.json`

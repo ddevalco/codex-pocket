@@ -26,6 +26,6 @@ export default defineConfig({
   },
   define: {
     "import.meta.env.VAPID_PUBLIC_KEY": JSON.stringify(process.env.VAPID_PUBLIC_KEY ?? ""),
-    "import.meta.env.VITE_ZANE_LOCAL": JSON.stringify(process.env.VITE_ZANE_LOCAL ?? ""),
+    "import.meta.env.VITE_CODERELAY_LOCAL": JSON.stringify(process.env.VITE_CODERELAY_LOCAL ?? ""),
   },
 });

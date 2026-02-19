@@ -77,7 +77,7 @@ log "Base branch detected: $base_branch"
 pr_body="$(cat <<'EOF'
 ## Overview
 
-Implements Phase 1 of multi-provider architecture for Codex Pocket:
+Implements Phase 1 of multi-provider architecture for CodeRelay:
 - Provider registry with adapter pattern
 - GitHub Copilot ACP adapter (read-only)
 - UI grouping by provider

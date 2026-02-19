@@ -1,8 +1,8 @@
 # Differences From Zane
 
-Codex Pocket started as a local-only fork inspired by Zane (credit: Z. Siddiqi).
+CodeRelay started as a local-only fork inspired by Zane (credit: Z. Siddiqi).
 
-Codex Pocket’s goal is narrower and more opinionated:
+CodeRelay’s goal is narrower and more opinionated:
 
 - Run Codex locally on macOS.
 - Access it from iPhone (and other devices) securely.
@@ -19,7 +19,7 @@ Codex Pocket’s goal is narrower and more opinionated:
 - Static feature assumptions (all capabilities assumed available)
 - Hard-coded provider-specific UI logic
 
-**Codex Pocket:**
+**CodeRelay:**
 
 - Dual provider support: Codex + GitHub Copilot ACP (extensible to more)
 - Unified adapter interface (`ProviderAdapter` contract)
@@ -54,7 +54,7 @@ Codex Pocket’s goal is narrower and more opinionated:
 - No approval system
 - All tool permissions implicitly granted
 
-**Codex Pocket:**
+**CodeRelay:**
 
 - **Interactive Approval Prompts**: Shell commands, file operations require explicit user consent
 - **Four Decision Types**:
@@ -63,7 +63,7 @@ Codex Pocket’s goal is narrower and more opinionated:
   - `reject_once`: Single-use denial
   - `reject_always`: Persistent auto-deny policy (saved to localStorage)
 - **Policy Store**: Specificity-based matching (exact tool name > tool kind > global default)
-- **localStorage Key**: `codex_pocket_acp_approval_policies`
+- **localStorage Key**: `coderelay_acp_approval_policies`
 - **Policy Management UI**: View all saved policies in Settings, revoke individual rules
 - **Auto-Approve Detection**: Warning banner when provider started with `--allow-all-tools` flag
 - **Bidirectional JSON-RPC**: ACP adapter supports server-initiated permission requests with 60s timeout
@@ -81,12 +81,12 @@ Codex Pocket’s goal is narrower and more opinionated:
 - Basic filtering (if any)
 - No filter state persistence
 
-**Codex Pocket:**
+**CodeRelay:**
 
 - **Dual-Axis Filtering**:
   - **Provider Filter**: All / Codex / Copilot ACP (live thread counts)
   - **Status Filter**: All / Active / Archived (live thread counts)
-- **localStorage Persistence**: Filter state survives page reloads (`codex_pocket_thread_filters`)
+- **localStorage Persistence**: Filter state survives page reloads (`coderelay_thread_filters`)
 - **Defensive Hydration**: Validates loaded state, falls back to defaults on corruption
 - **Mobile-Responsive Layout**: Flex-wrap filter chips, empty state handling
 - **Accessible Navigation**: ARIA attributes, keyboard navigation support
@@ -105,7 +105,7 @@ Codex Pocket’s goal is narrower and more opinionated:
 - Cloudflare Auth for authentication
 - Public internet exposure considerations
 
-**Codex Pocket:**
+**CodeRelay:**
 
 - Single local server (`local-orbit`) with token-based authentication
 - No Cloudflare components required
@@ -117,7 +117,7 @@ Codex Pocket’s goal is narrower and more opinionated:
 
 - Cloudflare Auth-based authentication (passkeys/WebAuthn)
 
-**Codex Pocket:**
+**CodeRelay:**
 
 - **Legacy Access Token**: Bootstrap/admin access (printed during install)
 - **Per-Device Session Tokens**: Create/list/revoke in `/admin`
@@ -138,7 +138,7 @@ Codex Pocket’s goal is narrower and more opinionated:
 - Codex-only implementation
 - No support for other AI providers
 
-**Codex Pocket:**
+**CodeRelay:**
 
 - **Process Management**: Spawns `gh copilot --acp` or `copilot --acp` child process
 - **JSON-RPC Protocol**: Bidirectional communication over stdio via `AcpClient`
@@ -152,14 +152,14 @@ Codex Pocket’s goal is narrower and more opinionated:
 - Unified interface for multiple AI models
 - GitHub Copilot accessible from same UI as Codex
 - Extensible architecture for future providers
-  - One-line macOS installer that builds UI, writes config under `~/.codex-pocket`, attempts `launchd`, and falls back to background mode if `launchctl` is blocked.
+  - One-line macOS installer that builds UI, writes config under `~/.coderelay`, attempts `launchd`, and falls back to background mode if `launchctl` is blocked.
   - CLI tooling for start/stop/restart/update/diagnose/ensure.
 
 - Local persistence
   - Selected events are stored in local SQLite with retention.
 
 - Update reliability + anti-regression tooling
-  - `codex-pocket ensure` / `smoke-test` / `self-test` help validate a node quickly and catch regressions like “blank threads”.
+  - `coderelay ensure` / `smoke-test` / `self-test` help validate a node quickly and catch regressions like “blank threads”.
   - GitHub Actions CI runs build + smoke tests on pushes/PRs to catch breakages early.
   - `index.html` is served with `Cache-Control: no-store` to reduce cached broken bundle issues after updates.
 
@@ -168,7 +168,7 @@ Codex Pocket’s goal is narrower and more opinionated:
   - Images can be forwarded to Codex app-server as structured attachments so vision-capable models can consume pixels.
 
 - Thread titles
-  - Codex Pocket reads Codex Desktop’s local title store so renamed thread titles show in Pocket.
+  - CodeRelay reads Codex Desktop’s local title store so renamed thread titles show in Pocket.
   - Pocket can rename by updating that same store (Admin-token protected).
 
 - Export/share + copy UX

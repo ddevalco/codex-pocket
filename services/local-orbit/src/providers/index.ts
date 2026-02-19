@@ -1,7 +1,7 @@
 /**
  * Provider Adapter System
  *
- * This module exports the provider abstraction layer for Codex Pocket,
+ * This module exports the provider abstraction layer for CodeRelay,
  * enabling multi-provider support (Codex, ACP, etc.) with consistent interfaces.
  *
  * Usage:

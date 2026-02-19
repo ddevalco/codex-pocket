@@ -1,6 +1,12 @@
-const STORE_KEY = "__codex_pocket_ui_toggles__";
-const STORAGE_KEY = "codex_pocket_ui_toggles";
+const STORE_KEY = "__coderelay_ui_toggles__";
+const OLD_STORAGE_KEY = "codex_pocket_ui_toggles";
+const NEW_STORAGE_KEY = "coderelay_ui_toggles";
 const browser = typeof window !== "undefined";
+
+if (browser && !localStorage.getItem(NEW_STORAGE_KEY)) {
+  const old = localStorage.getItem(OLD_STORAGE_KEY);
+  if (old) localStorage.setItem(NEW_STORAGE_KEY, old);
+}
 
 export interface UITogglesState {
   showThreadListExports: boolean;
@@ -43,7 +49,7 @@ function normalizeToggles(raw: unknown): UITogglesState {
 function loadToggles(): UITogglesState {
   if (!browser) return { ...DEFAULT_TOGGLES };
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(NEW_STORAGE_KEY);
     if (!raw) return { ...DEFAULT_TOGGLES };
     return normalizeToggles(JSON.parse(raw));
   } catch {
@@ -54,7 +60,7 @@ function loadToggles(): UITogglesState {
 function saveToggles(state: UITogglesState) {
   if (!browser) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(state));
   } catch {
     // ignore localStorage failures
   }

@@ -124,7 +124,7 @@ class NotificationsStore {
     }
     if (perm !== "granted") return false;
 
-    const title = "Codex Pocket: action needed";
+    const title = "CodeRelay: action needed";
     const actionUrl = `/thread/${encodeURIComponent(threadId)}`;
     const tag = `zane-blocked-${threadId}`;
 

@@ -5,6 +5,7 @@
   import { messages } from "../lib/messages.svelte";
   import { navigate } from "../router";
   import { models } from "../lib/models.svelte";
+  import { agents } from "../lib/agents.svelte";
   import { theme } from "../lib/theme.svelte";
   import { auth } from "../lib/auth.svelte";
   import { uiToggles } from "../lib/uiToggles";
@@ -13,7 +14,8 @@
   import ProjectPicker from "../lib/components/ProjectPicker.svelte";
   import ShimmerDot from "../lib/components/ShimmerDot.svelte";
 
-  const FILTER_STORAGE_KEY = "codex_pocket_thread_filters";
+  const OLD_FILTER_STORAGE_KEY = "codex_pocket_thread_filters";
+  const FILTER_STORAGE_KEY = "coderelay_thread_filters";
 
   const DEFAULT_FILTERS: ThreadFilterState = {
     provider: "all",
@@ -23,7 +25,15 @@
   function loadFilters(): ThreadFilterState {
     if (typeof localStorage === "undefined") return DEFAULT_FILTERS;
     try {
+      // Migration: Read old key if new key missing
+      const oldStored = localStorage.getItem(OLD_FILTER_STORAGE_KEY);
       const stored = localStorage.getItem(FILTER_STORAGE_KEY);
+      
+      if (!stored && oldStored) {
+        localStorage.setItem(FILTER_STORAGE_KEY, oldStored);
+        return JSON.parse(oldStored);
+      }
+      
       if (!stored) return DEFAULT_FILTERS;
 
       const parsed = JSON.parse(stored);
@@ -84,10 +94,24 @@
   let taskNote = $state("");
   let taskProject = $state("");
   let taskModel = $state("");
+  let taskAgent = $state("");
   let taskPlanFirst = $state(true);
   let permissionLevel = $state<keyof typeof permissionPresets>("standard");
   let isCreating = $state(false);
   let legendOpen = $state(false);
+
+  $effect(() => {
+    if (showTaskModal) {
+      agents.load();
+    }
+  });
+
+  $effect(() => {
+      const selected = agents.list.find(a => a.id === taskAgent);
+      if (selected?.model) {
+          taskModel = selected.model;
+      }
+  });
 
   $effect(() => {
     if (!legendOpen) return;
@@ -125,13 +149,28 @@
     isCreating = true;
     try {
       const preset = permissionPresets[permissionLevel];
+      
+      let collaborationMode: any = undefined;
+      if (taskAgent) {
+        const agent = agents.list.find(a => a.id === taskAgent);
+        if (agent) {
+           collaborationMode = {
+              mode: taskPlanFirst ? "plan" : "code",
+              settings: {
+                 model: agent.model || taskModel,
+                 developer_instructions: agent.instructions
+              }
+           };
+        }
+      } else if (taskPlanFirst) {
+          collaborationMode = threads.resolveCollaborationMode("plan", taskModel);
+      }
+
       threads.start(taskProject, taskNote, {
         approvalPolicy: preset.approvalPolicy,
         sandbox: preset.sandbox,
         suppressNavigation: false,
-        collaborationMode: taskPlanFirst
-          ? threads.resolveCollaborationMode("plan", taskModel)
-          : undefined,
+        collaborationMode,
       });
 
       closeTaskModal();
@@ -599,7 +638,7 @@
     if (format === "md") {
       const md = threadToMarkdown(threadId);
       const f = new File([md], `${title}.md`, { type: "text/markdown" });
-      const shared = await shareFileOrFallback(`Codex Pocket: ${title}`, f, md);
+      const shared = await shareFileOrFallback(`CodeRelay: ${title}`, f, md);
       if (!shared) downloadBlob(`${title}.md`, new Blob([md], { type: "text/markdown" }));
       return;
     }
@@ -607,7 +646,7 @@
     if (format === "html") {
       const html = threadToHtml(threadId);
       const f = new File([html], `${title}.html`, { type: "text/html" });
-      const shared = await shareFileOrFallback(`Codex Pocket: ${title}`, f, html);
+      const shared = await shareFileOrFallback(`CodeRelay: ${title}`, f, html);
       if (!shared) downloadBlob(`${title}.html`, new Blob([html], { type: "text/html" }));
       return;
     }
@@ -623,7 +662,7 @@
 
     const json = threadToJson(threadId);
     const f = new File([json], `${title}.json`, { type: "application/json" });
-    const shared = await shareFileOrFallback(`Codex Pocket: ${title}`, f, json);
+    const shared = await shareFileOrFallback(`CodeRelay: ${title}`, f, json);
     if (!shared) downloadBlob(`${title}.json`, new Blob([json], { type: "application/json" }));
   }
 </script>
@@ -751,7 +790,7 @@
 {/snippet}
 
 <svelte:head>
-  <title>Codex Pocket</title>
+  <title>CodeRelay</title>
 </svelte:head>
 
 <div class="home stack">
@@ -966,8 +1005,18 @@
         </div>
 
         <div class="field stack">
+          <label for="task-agent">agent (optional)</label>
+          <select id="task-agent" bind:value={taskAgent}>
+            <option value="">None (Standard Assistant)</option>
+            {#each agents.list as agent}
+              <option value={agent.id}>{agent.name}</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="field stack">
           <label for="task-model">model</label>
-          <select id="task-model" bind:value={taskModel}>
+          <select id="task-model" bind:value={taskModel} disabled={!!taskAgent}>
             {#if models.status === "loading"}
               <option value="">Loading...</option>
             {:else if models.options.length === 0}

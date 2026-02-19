@@ -3,7 +3,14 @@ export type QuickReply = {
   text: string;
 };
 
-export const QUICK_REPLIES_STORAGE_KEY = "codex_pocket_quick_replies_v1";
+const OLD_QUICK_REPLIES_STORAGE_KEY = "codex_pocket_quick_replies_v1";
+export const QUICK_REPLIES_STORAGE_KEY = "coderelay_quick_replies_v1";
+const browser = typeof window !== "undefined";
+
+if (browser && !localStorage.getItem(QUICK_REPLIES_STORAGE_KEY)) {
+  const old = localStorage.getItem(OLD_QUICK_REPLIES_STORAGE_KEY);
+  if (old) localStorage.setItem(QUICK_REPLIES_STORAGE_KEY, old);
+}
 export const MAX_QUICK_REPLIES = 5;
 
 export const DEFAULT_QUICK_REPLIES: QuickReply[] = [

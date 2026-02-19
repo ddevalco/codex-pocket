@@ -10,7 +10,14 @@ export type AgentPreset = {
   starterPrompt: string;
 };
 
-export const AGENT_PRESETS_STORAGE_KEY = "codex_pocket_agent_presets_v1";
+const OLD_AGENT_PRESETS_STORAGE_KEY = "codex_pocket_agent_presets_v1";
+export const AGENT_PRESETS_STORAGE_KEY = "coderelay_agent_presets_v1";
+const browser = typeof window !== "undefined";
+
+if (browser && !localStorage.getItem(AGENT_PRESETS_STORAGE_KEY)) {
+  const old = localStorage.getItem(OLD_AGENT_PRESETS_STORAGE_KEY);
+  if (old) localStorage.setItem(AGENT_PRESETS_STORAGE_KEY, old);
+}
 export const MAX_AGENT_PRESETS = 24;
 
 function generatePresetId(): string {

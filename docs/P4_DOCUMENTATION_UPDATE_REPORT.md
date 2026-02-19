@@ -23,7 +23,7 @@ Comprehensive documentation rewrite to accurately reflect Phase 4 implementation
   - `SUPPORTS_STREAMING`: ✅ Both
 - **Graceful Degradation**: Explained disabled UI elements with tooltips
 - **Approval System**: Full documentation of four decision types (`allow_once`, `allow_always`, `reject_once`, `reject_always`)
-- **Approval Policy Store**: localStorage key (`codex_pocket_acp_approval_policies`), specificity-based matching
+- **Approval Policy Store**: localStorage key (`coderelay_acp_approval_policies`), specificity-based matching
 - **Advanced Filtering**: Dual-axis (provider + status) with persistence
 - **Architecture Overview**: New comprehensive section
   - Core components (local-orbit, Anchor, Provider Adapters, Web UI)
@@ -60,7 +60,7 @@ Comprehensive documentation rewrite to accurately reflect Phase 4 implementation
 **Structure:**
 
 - Converted from bullet list to detailed subsections
-- Added "Zane:" vs. "Codex Pocket:" comparisons
+- Added "Zane:" vs. "CodeRelay:" comparisons
 - Added "Benefits:" sections for each difference
 - Improved markdown formatting with proper headings
 
@@ -90,7 +90,7 @@ Comprehensive documentation rewrite to accurately reflect Phase 4 implementation
 
 **Changes:**
 
-- **Approval Policy Store**: Updated localStorage key (`codex_pocket_acp_approval_policies`)
+- **Approval Policy Store**: Updated localStorage key (`coderelay_acp_approval_policies`)
 - **Policy Interface**: Added full `AcpApprovalPolicy` interface definition
 - **Matching Logic**: Explained specificity-based matching (exact tool name > tool kind > global)
 
@@ -126,7 +126,7 @@ All markdown files pass linting:
 All documentation claims cross-checked against [docs/FEATURE_INVENTORY_P4.md](FEATURE_INVENTORY_P4.md):
 
 - ✅ Capability flag names match source code
-- ✅ LocalStorage keys accurate (`codex_pocket_thread_filters`, `codex_pocket_acp_approval_policies`)
+- ✅ LocalStorage keys accurate (`coderelay_thread_filters`, `coderelay_acp_approval_policies`)
 - ✅ Database table names correct (events, upload_tokens, token_sessions)
 - ✅ Provider capability matrix matches defaults in code
 - ✅ Approval decision types match `AcpApprovalOption.kind` enum
@@ -155,7 +155,7 @@ All documentation claims cross-checked against [docs/FEATURE_INVENTORY_P4.md](FE
 
 - Restructured from bullet list to detailed subsections
 - Added provider capability comparison table
-- Expanded each difference with "Zane:" vs. "Codex Pocket:" comparisons
+- Expanded each difference with "Zane:" vs. "CodeRelay:" comparisons
 - Added "Benefits:" sections explaining advantages
 - Documented 10+ major architectural differences
 
