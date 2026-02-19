@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the complete CI validation suite locally.
+# Fast pre-push validation (build phase only) - runs typecheck, build, guards.
 # This mirrors the CI ordering in .github/workflows/ci.yml.
 
 set -euo pipefail
@@ -37,6 +37,10 @@ fail() {
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
+
+info "Installing dependencies"
+bun install
+success "Dependencies installed"
 
 if [[ -n "${LOCAL_CI_FORCE_FAIL:-}" ]]; then
   fail "LOCAL_CI_FORCE_FAIL is set"
@@ -111,7 +115,7 @@ run_step() {
   fail "$name failed (exit ${rc})"
 }
 
-run_step "Typecheck" bunx tsc --noEmit
+run_step "Typecheck" bun run type-check
 run_step "Build" bun run build
 run_step "Bundle size" bash ./scripts/check-bundle-size.sh
 run_step "Regression guards" bun ./scripts/ci/regression-guards.ts
