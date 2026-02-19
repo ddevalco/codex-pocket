@@ -12,6 +12,16 @@ Issues are canonical for work items:
 
 ## Recently Done
 
+### 2026-02-19: Phase 2 - Claude & Token Cost Foundations
+
+- [x] Phase 2: Claude & Token Cost Foundations - COMPLETE (2026-02-19)
+- [x] Implemented Claude adapter scaffold with health checks and graceful degradation (#200).
+- [x] Implemented provider-agnostic token usage tracking and cost calculator backend (#203).
+- [x] Added pricing tables for major providers with fallback support.
+- [x] Validated with 70+ new unit tests across both systems.
+- [x] Foundation merged; UI expansion deferred to Phase 3.
+- Next: Phase 3 (UI Integration & API Clients).
+
 ### 2026-02-19: Phase 1 - UI Elements Toggles
 
 - [x] Phase 1: UI Elements Toggles - COMPLETE (2026-02-19)
@@ -218,26 +228,27 @@ Epic tracking: [`docs/ACP_CODEX_INTEGRATION_EPIC.md`](docs/ACP_CODEX_INTEGRATION
 
 Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATIONS.md)
 
-### Phase 5: Ecosystem & Analytics (Upcoming) (#191)
+### Phase 5: Ecosystem & Analytics (In Progress) (#191)
 
-- [ ] **P5-01: Claude Integration**
-  - Add Claude as third provider alongside Codex and Copilot ACP.
-  - Scope: Implement Claude adapter, add to provider selection UI, support Claude-specific capabilities.
-- [ ] **P5-02: Context/Memory Offload & Save**
-  - Save conversations (all, per-project, or per-thread user preference) and make them indexable/searchable.
-  - Scope: Conversation export/import, indexing system, search UI, context injection.
-- [ ] **P5-03: Custom Agent Import**
-  - Import agent files (JSON-based like VS Code agents) and sync with VS Code's local agent storage.
-  - Scope: Agent file format support, import UI, agent picker in thread creation, sync mechanism.
-- [ ] **P5-04: Token Cost Display**
-  - Toggle to show token cost per message; real-time cost tracking throughout conversation.
-  - Scope: Token counting per provider, cost calculation, toggle UI, per-message display.
-- [ ] **P5-05: Metrics Dashboard Integration**
-  - Integrate codex-dash metrics and dashboard views into codex-pocket.
-  - Scope: Port codex-dash visualization components, integrate with codex-pocket data, add metrics view.
-- [ ] **P5-06: Rename/Rebrand**
-  - App no longer Codex-specific; "codex-" prefix is a misnomer.
-  - Scope: Brainstorm new name, update branding, rename repo, update all references.
+**Phase 2 Complete (2026-02-19): Foundation Layer**
+
+- ✅ P5-01: Claude Integration - Foundation (PR #212)
+  - Claude adapter scaffold with health checks
+  - Disabled by default, opt-in required
+  - 21 tests, full ProviderAdapter compliance
+- ✅ P5-04: Token Cost Display - Backend (PR #213)
+  - Cost calculator with pricing tables
+  - Provider-agnostic token usage tracking
+  - 49 tests, graceful handling of missing data
+
+**Remaining Phase 5 Work:**
+
+- [ ] P5-01: Claude Integration - API client + UI (Phase 3)
+- [ ] P5-02: Context/Memory Offload & Save
+- [ ] P5-03: Custom Agent Import
+- [ ] P5-04: Token Cost Display - UI (Phase 3)
+- [ ] P5-05: Metrics Dashboard Integration
+- [ ] P5-06: Rename/Rebrand
 
 ## Technical Debt & Refactoring
 
