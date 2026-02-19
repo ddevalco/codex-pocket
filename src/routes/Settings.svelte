@@ -198,6 +198,11 @@ import { agents } from "../lib/agents.svelte";
       description: "Control quick actions and exports in the home thread list.",
       items: [
         {
+          key: "showProjectGrouping",
+          label: "Group threads by project",
+          help: "Organize threads into collapsible groups by repo/project. Disable for a flat list.",
+        },
+        {
           key: "showThreadListExports",
           label: "Thread list exports",
           help: "Show quick export actions on each thread row.",
@@ -416,6 +421,22 @@ import { agents } from "../lib/agents.svelte";
   function resetUiToggles() {
     resetToggles();
     uiToggleNote = "Reset to defaults.";
+  }
+
+  let threadsPerProjectLimit = $state(10);
+
+  $effect(() => {
+    const saved = localStorage.getItem('coderelay_threads_per_project_limit');
+    if (saved) {
+      threadsPerProjectLimit = Math.max(1, Math.min(50, parseInt(saved) || 10));
+    }
+  });
+
+  function saveThreadsPerProjectLimit() {
+    const clamped = Math.max(1, Math.min(50, threadsPerProjectLimit));
+    threadsPerProjectLimit = clamped;
+    localStorage.setItem('coderelay_threads_per_project_limit', String(clamped));
+    uiToggleNote = "Saved thread limit.";
   }
 
   function exportAgentPresetConfig() {
@@ -667,6 +688,28 @@ import { agents } from "../lib/agents.svelte";
                 </div>
               </div>
             {/each}
+            <div class="ui-toggle-group">
+                <div class="ui-toggle-group-header">Thread Limits</div>
+                <p class="ui-toggle-group-help">Limit the number of threads shown per project group.</p>
+                <div class="ui-toggle-list">
+                  <label class="ui-toggle-row">
+                    <span class="ui-toggle-text">
+                      <span class="ui-toggle-label">Threads per project</span>
+                      <span class="ui-toggle-help">Maximum threads to show per project group (1-50)</span>
+                    </span>
+                    <span class="ui-toggle-control">
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        bind:value={threadsPerProjectLimit}
+                        onchange={saveThreadsPerProjectLimit}
+                        style="width: 80px; padding: 4px; border: 1px solid var(--cli-border); border-radius: 4px; background: var(--cli-bg); color: var(--cli-text);"
+                      />
+                    </span>
+                  </label>
+                </div>
+              </div>
           </div>
         </div>
       </SectionCard>

@@ -18,6 +18,7 @@ export interface UITogglesState {
   showToolOutputCopy: boolean;
   showThreadHeaderActions: boolean;
   showTokenCosts: boolean;
+  showProjectGrouping: boolean;
 }
 
 export type UIToggleKey = keyof UITogglesState;
@@ -32,6 +33,7 @@ const DEFAULT_TOGGLES: UITogglesState = {
   showToolOutputCopy: true,
   showThreadHeaderActions: true,
   showTokenCosts: false,
+  showProjectGrouping: true,
 };
 
 function normalizeToggles(raw: unknown): UITogglesState {
