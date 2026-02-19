@@ -349,7 +349,7 @@ describe("Token Usage Enricher", () => {
     });
 
     test("handles streaming updates without usage", () => {
-      const events = [
+      const events: NormalizedEvent[] = [
         {
           provider: "codex" as const,
           sessionId: "s1",
