@@ -90,9 +90,9 @@
 <style>
   .plan-card {
     margin: var(--space-xs) var(--space-md);
-    border: 1px solid var(--cli-border);
+    border: 1px solid var(--color-cli-border);
     border-radius: var(--radius-md);
-    background: var(--cli-bg-elevated);
+    background: var(--color-cli-bg-elevated);
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     overflow: hidden;
@@ -109,9 +109,9 @@
     width: 100%;
     padding: var(--space-sm) var(--space-md);
     border: none;
-    border-bottom: 1px solid var(--cli-border);
+    border-bottom: 1px solid var(--color-cli-border);
     background: transparent;
-    color: var(--cli-text);
+    color: var(--color-cli-text);
     font-family: inherit;
     font-size: inherit;
     cursor: pointer;
@@ -119,7 +119,7 @@
   }
 
   .card-header:hover {
-    background: var(--cli-bg-hover);
+    background: var(--color-cli-bg-hover);
   }
 
   .header-left {
@@ -129,12 +129,12 @@
   .header-left svg {
     width: 1rem;
     height: 1rem;
-    color: var(--cli-prefix-agent);
+    color: var(--color-cli-prefix-agent);
     flex-shrink: 0;
   }
 
   .header-label {
-    color: var(--cli-prefix-agent);
+    color: var(--color-cli-prefix-agent);
     font-size: var(--text-xs);
     font-weight: 600;
     text-transform: uppercase;
@@ -145,7 +145,7 @@
     width: 1rem;
     height: 1rem;
     flex-shrink: 0;
-    color: var(--cli-text-dim);
+    color: var(--color-cli-text-dim);
     transition: transform 0.2s ease;
   }
 
@@ -156,12 +156,12 @@
   .card-body {
     max-height: 400px;
     overflow-y: auto;
-    border-bottom: 1px solid var(--cli-border);
+    border-bottom: 1px solid var(--color-cli-border);
   }
 
   .plan-text {
     padding: var(--space-sm) var(--space-md);
-    color: var(--cli-text);
+    color: var(--color-cli-text);
     font-size: var(--text-xs);
     line-height: 1.6;
     word-break: break-word;
@@ -172,7 +172,7 @@
   .plan-text :global(h3),
   .plan-text :global(h4) {
     margin: 0.75em 0 0.25em;
-    color: var(--cli-text);
+    color: var(--color-cli-text);
     font-weight: 600;
     line-height: 1.4;
   }
@@ -198,7 +198,7 @@
 
   .plan-text :global(code) {
     padding: 0.1em 0.3em;
-    background: var(--cli-bg);
+    background: var(--color-cli-bg);
     border-radius: var(--radius-sm);
     font-size: 0.9em;
   }
@@ -206,7 +206,7 @@
   .plan-text :global(pre) {
     margin: 0.4em 0;
     padding: var(--space-xs) var(--space-sm);
-    background: var(--cli-bg);
+    background: var(--color-cli-bg);
     border-radius: var(--radius-sm);
     overflow-x: auto;
   }
@@ -217,7 +217,7 @@
   }
 
   .plan-text :global(strong) {
-    color: var(--cli-text);
+    color: var(--color-cli-text);
     font-weight: 600;
   }
 
@@ -238,10 +238,10 @@
 
   .approve-btn {
     padding: var(--space-xs) var(--space-md);
-    background: var(--cli-prefix-agent);
+    background: var(--color-cli-prefix-agent);
     border: none;
     border-radius: var(--radius-sm);
-    color: var(--cli-bg);
+    color: var(--color-cli-bg);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     font-weight: 500;
@@ -259,17 +259,17 @@
   }
 
   .footer-hint {
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
     font-size: var(--text-xs);
   }
 
   .status-badge {
-    color: var(--cli-success);
+    color: var(--color-cli-success);
     font-size: var(--text-xs);
     font-weight: 600;
   }
 
   .status-badge.muted {
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
   }
 </style>
