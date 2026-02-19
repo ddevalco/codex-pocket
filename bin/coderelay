@@ -5,9 +5,12 @@ set -euo pipefail
 #
 # This CLI manages the local CodeRelay service (launchd) and calls its admin API.
 
-APP_DIR="${CODEX_POCKET_HOME:-$HOME/.coderelay}"
+APP_DIR="${CODERELAY_HOME:-$HOME/.coderelay}"
+if [[ ! -d "$APP_DIR" && -d "$HOME/.codex-pocket" ]]; then
+  APP_DIR="$HOME/.codex-pocket"
+fi
 CONFIG_JSON="$APP_DIR/config.json"
-LABEL="com.codex.pocket"
+LABEL="com.coderelay"
 PID_FILE="$APP_DIR/server.pid"
 
 bold=$'\033[1m'
@@ -36,7 +39,7 @@ Commands:
   update                 Update the installed app (git pull, rebuild, restart, ensure)
 
 Environment:
-  CODEX_POCKET_HOME       Defaults to ~/.coderelay
+  CODERELAY_HOME          Defaults to ~/.coderelay
 USAGE
 }
 
@@ -1200,9 +1203,12 @@ cmd_update() {
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${CODEX_POCKET_HOME:-$HOME/.coderelay}"
+APP_DIR="${CODERELAY_HOME:-$HOME/.coderelay}"
+if [[ ! -d "$APP_DIR" && -d "$HOME/.codex-pocket" ]]; then
+  APP_DIR="$HOME/.codex-pocket"
+fi
 CONFIG_JSON="$APP_DIR/config.json"
-LABEL="com.codex.pocket"
+LABEL="com.coderelay"
 
 need_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
 

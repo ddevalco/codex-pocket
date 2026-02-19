@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Local regression test for the `coderelay update` flow.
-# Runs everything under a temp HOME + CODEX_POCKET_HOME so it does NOT touch ~/.coderelay
+# Runs everything under a temp HOME + CODERELAY_HOME so it does NOT touch ~/.coderelay
 # or ~/Library/LaunchAgents.
 
 ROOT_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -127,7 +127,7 @@ fi
 cat >"$APP_HOME/bin/coderelay" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-APP_DIR="${CODEX_POCKET_HOME:-$HOME/.coderelay}"
+APP_DIR="${CODERELAY_HOME:-$HOME/.coderelay}"
 exec "$APP_DIR/app/bin/coderelay" "$@"
 SH
 chmod +x "$APP_HOME/bin/coderelay"
@@ -217,7 +217,7 @@ fi
 
 env \
   HOME="$FAKE_HOME" \
-  CODEX_POCKET_HOME="$APP_HOME" \
+  CODERELAY_HOME="$APP_HOME" \
   PATH="$PATH" \
   TMPDIR="$TMPDIR" \
   "$APP_HOME/bin/coderelay" update
