@@ -54,6 +54,19 @@
   const isTerminal = $derived(message.role === "tool" && message.kind === "terminal");
   const isWait = $derived(message.role === "tool" && message.kind === "wait");
   const isCompaction = $derived(message.role === "tool" && message.kind === "compaction");
+  const showTokenCost = $derived(
+    uiToggles.showTokenCosts &&
+      message.role === "assistant" &&
+      typeof message.tokenUsage?.totalTokens === "number"
+  );
+
+  function formatTokenCount(totalTokens: number): string {
+    if (totalTokens >= 1000) {
+      const compact = (totalTokens / 1000).toFixed(1);
+      return `${compact.replace(/\.0$/, "")}K`;
+    }
+    return totalTokens.toLocaleString();
+  }
 
   async function copyMessage() {
     const fallbackCopy = (text: string) => {
@@ -311,6 +324,15 @@
       <div class="text markdown">{@html renderedHtml}</div>
     </div>
   {/if}
+  {#if showTokenCost}
+    <div class="token-cost" aria-live="polite">
+      <span>{formatTokenCount(message.tokenUsage?.totalTokens ?? 0)} tokens</span>
+      {#if typeof message.tokenUsage?.estimatedCost === "number"}
+        <span class="token-cost-sep">·</span>
+        <span>${message.tokenUsage.estimatedCost.toFixed(4)}</span>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -394,6 +416,20 @@
     border-left: 0;
     box-shadow: none;
     padding-left: var(--space-md);
+  }
+
+  .token-cost {
+    margin-left: calc(var(--space-md) + 12px);
+    margin-top: var(--space-xs);
+    font-size: 0.8em;
+    color: var(--cli-text-muted);
+    display: flex;
+    gap: var(--space-xs);
+    align-items: center;
+  }
+
+  .token-cost-sep {
+    opacity: 0.6;
   }
 
   .message-line {

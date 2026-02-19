@@ -112,6 +112,17 @@
       ],
     },
     {
+      title: "Analytics & Costs",
+      description: "Optional token usage and cost tracking",
+      items: [
+        {
+          key: "showTokenCosts" as UIToggleKey,
+          label: "Show token costs",
+          help: "Display token usage and estimated cost per message. Token data is calculated locally and never transmitted.",
+        },
+      ],
+    },
+    {
       title: "Thread View",
       description: "Show or hide secondary actions in the thread header.",
       items: [
