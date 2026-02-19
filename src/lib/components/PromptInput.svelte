@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import type { ModeKind, ModelOption, ReasoningEffort } from "../types";
+  import type { ModeKind, ModelOption, ReasoningEffort, ThreadInfo } from "../types";
+  import { canAttachFiles, getCapabilityTooltip } from "../thread-capabilities";
   import type { AgentPreset } from "../presets";
   import { api } from "../api";
   import { loadQuickReplies, type QuickReply } from "../quickReplies";
@@ -17,6 +18,7 @@
     loading?: boolean;
     error?: string;
     draftKey?: string;
+    thread?: ThreadInfo | null;
     onStop?: () => void;
 	    onSubmit: (input: string, attachments?: ImageAttachment[]) => void;
 	    onModelChange: (model: string) => void;
@@ -44,6 +46,7 @@
     loading = false,
     error = "",
     draftKey,
+    thread,
     onStop,
     onSubmit,
     onModelChange,
@@ -82,6 +85,7 @@
   let uploadError = $state<string | null>(null);
   let pendingAttachments = $state<ImageAttachment[]>([]);
 
+  const canAttach = $derived(canAttachFiles(thread));
   const canSubmit = $derived((input.trim().length > 0 || pendingAttachments.length > 0) && !disabled && !loading);
 
   // Restore draft when draftKey changes
@@ -345,15 +349,19 @@
 	          On iOS Safari, `capture` forces the camera UI and can hide the photo library picker.
 	          We want the user to be able to choose either Camera or Photo Library.
 	        -->
-	        <label class="tool-btn row" title="Attach image">
-              <input
-		            class="file-input"
-		            type="file"
-		            accept="image/*"
-                multiple
-		            onchange={handlePickImage}
-                disabled={disabled || loading || uploadBusy}
-		          />
+        <label
+          class="tool-btn row"
+          title={canAttach ? "Attach image" : getCapabilityTooltip("CAN_ATTACH_FILES", false)}
+          style={!canAttach ? "opacity: 0.5; cursor: not-allowed" : ""}
+        >
+          <input
+            class="file-input"
+            type="file"
+            accept="image/*"
+            multiple
+            onchange={handlePickImage}
+            disabled={disabled || loading || uploadBusy || !canAttach}
+          />
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15V8a2 2 0 0 0-2-2h-3l-2-2H10L8 6H5a2 2 0 0 0-2 2v7" />
             <path d="M3 15l4-4 4 4 4-4 6 6" />

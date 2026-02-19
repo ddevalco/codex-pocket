@@ -108,55 +108,210 @@ Prioritized engineering recommendations are maintained in:
 
 - 📱 Remote control for Codex on Mac from your iPhone
 - 🔐 Secure E2E connection via Tailscale
-- 🎨 Multi-provider support (Codex, GitHub Copilot)
-- 💾 Local-first data persistence
-- ⚡ Real-time WebSocket communication
-- 🧪 Bundle size guardrails and release preflight checks
+- 🎨 Dual provider support (Codex + GitHub Copilot ACP)
+- 💾 Local-first SQLite persistence
+- ⚡ Real-time WebSocket relay
+- 🧪 Bundle size guardrails and CI smoke tests
 
-## Multi-Provider Support
+### Phase 4 Complete: Full Multi-Provider Integration
 
-Codex Pocket now supports multiple AI providers in a single interface:
+- **🔌 Dynamic Capability Matrix** — Each provider declares four capability flags:
+  - `CAN_ATTACH_FILES`: File/image attachment support
+  - `CAN_FILTER_HISTORY`: Thread history filtering
+  - `SUPPORTS_APPROVALS`: Interactive tool permission prompts
+  - `SUPPORTS_STREAMING`: Real-time response streaming
 
-- **Codex**: Full read/write support (default)
-- **GitHub Copilot** (Phase 1): Read-only session viewing via ACP protocol
+- **🎛️ Graceful Degradation UX** — UI elements automatically disable when capabilities are unavailable. Disabled buttons show tooltips explaining why (e.g., "This provider does not support attachments"). No broken interactions.
 
-### Viewing Copilot Sessions
+- **📎 Full Attachment Support** — Upload images and files to Codex and Copilot ACP. Files are stored locally (`~/.codex-pocket/uploads`), base64-encoded for ACP protocol, with automatic text-only fallback if attachments are rejected.
 
-If you have the GitHub Copilot CLI installed (`gh copilot` or `copilot`):
+- **🔒 ACP Approval System** — Interactive prompts for tool permissions (shell commands, file operations, etc.):
+  - Four decision types: `allow_once`, `allow_always`, `reject_once`, `reject_always`
+  - Persistent policy store in localStorage (`codex_pocket_acp_approval_policies`)
+  - Policies managed in Settings with revoke capability
+  - Auto-approve detection (shows warning when `--allow-all-tools` is enabled)
 
-1. Start a Copilot session in your terminal
-2. Open Codex Pocket on your iPhone
-3. Navigate to the Home screen
-4. Your Copilot sessions appear in the "GitHub Copilot" section
+- **🔍 Advanced Filtering** — Dual-axis thread filtering:
+  - **Provider Filter**: All, Codex, or Copilot ACP (live counts)
+  - **Status Filter**: All, Active, or Archived (live counts)
+  - Filter state persists to localStorage (`codex_pocket_thread_filters`)
+  - Mobile-responsive flex-wrap layout with empty state handling
 
-Phase 1 provides **read-only** access:
+## Multi-Provider Architecture
 
-- ✅ View Copilot sessions alongside Codex threads
-- ✅ See session titles, previews, and timestamps
-- ❌ Cannot send prompts or modify Copilot sessions (coming in Phase 2)
+Codex Pocket supports multiple AI providers through a unified adapter interface:
+
+### Providers
+
+**Codex (via Anchor)**
+
+- Full read/write support
+- All capabilities enabled by default
+- Thread title sync with Codex Desktop
+- Vision-capable model support
+
+**GitHub Copilot ACP**
+
+- Spawns `gh copilot --acp` or `copilot --acp` child process
+- JSON-RPC over stdio via `AcpClient`
+- Bidirectional communication for approval requests
+- Full send, streaming, attachments, and approvals support
+- Configurable via `config.json` (`providers["copilot-acp"].enabled`)
+
+### Capability Matrix
+
+| Capability | Codex | Copilot ACP |
+|------------|-------|-------------|
+| `CAN_ATTACH_FILES` | ✅ | ✅ |
+| `CAN_FILTER_HISTORY` | ✅ | ❌ |
+| `SUPPORTS_APPROVALS` | ✅ | ✅ (dynamic) |
+| `SUPPORTS_STREAMING` | ✅ | ✅ |
+
+**Note:** Copilot `SUPPORTS_APPROVALS` is `false` when started with `--allow-all-tools` flag (tools are auto-approved at provider level).
 
 ### Adding More Providers
 
-Codex Pocket uses a pluggable adapter architecture. See [docs/PROVIDERS.md](docs/PROVIDERS.md) for a guide on adding new AI providers.
+See [docs/PROVIDERS.md](docs/PROVIDERS.md) for the adapter development guide. Key steps:
+
+1. Implement `ProviderAdapter` interface
+2. Declare capabilities
+3. Register in `services/local-orbit/src/index.ts`
+4. UI automatically adapts based on declared capabilities
+
+### Approval Workflows
+
+When Copilot ACP requests tool permissions (e.g., running shell commands, reading files), you receive interactive approval prompts with four decision options:
+
+- **Allow once** (`allow_once`): Approve this specific tool call only
+- **Allow always** (`allow_always`): Auto-approve this tool for all future calls (saved as policy)
+- **Reject once** (`reject_once`): Deny this specific tool call only
+- **Reject always** (`reject_always`): Auto-deny this tool for all future calls (saved as policy)
+
+**Policy Management:**
+
+- Policies stored in localStorage (`codex_pocket_acp_approval_policies`)
+- Specificity-based matching: exact tool name > tool kind > global default
+- Manage policies in Settings: view all rules, revoke individual policies
+- Auto-approve detection: warning banner shown when provider started with `--allow-all-tools`
+
+**Approval Flow:**
+
+1. ACP sends `session/request_permission` via JSON-RPC
+2. Adapter normalizes to internal `approval_request` event (60s timeout)
+3. Relay forwards to UI over WebSocket
+4. UI checks policy store for matching rule
+5. If no policy: show prompt; if policy exists: auto-apply
+6. Decision sent back to adapter as `approval_decision`
+7. Optional: "always" choices stored as persistent policies
+
+### Advanced Filtering
+
+Filter your thread list with dual-axis filtering:
+
+**Provider Filter:**
+
+- `all` (default): Show all threads
+- `codex`: Show Codex threads only
+- `copilot-acp`: Show Copilot ACP sessions only
+
+**Status Filter:**
+
+- `all` (default): Show all threads
+- `active`: Show non-archived threads
+- `archived`: Show archived threads only
+
+**Features:**
+
+- Live thread counts on filter chips
+- Filter state persists to localStorage (`codex_pocket_thread_filters`)
+- Defensive hydration on page load with validation fallback
+- Empty state UI when no threads match filters
+- Mobile-responsive flex-wrap layout
+- Accessible keyboard navigation with ARIA attributes
+
+## Architecture Overview
+
+Codex Pocket is a **local-first, multi-provider AI interface** with secure Tailscale-based remote access.
+
+### Core Components
+
+- **local-orbit**: Single local Node.js server (port 8790 default)
+  - Serves web UI as static assets
+  - WebSocket relay (`/ws` for UI clients, `/ws/anchor` for Codex bridge)
+  - SQLite persistence (3 tables: events, upload_tokens, token_sessions)
+  - Provider registry and lifecycle management
+  - Upload storage and capability URL serving
+
+- **Anchor**: Codex Desktop bridge process
+  - Spawns `codex app-server` and relays JSON-RPC over stdio
+  - Connects to local-orbit over WebSocket
+  - Manages thread title sync with Codex Desktop state
+
+- **Provider Adapters**: Pluggable AI provider backends
+  - `CodexAdapter`: Codex Desktop integration (via Anchor)
+  - `CopilotAcpAdapter`: GitHub Copilot ACP process spawning
+  - Capability-driven feature declaration
+  - Health monitoring and graceful degradation
+
+- **Web UI**: Svelte 5 SPA
+  - Mobile-first responsive design
+  - Real-time WebSocket communication
+  - Provider-aware filtering and capabilities
+  - Approval prompt UI and policy management
+
+### Data Flow
+
+```text
+iPhone/Mac Browser
+       |
+       | wss:// (via Tailscale)
+       v
+  local-orbit (WebSocket relay)
+       |
+       +---> Anchor ---> codex app-server (stdio JSON-RPC)
+       |
+       +---> CopilotAcpAdapter ---> gh copilot --acp (stdio JSON-RPC)
+       |
+       +---> SQLite (events, uploads, sessions)
+```
+
+### LocalStorage Keys
+
+- `codex_pocket_thread_filters`: Provider and status filter state
+- `codex_pocket_acp_approval_policies`: ACP tool permission policies
+- `codex_pocket_enter_behavior`: Composer Enter key behavior (per-device)
+- Quick replies, agent presets, helper profiles (various keys)
+
+### Database Schema
+
+**events table:**
+
+- Stores thread events (prompts, responses, tool outputs)
+- Indexed on `thread_id` and `created_at` for fast replay
+
+**upload_tokens table:**
+
+- Capability URLs for uploaded files
+- Indexed on `expires_at` for automated cleanup
+
+**token_sessions table:**
+
+- Per-device session tokens with mode enforcement (full/read-only)
+- Indexed on `revoked_at` for active session queries
 
 ## How Codex Pocket Differs From Zane
 
-Codex Pocket is a focused fork for a single use case: **run Codex locally on macOS and access it securely from iPhone over Tailscale**.
+See [docs/DIFFERENCES_FROM_ZANE.md](docs/DIFFERENCES_FROM_ZANE.md) for a complete architectural comparison.
 
-Key differences:
+**Key differences:**
 
-- **No Cloudflare dependency**: Codex Pocket uses a single local server (`local-orbit`) with token-based auth (legacy access token + per-device sessions).
-- **Tailnet-first exposure**: binds to `127.0.0.1` and is designed to be exposed via `tailscale serve` to devices on your tailnet (no public internet required).
-- **Simplified auth + pairing**: one legacy **Access Token** for bootstrap/admin plus short-lived pairing QR that mints per-device session tokens.
-- **Installer + lifecycle UX**: one-line installer, `launchd` integration (with background fallback), and a full `codex-pocket` CLI (`doctor/summary/urls/token/start/stop/restart/status/logs/pair/open-admin/ensure/smoke-test/update`).
-- **Local persistence**: SQLite-backed event log + replay endpoints powering the Review UI.
-- **iPhone-first usability**: default Enter = newline (send via Cmd/Ctrl+Enter), plus mobile-oriented UI fixes.
-- **Concurrency**: composing in thread B while thread A runs now works (per-thread progress tracking).
-- **Image uploads**: stored locally, served as capability URLs, configurable retention + cleanup from Admin.
-- **Vision attachments**: uploaded images are now forwarded to Codex app-server as structured attachments (so vision-capable models can consume pixels), while still rendering inline in the chat UI.
-- **Thread titles + rename sync**: Codex Pocket reads Codex Desktop's local thread title store so renamed titles show correctly, and can rename threads by updating the same store.
-- **Update reliability + anti-regression tooling**: `update`/`ensure`/`self-test` and CI smoke tests are designed to catch regressions like blank threads quickly; `index.html` is served with `Cache-Control: no-store` to reduce “cached broken bundle” issues after updates.
-- **Export/share + copy UX**: export/share threads as Markdown/JSON and improved copy affordances (works on `http://` origins via a clipboard fallback), with iOS-friendly share-sheet behavior.
+- **Dual provider support**: Codex + GitHub Copilot ACP with unified interface (Zane is Codex-only)
+- **Capability matrix**: Dynamic feature detection with graceful UI degradation (Zane assumes all features available)
+- **Approval system**: Interactive tool permission prompts with persistent policies (Zane has no approval workflows)
+- **Advanced filtering**: Provider + status filters with localStorage persistence (Zane has basic filtering)
+- **Local-first architecture**: Single local server with token auth (Zane uses Cloudflare components)
+- **Installer + CLI tooling**: One-line install, `launchd` integration, full lifecycle management
+- **iPhone-first usability**: Mobile-oriented composer UX, responsive layout optimizations
 
 ## What You Get
 

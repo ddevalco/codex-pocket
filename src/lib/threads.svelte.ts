@@ -146,6 +146,16 @@ function normalizeThreadInfo(input: any, options?: { applyDefaultCapabilities?: 
           ? thread.turn_status
           : undefined;
   const modelProvider = typeof thread.modelProvider === "string" ? thread.modelProvider : typeof thread.model_provider === "string" ? thread.model_provider : undefined;
+  
+  // Normalize provider to canonical values
+  const rawProvider = typeof thread.provider === "string" ? thread.provider : modelProvider;
+  const provider = rawProvider === "copilot-acp" ? "copilot-acp" : "codex";
+
+  // Normalize archived status from explicit flag or status string
+  const archived = typeof thread.archived === "boolean" 
+    ? thread.archived 
+    : status === "archived";
+
   const cwd =
     typeof thread.cwd === "string"
       ? thread.cwd
@@ -192,7 +202,9 @@ function normalizeThreadInfo(input: any, options?: { applyDefaultCapabilities?: 
     ...(lastActivity != null ? { lastActivity } : {}),
     ...(lastActiveAt != null ? { lastActiveAt } : {}),
     ...(modelProvider ? { modelProvider } : {}),
-    ...(status ? { status } : {}),
+    provider,
+    status,
+    archived,
     ...(capabilities ? { capabilities } : {}),
   };
 }

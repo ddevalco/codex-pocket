@@ -4,6 +4,43 @@ All notable changes to **Codex Pocket** will be documented here.
 
 This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. See `docs/ATTRIBUTION.md`.
 
+## [Unreleased]
+
+### Added
+
+- **ACP Approvals & Tool Permissions**: Interactive prompts for Copilot tool actions (shell commands, file ops, etc.)
+- Support for "Allow once", "Always allow", "Reject once", and "Always reject" decisions
+- 60-second timeout auto-cancel for pending approvals
+- Persistent "always" rules stored in localStorage with revocation UI in Settings
+- Auto-approve mode detection via `--allow-all-tools` flag with UI warning banner
+- Bidirectional JSON-RPC support for server-initiated ACP requests
+- **Advanced Filtering**: Thread list can now be filtered by provider (All/Codex/Copilot) and status (All/Active/Archived)
+- Live thread counts displayed on filter chips
+- Persistent filter state (localStorage) survives page reloads
+- Mobile-responsive filter bar with accessible chip controls
+- Empty state handling for filtered thread list
+- **ACP attachment support**: Copilot sessions can now send image attachments to ACP providers
+- File content base64 encoding for ACP protocol compatibility
+- Graceful fallback: text-only retry when ACP rejects attachments
+- Attachment validation and normalization helpers (PromptAttachment interface)
+- Capability-driven UI feature gating: attachment button now respects provider capabilities
+- Tooltips explain why features are unavailable when disabled
+- Created thread-capabilities helper module for consistent capability checks
+
+### Changed
+
+- **Copilot sessions attachment button now enabled** (CAN_ATTACH_FILES: true)
+- sendPrompt relay path supports multiple attachment input formats
+- ACP protocol uses content array with text and image/attachment parts
+- Attachment button disabled for providers that don't support file attachments
+- Removed hard-coded provider checks from UI components
+- Unified action gating logic in thread list (rename/archive)
+
+### Fixed
+
+- Backward compatibility: threads without capability metadata work normally
+- Graceful degradation: UI adapts to provider limitations without errors
+
 ## 2026-01 to 2026-02-16 - Early Development
 
 The following features were added during early development:

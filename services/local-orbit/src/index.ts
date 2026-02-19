@@ -7,6 +7,8 @@ import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
 import { createRegistry } from "./providers/registry.js";
 import { CodexAdapter, CopilotAcpAdapter } from "./providers/adapters/index.js";
+import type { PromptInput, PromptAttachment, NormalizedEvent, AcpApprovalPayload } from "./providers/provider-types.js";
+import { normalizeAttachment, isValidAttachment } from "./providers/provider-types.js";
 
 // Track thread/list requests for response augmentation
 const threadListRequests = new Map<number, number>(); // id -> timestamp
@@ -294,7 +296,7 @@ const PROVIDER_CAPABILITIES: Record<string, ProviderCapabilities> = {
     SUPPORTS_STREAMING: true,
   },
   "copilot-acp": {
-    CAN_ATTACH_FILES: false,
+    CAN_ATTACH_FILES: true, // P4-03-03 COMPLETE: ACP attachment mapping enabled
     CAN_FILTER_HISTORY: false,
     SUPPORTS_APPROVALS: true,
     SUPPORTS_STREAMING: true,
@@ -1772,7 +1774,19 @@ function getProviderCapabilities(providerId: string): ProviderCapabilities {
   const normalizedId = providerId.startsWith("copilot-acp:") 
     ? "copilot-acp" 
     : providerId;
-  
+
+  // For copilot-acp, reflect the adapter's live computed capabilities so that
+  // SUPPORTS_APPROVALS tracks `!config.allowAllTools` at runtime.
+  if (normalizedId === "copilot-acp") {
+    const acpAdapter = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
+    if (acpAdapter) {
+      const live = acpAdapter.capabilities as any;
+      return {
+        ...PROVIDER_CAPABILITIES["copilot-acp"],
+        SUPPORTS_APPROVALS: Boolean(live.approvals),
+      };
+    }
+  }
   // Return known provider capabilities, fallback to codex defaults
   return PROVIDER_CAPABILITIES[normalizedId] ?? PROVIDER_CAPABILITIES.codex;
 }
@@ -1838,22 +1852,68 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
     return;
   }
 
+  // Extract attachments from various sources
+  const params = msg?.params ?? {};
+  const rawAttachments: any[] = [];
+
+  // Source 1: params.attachments array
+  if (Array.isArray(params.attachments)) {
+    rawAttachments.push(...params.attachments);
+  }
+
+  // Source 2: params.input.attachments (if input is an object)
+  if (params.input && typeof params.input === "object" && !Array.isArray(params.input)) {
+    if (Array.isArray(params.input.attachments)) {
+      rawAttachments.push(...params.input.attachments);
+    }
+  }
+
+  // Source 3: Codex-style params.input array with image items
+  if (params.input && Array.isArray(params.input)) {
+    const imageItems = params.input.filter((item: any) => 
+      item && typeof item === "object" && item.type === "image"
+    );
+    rawAttachments.push(...imageItems);
+  }
+
+  // Normalize attachments and filter out invalid ones
+  const attachments: PromptAttachment[] = [];
+  for (const rawAttachment of rawAttachments) {
+    const normalized = normalizeAttachment(rawAttachment);
+    if (normalized && isValidAttachment(normalized)) {
+      attachments.push(normalized);
+    } else if (normalized || rawAttachment) {
+      // Log warning but don't fail the request
+      console.warn(
+        `[local-orbit] Skipping invalid attachment in sendPrompt (thread: ${threadId}):`,
+        rawAttachment
+      );
+    }
+  }
+
+  // Construct PromptInput object
+  const promptInput: PromptInput = {
+    text,
+    ...(attachments.length > 0 && { attachments }),
+  };
+
   const startTime = Date.now();
   try {
     const adapter = registry.get("copilot-acp") as any;
     const sessionId = acpSessionIdFromThreadId(threadId);
-    const result = await adapter.sendPrompt(sessionId, { text });
+    const result = await adapter.sendPrompt(sessionId, promptInput);
     
     const elapsed = Date.now() - startTime;
     
     // Log telemetry for relay performance
+    const attachmentInfo = attachments.length > 0 ? `, ${attachments.length} attachment(s)` : "";
     if (elapsed > 15000) {
       console.warn(
-        `[local-orbit] Slow ACP sendPrompt relay: ${elapsed}ms (degraded, thread: ${threadId})`
+        `[local-orbit] Slow ACP sendPrompt relay: ${elapsed}ms (degraded, thread: ${threadId}${attachmentInfo})`
       );
     } else {
       console.log(
-        `[local-orbit] ACP sendPrompt relay completed in ${elapsed}ms (thread: ${threadId})`
+        `[local-orbit] ACP sendPrompt relay completed in ${elapsed}ms (thread: ${threadId}${attachmentInfo})`
       );
     }
     
@@ -1896,6 +1956,34 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
         },
       },
     });
+  }
+}
+
+/**
+ * Broadcast an ACP approval_request event to all WebSocket clients subscribed to the
+ * thread for the given sessionId (i.e. `copilot-acp:<sessionId>`).
+ */
+function broadcastApprovalRequest(sessionId: string, event: NormalizedEvent): void {
+  const threadId = `copilot-acp:${sessionId}`;
+  const payload = event.payload as AcpApprovalPayload;
+  const message = {
+    type: "acp:approval_request",
+    threadId,
+    rpcId: payload.rpcId,
+    options: payload.options,
+    toolCall: {
+      toolCallId: payload.toolCallId,
+      title: payload.toolTitle,
+      kind: payload.toolKind,
+    },
+  };
+  const clients = threadToClients.get(threadId);
+  if (clients && clients.size > 0) {
+    for (const ws of clients) send(ws, message);
+  } else {
+    // No clients subscribed to this thread yet — broadcast to all clients so the
+    // UI can present the approval prompt even before the thread is open.
+    for (const ws of clientSockets.keys()) send(ws, message);
   }
 }
 
@@ -2008,6 +2096,18 @@ async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
 
 // Start all enabled providers
 await registry.startAll();
+
+// Wire ACP approval requests: forward to UI clients, route decisions back to adapter.
+{
+  const acpAdapterForApprovals = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
+  if (acpAdapterForApprovals && typeof acpAdapterForApprovals.onApprovalRequest === "function") {
+    acpAdapterForApprovals.onApprovalRequest((event) => {
+      const payload = event.payload as AcpApprovalPayload;
+      broadcastApprovalRequest(payload.sessionId, event);
+    });
+    console.log("[local-orbit] ACP approval request handler wired");
+  }
+}
 
 const server = Bun.serve<WsData>({
   hostname: HOST,
@@ -2803,6 +2903,18 @@ const server = Bun.serve<WsData>({
           }
           return;
         }
+      }
+
+      // Handle ACP approval decisions from UI clients — route back to adapter only.
+      if (role === "client" && obj && obj.type === "acp:approval_decision") {
+        const acpAdapter = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
+        if (acpAdapter && typeof acpAdapter.resolveApproval === "function") {
+          const outcome = obj.optionId
+            ? { outcome: "selected" as const, optionId: String(obj.optionId) }
+            : { outcome: "cancelled" as const };
+          acpAdapter.resolveApproval(String(obj.rpcId), outcome);
+        }
+        return;
       }
 
       await relay(role, text, ws);

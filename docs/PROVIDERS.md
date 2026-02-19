@@ -6,6 +6,22 @@ This guide explains how to add support for new AI providers to Codex Pocket.
 
 Codex Pocket uses a **provider adapter pattern** to support multiple AI backends. Each provider implements the `ProviderAdapter` interface, which the `ProviderRegistry` manages.
 
+**Current providers:**
+
+- **Codex** (via Anchor): Full read/write support, all capabilities enabled
+- **GitHub Copilot ACP**: Full integration with send, streaming, approvals, and attachments
+
+## Provider Capability Matrix
+
+| Capability | Codex | Copilot ACP | Description |
+|------------|-------|-------------|-------------|
+| `CAN_ATTACH_FILES` | ✅ | ✅ | File/image attachment support |
+| `CAN_FILTER_HISTORY` | ✅ | ❌ | Thread history filtering |
+| `SUPPORTS_APPROVALS` | ✅ | ✅ (dynamic) | Interactive tool permission prompts |
+| `SUPPORTS_STREAMING` | ✅ | ✅ | Real-time response streaming |
+
+**Note:** Copilot `SUPPORTS_APPROVALS` is `false` when started with `--allow-all-tools` flag (tools are auto-approved at provider level).
+
 ## Quick Start
 
 1. Create a new adapter in `services/local-orbit/src/providers/adapters/`
@@ -138,16 +154,33 @@ export class MyProviderSessionNormalizer extends BaseSessionNormalizer {
 
 ## Capabilities
 
-Declare what your adapter supports:
+Declare what your adapter supports using the `ProviderCapabilities` interface:
+
+```typescript
+interface ProviderCapabilities {
+  CAN_ATTACH_FILES: boolean;      // File/image attachment support
+  CAN_FILTER_HISTORY: boolean;    // Thread history filtering
+  SUPPORTS_APPROVALS: boolean;    // Interactive tool permission prompts
+  SUPPORTS_STREAMING: boolean;    // Real-time response streaming
+}
+```
+
+**Example:**
 
 ```typescript
 capabilities: {
-  listSessions: true,
-  sendMessage: false,    // Phase 1: read-only
-  streamMessage: false,
-  archiveSession: false
+  CAN_ATTACH_FILES: true,
+  CAN_FILTER_HISTORY: false,
+  SUPPORTS_APPROVALS: !this.config.allowAllTools,  // Dynamic based on config
+  SUPPORTS_STREAMING: true
 }
 ```
+
+The UI automatically adapts based on declared capabilities:
+
+- If `CAN_ATTACH_FILES=false`: Attach button disabled with tooltip
+- If `SUPPORTS_APPROVALS=false`: Auto-approve warning banner shown
+- If `SUPPORTS_STREAMING=false`: Response shown after completion (no streaming)
 
 ## Error Handling
 
@@ -245,14 +278,96 @@ Refer to existing adapters:
 5. **Timeouts**: Set reasonable defaults (5s for requests, 30s for process startup)
 6. **Graceful Degradation**: UI should work even if your adapter fails
 
-## Phase 1 Constraints
+## Current Provider Implementations
 
-New adapters in Phase 1 should be **read-only**:
+### Codex Adapter
 
-- Implement `listSessions()` only
-- Set `capabilities.sendMessage = false`
-- Return clear errors if write methods are called
-- UI will automatically disable write actions (archive, rename, send)
+**Location:** `services/local-orbit/src/providers/adapters/codex-adapter.ts`
+
+**Status:** Phase 1 placeholder (full Codex integration is via Anchor, not this adapter)
+
+**Capabilities:**
+
+```typescript
+{
+  CAN_ATTACH_FILES: true,
+  CAN_FILTER_HISTORY: true,
+  SUPPORTS_APPROVALS: true,
+  SUPPORTS_STREAMING: true
+}
+```
+
+### Copilot ACP Adapter
+
+**Location:** `services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts`
+
+**Status:** Full Phase 4 implementation
+
+**Process Management:**
+
+- Spawns `gh copilot --acp` or `copilot --acp` child process
+- JSON-RPC over stdio via `AcpClient`
+- Health checking with process lifecycle management
+- Graceful degradation if CLI not installed
+
+**Capabilities:**
+
+```typescript
+{
+  CAN_ATTACH_FILES: true,              // Base64-encodes files for ACP protocol
+  CAN_FILTER_HISTORY: false,           // ACP protocol limitation
+  SUPPORTS_APPROVALS: !allowAllTools,  // Dynamic based on --allow-all-tools flag
+  SUPPORTS_STREAMING: true             // Real-time streaming via events
+}
+```
+
+**Key Features:**
+
+- **Bidirectional JSON-RPC**: Supports server-initiated requests (`session/request_permission`)
+- **Approval Handling**: 60s timeout with automatic cancel, normalized to internal events
+- **Attachment Protocol**: Reads files, base64-encodes, embeds in ACP content array
+- **Fallback Logic**: Automatic text-only retry if attachments rejected
+- **Config-Driven**: Enable/disable via `config.json` (`providers["copilot-acp"].enabled`)
+
+## Phase 4: Full Multi-Provider Integration
+
+All Phase 4 goals achieved:
+
+- ✅ **P4-01**: Provider capability detection system with four flags
+- ✅ **P4-02**: Graceful degrade UX with disabled elements and tooltips
+- ✅ **P4-03**: ACP attachment support with base64 encoding
+- ✅ **P4-04**: ACP approvals with bidirectional JSON-RPC and policy store
+- ✅ **P4-05**: Advanced filtering with provider + status axes
+- ✅ **P4-06**: Hardening with timeouts, retries, and health tracking
+
+See [ACP_CODEX_INTEGRATION_EPIC.md](../ACP_CODEX_INTEGRATION_EPIC.md) for implementation details.
+
+## Adding New Providers
+
+New adapters should:
+
+1. Implement the full `ProviderAdapter` interface
+2. Declare accurate capabilities (UI adapts automatically)
+3. Handle graceful degradation (provider unavailable shouldn't break other providers)
+4. Follow error handling patterns (timeouts, retries, clear user-facing messages)
+5. Add comprehensive tests (unit + integration)
+6. Document provider-specific setup (CLI installation, API keys, etc.)
+
+**Capability Guidelines:**
+
+- Set `CAN_ATTACH_FILES=true` only if you can handle files in prompts
+- Set `SUPPORTS_APPROVALS=true` only if you emit `session/request_permission` style events
+- Set `SUPPORTS_STREAMING=true` only if you can emit incremental response chunks
+- Set `CAN_FILTER_HISTORY=true` if your provider supports history filtering operations
+
+**UI will automatically:**
+
+- Disable attach button if `CAN_ATTACH_FILES=false`
+- Show approval prompts only if `SUPPORTS_APPROVALS=true`
+- Stream responses only if `SUPPORTS_STREAMING=true`
+- Hide filter options if `CAN_FILTER_HISTORY=false`
+
+See `CopilotAcpAdapter` for a complete reference implementation.
 
 ## Questions?
 

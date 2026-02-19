@@ -16,7 +16,33 @@
  * - Automatic cleanup on done marker or timeout
  */
 
-import type { NormalizedEvent, EventCategory } from "../provider-types.js";
+import type {
+  NormalizedEvent,
+  EventCategory,
+  AcpPermissionOption,
+  AcpApprovalPayload,
+} from "../provider-types.js";
+
+/**
+ * Raw params from an ACP `session/request_permission` JSON-RPC request
+ */
+export interface AcpPermissionRequestParams {
+  sessionId: string;
+  toolCall?: {
+    toolCallId?: string;
+    title?: string;
+    kind?: string;
+    status?: string;
+    [key: string]: unknown;
+  };
+  options?: Array<{
+    optionId: string;
+    name: string;
+    kind: string;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
 
 /**
  * ACP update notification structure
@@ -122,6 +148,70 @@ export class ACPStreamingNormalizer {
         this.eventHandlers.splice(idx, 1);
       }
     }
+  }
+
+  /**
+   * Normalize an ACP `session/request_permission` JSON-RPC request into a
+   * NormalizedEvent with category `approval_request`.
+   *
+   * The caller supplies the raw RPC `id` and `params` directly.
+   * `rpcId` is preserved in the payload so the relay can route the response
+   * back to ACP.
+   *
+   * @param rpcId  - The JSON-RPC request id (number or string)
+   * @param params - The deserialized `params` object from the RPC request
+   * @returns A fully-formed NormalizedEvent
+   */
+  normalizePermissionRequest(
+    rpcId: string | number,
+    params: AcpPermissionRequestParams,
+  ): NormalizedEvent {
+    const sessionId = params.sessionId ?? "";
+    const toolCallId = params.toolCall?.toolCallId ?? "";
+    const toolTitle = params.toolCall?.title;
+    const toolKind = params.toolCall?.kind;
+
+    // Validate and cast each permission option
+    const rawOptions = Array.isArray(params.options) ? params.options : [];
+    const options: AcpPermissionOption[] = rawOptions.map((opt) => ({
+      optionId: opt.optionId ?? "",
+      name: opt.name ?? "",
+      kind: (
+        opt.kind === "allow_once" ||
+        opt.kind === "allow_always" ||
+        opt.kind === "reject_once" ||
+        opt.kind === "reject_always"
+          ? opt.kind
+          : "reject_once"
+      ) as AcpPermissionOption["kind"],
+    }));
+
+    const payload: AcpApprovalPayload = {
+      rpcId,
+      sessionId,
+      toolCallId,
+      ...(toolTitle !== undefined ? { toolTitle } : {}),
+      ...(toolKind !== undefined ? { toolKind } : {}),
+      options,
+    };
+
+    const description = toolTitle
+      ? `Approval required: ${toolTitle}`
+      : "Approval required";
+
+    const event: NormalizedEvent = {
+      provider: "copilot-acp",
+      sessionId,
+      eventId: `approval-${rpcId}-${Date.now()}`,
+      category: "approval_request",
+      timestamp: new Date().toISOString(),
+      text: description,
+      payload: payload as unknown as Record<string, unknown>,
+      rawEvent: params,
+    };
+
+    this.emitEvent(event);
+    return event;
   }
 
   /**

@@ -125,17 +125,20 @@ interface NormalizedSession {
 The `CopilotAcpAdapter` implements GitHub Copilot ACP (Agent Control Protocol):
 
 - **Process Management**: Spawns `gh copilot --acp` or `copilot --acp` child process
-- **Communication**: JSON-RPC over stdio using `AcpClient`
+- **Communication**: Bidirectional JSON-RPC over stdio using `AcpClient`
 - **Graceful Degradation**: Returns degraded health if CLI not installed
-- **Phase 1 Scope**: Read-only session listing (no prompt sending yet)
+- **Full Capabilities**: Send prompts, stream responses, handle approvals, process attachments
 
-### Phase 1 Constraints
+### Phase 4 Complete: Full ACP Integration
 
-- **Read-Only**: ACP sessions are list-only; write operations return error
-- **UI Gating**: Archive/rename buttons disabled for Copilot threads
-- **No Message Send**: Prompt submission to Copilot deferred to Phase 2
+- **Capability Detection (P4-01)**: Dynamic provider capability matrix with feature flags
+- **Graceful Degrade UX (P4-02)**: UI adapts based on provider capabilities with tooltips
+- **ACP Attachments (P4-03)**: File and image attachments with base64 encoding and fallback
+- **ACP Approvals (P4-04)**: Interactive tool permission prompts with persistent policies
+- **Advanced Filtering (P4-05)**: Provider and status filters with localStorage persistence
+- **Hardening (P4-06)**: 30s timeouts, exponential backoff retry, health tracking
 
-See [ACP_CODEX_INTEGRATION_EPIC.md](./ACP_CODEX_INTEGRATION_EPIC.md) for implementation timeline.
+See [ACP_CODEX_INTEGRATION_EPIC.md](../ACP_CODEX_INTEGRATION_EPIC.md) for implementation details.
 
 ## Data Flow
 
@@ -170,8 +173,115 @@ Codex Pocket can also rename threads by updating the same title store file (Admi
    - Markdown `![...](viewUrl)` so the timeline renders an inline image.
    - A structured `input` item with a local file `path` so Codex app-server can pass pixels to vision-capable models.
 
-## Pairing
+### Pairing
 
 - Admin can mint a short-lived, one-time pairing link (`/admin/pair/new`).
 - iPhone opens `/pair?code=...` which exchanges the code for the bearer token via `/pair/consume`.
 - The code is one-time-use and expires.
+
+## Approval System
+
+Codex Pocket implements interactive approval workflows for tool permissions (shell commands, file operations, etc.).
+
+### Architecture
+
+```text
+┌─────────────────────────────────────────────────────┐
+│                 UI (Thread.svelte)                  │
+│   - Approval prompts (Allow once/Always/Reject)    │
+│   - Auto-approve warning banner                    │
+└──────────────────┬──────────────────────────────────┘
+                   │ WebSocket JSON-RPC
+┌──────────────────▼──────────────────────────────────┐
+│              local-orbit relay                      │
+│   - Forwards approval_request to UI                 │
+│   - Routes approval_decision back to provider       │
+└──────────────────┬──────────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────────┐
+│          CopilotAcpAdapter                          │
+│   - Bidirectional JSON-RPC support                  │
+│   - Normalizes session/request_permission events    │
+│   - 60s timeout with auto-cancel                    │
+└──────────────────┬──────────────────────────────────┘
+                   │
+               ┌───▼────┐
+               │gh copilot│
+               │  --acp   │
+               └──────────┘
+```
+
+### Approval Policy Store
+
+Persistent approval rules are managed via `approval-policy-store.svelte.ts`:
+
+- **Storage**: localStorage (`codex_pocket_acp_approval_policies`)
+- **Scope**: Per provider (currently `"copilot-acp"` only)
+- **Matching**: Specificity-based (exact tool name > tool kind > global default)
+- **Actions**: `allow` (always approve) or `reject` (always deny)
+- **Management**: Users can revoke policies in Settings UI
+
+**Policy Interface:**
+
+```typescript
+interface AcpApprovalPolicy {
+  id: string;
+  toolKind?: string;      // e.g., "bash", "file_operations"
+  toolTitle?: string;     // e.g., "read_file", "execute_command"
+  decision: "allow" | "reject";
+  createdAt: number;
+  provider: "copilot-acp";
+}
+```
+
+### Approval Flow
+
+1. Provider sends `session/request_permission` via bidirectional JSON-RPC
+2. Adapter normalizes to `approval_request` event with 60s timeout
+3. Relay forwards to UI over WebSocket
+4. UI checks policy store:
+   - If policy exists: auto-apply decision
+   - Otherwise: show approval prompt
+5. User decision (or timeout) sent as `approval_decision` to provider
+6. Optional: Store "always" rules in policy store
+
+### Auto-Approve Detection
+
+If provider is started with `--allow-all-tools`, UI shows a warning banner indicating all tool permissions are auto-approved at the provider level.
+
+## Filter Persistence System
+
+Thread list filtering state is persisted across sessions.
+
+### Architecture
+
+- **Storage**: localStorage (`codex_pocket_thread_filters`)
+- **State**: `ThreadFilterState` with `provider` and `status` filters
+- **Hydration**: Defensive load on page mount with fallback to defaults
+
+### Filter Types
+
+**Provider Filter:**
+
+- `all` (default)
+- `codex`
+- `copilot-acp`
+
+**Status Filter:**
+
+- `all` (default)
+- `active`
+- `archived`
+
+### UI Components
+
+- Filter chips show live thread counts
+- Mobile-responsive flex-wrap layout
+- Accessible keyboard navigation with ARIA attributes
+- Empty state handling when no threads match
+
+### Implementation
+
+File: `src/lib/threads.svelte.ts`
+
+The thread store maintains filter state and applies filters reactively to the thread list.

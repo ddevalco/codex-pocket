@@ -6,6 +6,7 @@
     import { messages } from "../lib/messages.svelte";
     import { models } from "../lib/models.svelte";
     import { theme } from "../lib/theme.svelte";
+    import { supportsApprovals } from "../lib/thread-capabilities";
     import { loadAgentPresets, type AgentPreset } from "../lib/presets";
     import { loadHelperProfiles, type HelperProfile } from "../lib/helperProfiles";
     import AppHeader from "../lib/components/AppHeader.svelte";
@@ -54,6 +55,16 @@
         const capabilities = (currentThread as any)?.capabilities;
         if (typeof capabilities?.sendPrompt === "boolean") return capabilities.sendPrompt;
         return true;
+    });
+
+    const pendingAcpApproval = $derived.by(() => {
+        const id = threadId;
+        if (!id || threadProvider !== "copilot-acp") return null;
+        return messages.getPendingAcpApproval(id);
+    });
+
+    const showAutoApproveBanner = $derived.by(() => {
+        return threadProvider === "copilot-acp" && !supportsApprovals(currentThread);
     });
 
     const composerDisabled = $derived.by(() => isInProgress || !socket.isHealthy || !canSendPrompt);
@@ -518,14 +529,27 @@
                 return;
             }
             promptLoading = true;
+
+            const params: Record<string, unknown> = {
+                threadId,
+                message: inputText,
+            };
+
+            if (attachments.length > 0) {
+                params.attachments = attachments.map((a) => ({
+                    kind: a.kind,
+                    filename: a.filename,
+                    mime: a.mime,
+                    localPath: a.localPath,
+                    viewUrl: a.viewUrl,
+                }));
+            }
+
             const result = socket.sendReliable({
                 method: "sendPrompt",
                 id: Date.now(),
                 clientRequestId,
-                params: {
-                    threadId,
-                    message: inputText,
-                },
+                params,
             });
             promptLoading = false;
             if (!result.success) {
@@ -887,7 +911,59 @@
         </div>
     {/if}
 
+    {#if showAutoApproveBanner}
+        <div class="auto-approve-banner">
+            ⚠️ Copilot is running in <strong>auto-approve mode</strong>.
+            Tools execute without confirmation.
+            <a href="/settings">Manage in Settings</a>
+        </div>
+    {/if}
+
     <div class="transcript" bind:this={container}>
+        {#if pendingAcpApproval}
+            {@const toolLabel = pendingAcpApproval.toolTitle ?? pendingAcpApproval.toolKind ?? "Tool action"}
+            {@const toolMeta = pendingAcpApproval.toolTitle && pendingAcpApproval.toolKind ? pendingAcpApproval.toolKind : null}
+            <div class="acp-approval-card">
+                <div class="acp-approval-header">
+                    <span class="header-label">Approval Required</span>
+                    <span class="header-type">Copilot ACP</span>
+                </div>
+                <div class="acp-approval-body">
+                    <div class="acp-tool-title">{toolLabel}</div>
+                    {#if toolMeta}
+                        <div class="acp-tool-meta">{toolMeta}</div>
+                    {/if}
+                </div>
+                <div class="acp-approval-actions">
+                    {#each pendingAcpApproval.options as option (option.optionId)}
+                        <button
+                            type="button"
+                            class="acp-option-btn"
+                            class:allow={option.kind === "allow_once" || option.kind === "allow_always"}
+                            class:reject={option.kind === "reject_once" || option.kind === "reject_always"}
+                            onclick={() => messages.resolveAcpApproval(
+                                pendingAcpApproval.threadId,
+                                pendingAcpApproval.rpcId,
+                                option.optionId,
+                            )}
+                        >
+                            <span class="option-label">{option.name}</span>
+                        </button>
+                    {/each}
+                    <button
+                        type="button"
+                        class="acp-option-btn acp-cancel-btn"
+                        onclick={() => messages.resolveAcpApproval(
+                            pendingAcpApproval.threadId,
+                            pendingAcpApproval.rpcId,
+                            null,
+                        )}
+                    >
+                        <span class="option-label">Cancel</span>
+                    </button>
+                </div>
+            </div>
+        {/if}
         {#if messages.current.length === 0}
             <div class="empty row">
                 <span class="empty-prompt">&gt;</span>
@@ -973,6 +1049,7 @@
 
     <PromptInput
         draftKey={threadId}
+        thread={currentThread}
         {model}
         {reasoningEffort}
         {mode}
@@ -1013,12 +1090,117 @@
         font-family: var(--font-mono);
     }
 
+    .auto-approve-banner {
+        margin: var(--space-sm) var(--space-md) 0;
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-md);
+        border: 1px solid color-mix(in srgb, #f59e0b 48%, var(--cli-border));
+        background: color-mix(in srgb, #fbbf24 18%, var(--cli-bg-elevated));
+        color: var(--cli-text);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+    }
+
+    .auto-approve-banner a {
+        color: var(--cli-prefix-agent);
+    }
+
     /* Transcript */
     .transcript {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
         padding: var(--space-sm) 0;
+    }
+
+    .acp-approval-card {
+        margin: var(--space-xs) var(--space-md);
+        border: 1px solid var(--cli-border);
+        border-radius: var(--radius-md);
+        background: var(--cli-bg-elevated);
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+        overflow: hidden;
+    }
+
+    .acp-approval-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--space-sm) var(--space-md);
+        border-bottom: 1px solid var(--cli-border);
+    }
+
+    .acp-approval-header .header-label {
+        color: var(--cli-prefix-tool);
+        font-size: var(--text-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .acp-approval-header .header-type {
+        color: var(--cli-text-muted);
+        font-size: var(--text-xs);
+    }
+
+    .acp-approval-body {
+        padding: var(--space-sm) var(--space-md);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+    }
+
+    .acp-tool-title {
+        color: var(--cli-text);
+        font-size: var(--text-xs);
+    }
+
+    .acp-tool-meta {
+        color: var(--cli-text-muted);
+        font-size: var(--text-xs);
+    }
+
+    .acp-approval-actions {
+        display: flex;
+        gap: var(--space-xs);
+        padding: var(--space-sm) var(--space-md);
+        border-top: 1px solid var(--cli-border);
+        flex-wrap: wrap;
+    }
+
+    .acp-option-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-xs);
+        padding: var(--space-xs) var(--space-sm);
+        background: transparent;
+        border: 1px solid var(--cli-border);
+        border-radius: var(--radius-sm);
+        color: var(--cli-text);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .acp-option-btn:hover {
+        border-color: var(--cli-text-muted);
+        background: var(--cli-bg-hover);
+    }
+
+    .acp-option-btn.allow {
+        border-color: color-mix(in srgb, var(--cli-success, #4ade80) 45%, var(--cli-border));
+        color: var(--cli-success, #4ade80);
+    }
+
+    .acp-option-btn.reject {
+        border-color: color-mix(in srgb, var(--cli-error) 55%, var(--cli-border));
+        color: var(--cli-error);
+    }
+
+    .acp-cancel-btn {
+        color: var(--cli-text-muted);
     }
 
     .streaming-reasoning {

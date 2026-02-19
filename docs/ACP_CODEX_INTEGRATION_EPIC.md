@@ -7,9 +7,9 @@ Date: 2026-02-16
 - ✅ **Phase 0**: Contracts & Schemas (PR #138, merged)
 - ✅ **Phase 1**: Registry & Read-Only Adapter (PR #143, merged)
 - ✅ **Phase 2**: Prompt Send + Streaming (PRs #147, #148, #149 • 2026-02-17)
-- ✅ **Phase 3**: Home UI Grouping (completed in Phase 1 / PR #143)
-- 📋 **Phase 4**: Capability Matrix (planned)
-- 📋 **Phase 5**: Hardening (planned)
+- ✅ **Phase 3**: Home UI Grouping + Filtering (PR #143, P4-05)
+- ✅ **Phase 4**: Capability Matrix + Graceful Degrade (ALL COMPLETE • 2026-02-18)
+- ✅ **Phase 5**: Hardening (COMPLETE • 2026-02-18)
 
 ## Summary
 
@@ -370,20 +370,22 @@ Phase 2 complete when:
 
 **Deferred:**
 
-- ⏸️ Attachments, approvals, advanced filtering (Phase 4)
+- ✅ Attachments, approvals, advanced filtering (Phase 4 COMPLETE)
 - ⏸️ Multi-provider reliability hardening (Phase 5)
 
 ### Phase 3 — Unified Grouping + Filters ✅ COMPLETED
 
-**Status:** Completed in Phase 1 (PR #143). Advanced features (filter chips, view persistence) deferred as optional enhancements.
+**Status:** Completed (PR #143, P4-05).
 
-- provider grouping UX ✅ completed in Phase 1
-- provider filter chips and persisted view preferences (optional enhancements, deferred)
+- Provider grouping UX ✅ completed in Phase 1 (PR #143)
+- Advanced filter chips and persisted view preferences ✅ completed in Phase 4 (P4-05)
 
 ## Phase 4: Capability Matrix + Graceful Degrade
 
-**Status:** Planning (Plan Approved)
+**Status:** ✅ COMPLETE (2026-02-18)
+
 **Detailed Plan:** [`docs/PHASE4_PLAN.md`](PHASE4_PLAN.md)
+
 **Goal:** Introduce capability detection and graceful UI degradation based on provider features.
 
 ### Scope
@@ -396,41 +398,103 @@ Phase 2 complete when:
 
 ### Implementation Issues
 
-**P4-01: Capability Matrix Plumbing**
+**P4-01: Capability Matrix Plumbing ✅ COMPLETE**
 
 - Surface provider capability flags in thread/session payloads and client thread model
 - Dependencies: Phase 1/2 complete
+- Status: Completed 2026-02-18 (#151)
 
-**P4-02: Graceful Degrade UX**
+**P4-02: Graceful Degrade UX ✅ COMPLETE**
 
 - Disable unsupported actions with explicit hints based on capability matrix
 - Dependencies: P4-01
+- Status: Completed 2026-02-18 (#152)
 
-**P4-03: ACP Attachment Support**
+**P4-03: ACP Attachment Support ✅ COMPLETE**
 
+- Status: Completed 2026-02-18, ready for manual testing (#153)
 - Extend ACP send path to carry attachments with safe degradation
 - Dependencies: P4-01, P4-02
 
-**P4-04: ACP Approvals + User Input Handling**
+**P4-04: ACP Approvals + User Input Handling ✅ COMPLETE**
 
+- Status: Completed 2026-02-18 (#154)
 - Normalize ACP approval/input events and integrate with existing approval components
 - Dependencies: P4-03
 
-**P4-05: Advanced Filtering + View Persistence**
+**P4-05: Advanced Filtering + View Persistence ✅ COMPLETE**
 
+- Status: Completed 2026-02-18 (#155)
 - Add provider/status/query filtering with local persistence
 - Dependencies: P4-01
 
-**P4-06: Hardening + Release Gate**
+**P4-06: Hardening + Release Gate ✅ COMPLETE**
 
+- Status: Completed 2026-02-18 (#156)
 - Finalize tests, docs, CI checks following stacked PR discipline
 - Dependencies: P4-02, P4-04, P4-05
+- Includes: 30s timeouts, exponential backoff retry, health tracking, test coverage, CI guards
 
 ### Phase 5 — Hardening
 
 - reliability/reconnect behavior for ACP adapter
 - metrics and admin observability
 - CI smoke for both providers
+
+## Approvals & Tool Permissions
+
+### What approvals are and why they matter
+
+- When Copilot wants to perform a potentially dangerous action (run a shell command, modify a file, make a network request), ACP sends a `session/request_permission` JSON-RPC request before executing.
+- This gives the user the ability to allow (once or always) or reject (once or always) the action.
+- Without this, users have no oversight or control over what the agent does on their system.
+- Supporting approvals is critical for a secure and trustworthy user experience.
+
+### How the ACP approval protocol works
+
+- Method: `session/request_permission` (JSON-RPC request, has `id` field, must be replied to)
+- Contains: `sessionId`, `toolCall` (with `toolCallId`, title, kind), `options` array
+- Each option has: `optionId`, `name`, `kind` (allow_once | allow_always | reject_once | reject_always)
+- Client responds with: `{ "result": { "outcome": { "outcome": "selected", "optionId": "<chosen>" } } }`
+- Or cancels: `{ "result": { "outcome": { "outcome": "cancelled" } } }`
+- If client never responds: agent blocks indefinitely (no timeout in protocol)
+
+### The --allow-all-tools flag impact
+
+- Flag bypasses ALL approval events — agent executes every tool without asking
+- No `session/request_permission` events are sent when this flag is active
+- This gives the agent the same access as the user account with zero oversight
+- Equivalent flags: `--allow-all`, `--yolo`
+- Finer-grained: `--allow-tool <name>` and `--deny-tool <name>` exist
+- Impact on Codex Pocket: approval UI is never shown, tool actions appear as immediately executed
+- Recommendation: Don't use `--allow-all-tools` unless you fully understand and accept the risk
+
+### How Codex Pocket handles this
+
+- Adapter detects whether auto-approve mode is active via its own config/launch args
+- `SUPPORTS_APPROVALS` capability flag: set to `false` when auto-approve mode is on, `true` otherwise
+- When `SUPPORTS_APPROVALS = false`: UI shows a persistent banner warning user they're in auto-approve mode
+- When `SUPPORTS_APPROVALS = true`: full `ApprovalPrompt.svelte` workflow is active
+- Everything else (chat, streaming, attachments, filtering) works regardless of approval mode
+- Persistent approvals (allow_always / reject_always) are stored client-side in a local policy store
+
+### Persistent approvals and revocation
+
+- "Allow always" / "Reject always" choices are stored in a client-side policy store (not in ACP protocol)
+- Users can review and revoke these in Settings
+- Revocation means next occurrence of that tool action will prompt again
+- Policy store keys off tool type + command/path pattern
+
+### What users need to know (user-facing summary)
+
+- **Why the app prompts before running commands**: For your safety, the agent asks for permission before running commands on your computer. This ensures you always have control over what the AI agent can do.
+- **What each choice means**:
+  - **Allow Once**: Let the agent run this specific command this one time.
+  - **Allow Always**: This tool/command pattern is trusted. Never ask for this again.
+  - **Reject Once**: Don't let the agent run this command right now.
+  - **Reject Always**: Block this tool/command pattern forever.
+- **How to manage persistent rules**: You can view and delete your "Always" rules in Settings if you change your mind later.
+- **Why NOT to use --allow-all-tools casually**: Running with the `--allow-all-tools` flag removes all safety checks. The agent could delete files or run harmful commands without your knowledge. Only use this in environments you fully trust.
 
 ## Risks and Mitigations
 

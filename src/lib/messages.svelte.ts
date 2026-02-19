@@ -1,9 +1,21 @@
-import type { Message, RpcMessage, ApprovalRequest, UserInputRequest, UserInputQuestion, TurnStatus, PlanStep, CollaborationMode, MessageStatus } from "./types";
+import type {
+  Message,
+  RpcMessage,
+  ApprovalRequest,
+  UserInputRequest,
+  UserInputQuestion,
+  TurnStatus,
+  PlanStep,
+  CollaborationMode,
+  MessageStatus,
+  AcpApprovalRequest,
+} from "./types";
 import { socket } from "./socket.svelte";
 import { threads } from "./threads.svelte";
 import { api } from "./api";
 import { auth } from "./auth.svelte";
 import { notifications } from "./notifications.svelte";
+import { approvalPolicyStore } from "./approval-policy-store.svelte";
 
 const STORE_KEY = "__zane_messages_store__";
 
@@ -24,6 +36,7 @@ class MessagesStore {
   // Best-effort replay guard so we don't re-run expensive event hydration loops.
   #eventsReplayed = new Set<string>();
   #pendingApprovals = $state<Map<string, ApprovalRequest>>(new Map());
+  #pendingAcpApprovals = $state<Map<string, AcpApprovalRequest[]>>(new Map());
   #pendingLiveMessages = new Map<string, Message>(); // survives clearThread for replay preservation
   #reasoningByThread = new Map<string, ReasoningState>();
   #execCommands = new Map<string, string>();
@@ -156,6 +169,48 @@ class MessagesStore {
     const status = (this.getTurnStatus(threadId) ?? "").toLowerCase();
     if (status === "inprogress") return "working";
     return "idle";
+  }
+
+  getPendingAcpApproval(threadId: string): AcpApprovalRequest | null {
+    const approvals = this.#pendingAcpApprovals.get(threadId);
+    if (!approvals?.length) return null;
+    for (let i = approvals.length - 1; i >= 0; i -= 1) {
+      const approval = approvals[i];
+      if (!approval.resolvedAt && !approval.resolution) return approval;
+    }
+    return null;
+  }
+
+  resolveAcpApproval(threadId: string, rpcId: string | number, optionId: string | null) {
+    const approvals = this.#pendingAcpApprovals.get(threadId);
+    if (!approvals?.length) return;
+    const normalized = String(rpcId);
+    const idx = approvals.findIndex((approval) => String(approval.rpcId) === normalized);
+    if (idx < 0) return;
+    const approval = approvals[idx];
+    if (approval.resolvedAt || approval.resolution) return;
+
+    const selectedOption = approval.options.find((option) => option.optionId === optionId);
+    if (selectedOption?.kind === "allow_always") {
+      approvalPolicyStore.addPolicy("allow", approval.toolKind, approval.toolTitle);
+    } else if (selectedOption?.kind === "reject_always") {
+      approvalPolicyStore.addPolicy("reject", approval.toolKind, approval.toolTitle);
+    }
+
+    const updated = [...approvals];
+    updated[idx] = {
+      ...approval,
+      resolvedAt: Date.now(),
+      resolution: { optionId },
+    };
+    this.#pendingAcpApprovals = new Map(this.#pendingAcpApprovals).set(threadId, updated);
+
+    socket.sendProtocol({
+      type: "acp:approval_decision",
+      rpcId: String(rpcId),
+      optionId,
+    });
+    this.#resetBlockedNotification(threadId);
   }
 
   #touch(threadId: string) {
@@ -593,6 +648,49 @@ class MessagesStore {
     return trimmed;
   }
 
+  #describeAcpTool(toolKind?: string, toolTitle?: string): string {
+    const title = toolTitle?.trim();
+    if (title) return title;
+    switch (toolKind) {
+      case "shell":
+        return "run shell command";
+      case "file":
+        return "access files";
+      case "mcp":
+        return "run MCP tool";
+      default:
+        return "run tool";
+    }
+  }
+
+  #pickAcpOptionId(options: AcpApprovalRequest["options"], decision: "allow" | "reject"): string | null {
+    const preferredKinds = decision === "allow"
+      ? ["allow_once", "allow_always"]
+      : ["reject_once", "reject_always"];
+    for (const kind of preferredKinds) {
+      const match = options.find((option) => option.kind === kind);
+      if (match) return match.optionId;
+    }
+    return null;
+  }
+
+  #recordAcpAutoResolution(
+    threadId: string,
+    rpcId: string | number,
+    decision: "allow" | "reject",
+    toolKind?: string,
+    toolTitle?: string
+  ) {
+    const label = decision === "allow" ? "Auto-approved" : "Auto-rejected";
+    const descriptor = this.#describeAcpTool(toolKind, toolTitle);
+    this.#add(threadId, {
+      id: `acp-auto-approval-${rpcId}`,
+      role: "assistant",
+      text: `${label}: ${descriptor}`,
+      threadId,
+    });
+  }
+
   addPending(threadId: string, text: string, clientRequestId: string) {
     this.#add(threadId, {
       id: clientRequestId,
@@ -615,6 +713,70 @@ class MessagesStore {
   }
 
   handleMessage(msg: RpcMessage) {
+    const acpType = (msg as Record<string, unknown>).type;
+    if (acpType === "acp:approval_request") {
+      const payload = msg as Record<string, unknown>;
+      const threadId = typeof payload.threadId === "string" ? payload.threadId : "";
+      const rpcId = payload.rpcId;
+      if (!threadId || (typeof rpcId !== "string" && typeof rpcId !== "number")) return;
+
+      this.#touch(threadId);
+      const existing = this.#pendingAcpApprovals.get(threadId) ?? [];
+      if (existing.some((approval) => String(approval.rpcId) === String(rpcId))) return;
+
+      const toolCall = payload.toolCall as Record<string, unknown> | undefined;
+      const toolCallIdRaw = toolCall?.toolCallId;
+      const toolCallId =
+        typeof toolCallIdRaw === "string" && toolCallIdRaw.trim() ? toolCallIdRaw : "unknown";
+
+      const allowedKinds = new Set(["allow_once", "allow_always", "reject_once", "reject_always"]);
+      const options: AcpApprovalRequest["options"] = [];
+      const rawOptions = Array.isArray(payload.options) ? payload.options : [];
+      for (const entry of rawOptions) {
+        if (!entry || typeof entry !== "object") continue;
+        const optionId = typeof (entry as any).optionId === "string" ? (entry as any).optionId : "";
+        const name = typeof (entry as any).name === "string" ? (entry as any).name : "";
+        const kind = typeof (entry as any).kind === "string" ? (entry as any).kind : "";
+        if (!optionId || !name || !allowedKinds.has(kind)) continue;
+        options.push({ optionId, name, kind: kind as AcpApprovalRequest["options"][number]["kind"] });
+      }
+
+      const request: AcpApprovalRequest = {
+        rpcId,
+        threadId,
+        toolCallId,
+        toolTitle: typeof toolCall?.title === "string" ? toolCall.title : undefined,
+        toolKind: typeof toolCall?.kind === "string" ? toolCall.kind : undefined,
+        options,
+      };
+
+      const policy = approvalPolicyStore.findMatchingPolicy(request.toolKind, request.toolTitle);
+      if (policy) {
+        const optionId = this.#pickAcpOptionId(request.options, policy.decision);
+        if (optionId) {
+          const resolvedRequest: AcpApprovalRequest = {
+            ...request,
+            resolvedAt: Date.now(),
+            resolution: { optionId },
+          };
+          this.#pendingAcpApprovals = new Map(this.#pendingAcpApprovals).set(threadId, [...existing, resolvedRequest]);
+          this.#turnStatusByThread = new Map(this.#turnStatusByThread).set(threadId, "InProgress");
+          this.#recordAcpAutoResolution(threadId, rpcId, policy.decision, request.toolKind, request.toolTitle);
+          socket.sendProtocol({
+            type: "acp:approval_decision",
+            rpcId: String(rpcId),
+            optionId,
+          });
+          return;
+        }
+      }
+
+      this.#pendingAcpApprovals = new Map(this.#pendingAcpApprovals).set(threadId, [...existing, request]);
+      this.#turnStatusByThread = new Map(this.#turnStatusByThread).set(threadId, "InProgress");
+      this.#notifyThreadBlocked(threadId, "approval");
+      return;
+    }
+
     // Most Codex app-server responses come back as `{ id, result }` with no `method`,
     // but some relays/proxies may preserve the request method on the response.
     // Be permissive: if we see a `result` with a thread + turns payload, treat it as history.

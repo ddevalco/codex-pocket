@@ -12,6 +12,55 @@ Issues are canonical for work items:
 
 ## Recently Done
 
+### 2026-02-18: Phase 4.4 - ACP Approvals
+
+- [x] P4-04: ACP Approvals + Tool Permission Handling - IMPLEMENTED (2026-02-18)
+- [x] Logic: Bidirectional JSON-RPC support in AcpClient (server→client requests)
+- [x] Logic: Normalized session/request_permission into approval_request events
+- [x] Logic: CopilotAcpAdapter mode-aware capabilities + 60s timeout auto-cancel
+- [x] Logic: Relay wiring — forwards approvals to UI, routes decisions back to ACP
+- [x] Logic: Persistent approval policy store (localStorage, auto-apply, revoke)
+- [x] UI: Frontend approval message handling and ACP-compliant decision sending
+- [x] UI: Thread.svelte approval UI + auto-approve warning banner + Settings policy management
+- [x] Validation: Type-check ✅ 0 errors | Build ✅ Pass | 20/20 acceptance criteria ✅
+
+### 2026-02-18: Phase 4.5 - Advanced Filtering
+
+- [x] P4-05: Advanced Filtering + View Persistence - IMPLEMENTED (2026-02-18)
+- [x] UI: Added Provider filter chips (All, Codex, Copilot) with live counts
+- [x] UI: Added Status filter chips (All, Active, Archived) with live counts
+- [x] UI: Implemented mobile-responsive flex-wrap layout for filters
+- [x] UI: Added empty state handling when no threads match filters
+- [x] Logic: Implemented localStorage persistence (key: "codex_pocket_thread_filters")
+- [x] Logic: Added defensive hydration on page load for filter state
+- [x] Accessibility: Added keyboard navigation and ARIA attributes for chip controls
+- [x] Types: Added ThreadFilterState, ProviderFilter, StatusFilter to types.ts
+- [x] Files: [src/routes/Home.svelte](src/routes/Home.svelte), [src/lib/threads.svelte.ts](src/lib/threads.svelte.ts), [src/lib/types.ts](src/lib/types.ts)
+- [x] Validation: Type-check pass, Build pass, All 9 acceptance criteria met
+
+### 2026-02-18: Phase 4.3 - ACP Attachment Support
+
+- [x] P4-03: ACP Attachment Support - IMPLEMENTED (2026-02-18)
+- [x] Created PromptAttachment interface and attachment helpers (normalizeAttachment, isValidAttachment)
+- [x] Extended relay routeAcpSendPrompt to extract and normalize attachments from multiple sources
+- [x] ACP adapter reads file content, base64 encodes, and maps to ACP content array format
+- [x] Graceful fallback: text-only retry when ACP rejects attachments
+- [x] Updated capability flags: attachments: true, CAN_ATTACH_FILES: true
+- [x] Frontend Thread.svelte passes attachments in sendPrompt params
+- [x] End-to-end validation: Static checks pass, ready for manual testing
+- Next: P4-06 (Hardening)
+
+### 2026-02-18: Phase 4.2 - Graceful Degrade UX
+
+- [x] P4-02: Graceful Degrade UX (#152)
+- [x] Created thread-capabilities.ts helper module with capability checks
+- [x] Gated attachment UI based on CAN_ATTACH_FILES capability
+- [x] Removed provider-specific UI checks (provider === 'copilot-acp')
+- [x] Added tooltips for disabled features explaining why unavailable
+- [x] Backward compatibility: threads without capabilities default to enabled
+- [x] Provider defaults: codex (all features), copilot-acp (limited attachments)
+- [x] Validation: Type-check pass, Reviewer approved, backward compat verified
+
 ### 2026-02-18: Phase 4.1 - Capability Matrix Plumbing
 
 - [x] P4-01: Provider capability detection system (#151)
@@ -24,7 +73,8 @@ Issues are canonical for work items:
 - [x] Provider defaults: codex (all true), copilot-acp (limited)
 - [x] Validation: Type-check pass, build pass (689 modules), E2E chain verified
 - PR: codex/phase4-p4-01-capability-matrix
-- Next: P4-02 (Graceful Degrade UX), P4-03 (ACP Attachments), P4-04 (ACP Approvals)
+- Next: P4-02, P4-03, P4-04 (ALL DONE)
+
 ### 2026-02-18: UI Elements Toggles Planning
 
 - [x] Feature specification: UI Elements toggles for clutter reduction (#174)
@@ -146,11 +196,43 @@ Epic tracking: [`docs/ACP_CODEX_INTEGRATION_EPIC.md`](docs/ACP_CODEX_INTEGRATION
 - Provider grouping UX ✅ completed in Phase 1 (PR #143)
 - Provider filter chips and persisted view preferences (optional enhancements, deferred)
 
-**Phase 4: Capability Matrix + Graceful Degrade** 🏗️ IN PROGRESS
+**Phase 4: Capability Matrix + Graceful Degrade** ✅ COMPLETE
 
 - [x] P4-01: Provider capability detection system (#151) ✅
-- [ ] P4-02: Graceful Degrade UX
-- [ ] P4-03: ACP Attachments
-- [ ] P4-04: ACP Approvals
+- [x] P4-02: Graceful Degrade UX (#152) ✅
+- [x] P4-03: ACP Attachments - IMPLEMENTED ✅ (2026-02-18, ready for manual testing)
+- [x] P4-04: ACP Approvals - IMPLEMENTED ✅ (2026-02-18)
+- [x] P4-05: Advanced Filtering + View Persistence ✅ (2026-02-18)
+- [x] P4-06: Hardening + Release Gate ✅
 
 Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATIONS.md)
+
+### Phase 5: Ecosystem & Analytics (Upcoming) (#191)
+
+- [ ] **P5-01: Claude Integration**
+  - Add Claude as third provider alongside Codex and Copilot ACP.
+  - Scope: Implement Claude adapter, add to provider selection UI, support Claude-specific capabilities.
+- [ ] **P5-02: Context/Memory Offload & Save**
+  - Save conversations (all, per-project, or per-thread user preference) and make them indexable/searchable.
+  - Scope: Conversation export/import, indexing system, search UI, context injection.
+- [ ] **P5-03: Custom Agent Import**
+  - Import agent files (JSON-based like VS Code agents) and sync with VS Code's local agent storage.
+  - Scope: Agent file format support, import UI, agent picker in thread creation, sync mechanism.
+- [ ] **P5-04: Token Cost Display**
+  - Toggle to show token cost per message; real-time cost tracking throughout conversation.
+  - Scope: Token counting per provider, cost calculation, toggle UI, per-message display.
+- [ ] **P5-05: Metrics Dashboard Integration**
+  - Integrate codex-dash metrics and dashboard views into codex-pocket.
+  - Scope: Port codex-dash visualization components, integrate with codex-pocket data, add metrics view.
+- [ ] **P5-06: Rename/Rebrand**
+  - App no longer Codex-specific; "codex-" prefix is a misnomer.
+  - Scope: Brainstorm new name, update branding, rename repo, update all references.
+
+## Technical Debt & Refactoring
+
+- **CodexAdapter Migration**: Migrate Codex provider logic from index.ts into CodexAdapter class.
+  - **Goal**: Migrate Codex provider logic from index.ts into CodexAdapter class.
+  - **Why**: Reduce index.ts complexity (~2,900 lines), match cleaner adapter pattern used by copilot-acp.
+  - **Status**: Optional refactoring, no functional impact.
+  - **Priority**: Low (P3/P4).
+  - **Files**: [services/local-orbit/src/index.ts](services/local-orbit/src/index.ts), [services/local-orbit/src/providers/adapters/codex-adapter.ts](services/local-orbit/src/providers/adapters/codex-adapter.ts)

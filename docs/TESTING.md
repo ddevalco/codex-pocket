@@ -159,6 +159,63 @@ Validate both UI-level and API-level protections.
 2. Confirm provider shutdown logs appear.
 3. Restart local-orbit and verify `/health` and `/admin/status` recover.
 
+### Scenario E: P4-03 ACP Attachment Support (Manual Testing)
+
+**Status:** IMPLEMENTED - Ready for manual testing (2026-02-18)
+
+**Prerequisites:**
+
+- Codex Pocket running locally
+- Copilot ACP session available
+- Image file for attachment testing
+
+**Test Steps:**
+
+1. **Build and Compile**
+
+   ```bash
+   cd /Users/danedevalcourt/iPhoneApp/codex-pocket
+   bun run type-check
+   cd services/local-orbit
+   bun test src/providers/adapters/__tests__/copilot-acp-adapter.test.ts
+   cd ../..
+   bun run build
+   ```
+
+2. **Attachment Flow**
+   - Open copilot-acp session in UI
+   - Verify attachment button enabled (not grayed out)
+   - Click attachment button and select image file
+   - Add prompt text: "What's in this image?"
+   - Click send and verify no errors
+   - Check browser console for "[copilot-acp] Added image attachment" log
+
+3. **Text-Only Regression**
+   - Send message without attachment
+   - Verify works as before (no regression)
+
+4. **Error Handling**
+   - Test graceful fallback by monitoring network logs
+   - If ACP rejects attachment, verify text-only retry occurs
+
+**Expected Results:**
+
+- ✅ Attachment button enabled for Copilot sessions
+- ✅ Image preview appears in composer
+- ✅ Message sent successfully with attachment
+- ✅ No console errors during send
+- ✅ Backend logs show: "[copilot-acp] Added image attachment"
+- ✅ Text-only messages continue to work
+- ✅ Graceful fallback occurs if attachment rejected
+
+**Implementation Summary:**
+
+- PromptAttachment interface and helpers (normalizeAttachment, isValidAttachment)
+- Relay extracts attachments from multiple input sources
+- ACP adapter base64 encodes file content and maps to ACP content array
+- Capability flags updated: `attachments: true`, `CAN_ATTACH_FILES: true`
+- Frontend Thread.svelte passes attachments in sendPrompt
+
 ## 4) Regression Checklist
 
 Run this checklist for every release candidate.
