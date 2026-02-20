@@ -9,6 +9,19 @@ import type { NormalizedEvent, TokenUsage } from "./provider-types.js";
 import { enrichTokenUsage } from "./cost-calculator.js";
 
 /**
+ * Safely extracts a number from usage data, validating it's a safe numeric value.
+ * @param value - Value to extract
+ * @returns Validated number or null if invalid
+ */
+function safeNumberFromUsage(value: unknown): number | null {
+  if (typeof value !== "number") return null;
+  if (!Number.isFinite(value)) return null;
+  if (value < 0) return null;
+  if (value > 1e9) return null; // Sanity cap: 1 billion tokens max
+  return value;
+}
+
+/**
  * Extract token usage from a raw provider event payload.
  * 
  * This function attempts to find token usage data in common locations:
@@ -37,28 +50,28 @@ export function extractTokenUsage(
     const usage = event.usage as Record<string, any>;
     
     // Standard OpenAI format
-    if (
-      typeof usage.prompt_tokens === "number" &&
-      typeof usage.completion_tokens === "number"
-    ) {
+    const promptTokens = safeNumberFromUsage(usage.prompt_tokens);
+    const completionTokens = safeNumberFromUsage(usage.completion_tokens);
+    
+    if (promptTokens !== null && completionTokens !== null) {
       return enrichTokenUsage(
         provider,
         model || usage.model || event.model,
-        usage.prompt_tokens,
-        usage.completion_tokens,
+        promptTokens,
+        completionTokens,
       );
     }
 
     // Claude format (input_tokens, output_tokens)
-    if (
-      typeof usage.input_tokens === "number" &&
-      typeof usage.output_tokens === "number"
-    ) {
+    const inputTokens = safeNumberFromUsage(usage.input_tokens);
+    const outputTokens = safeNumberFromUsage(usage.output_tokens);
+    
+    if (inputTokens !== null && outputTokens !== null) {
       return enrichTokenUsage(
         provider,
         model || usage.model || event.model,
-        usage.input_tokens,
-        usage.output_tokens,
+        inputTokens,
+        outputTokens,
       );
     }
   }
@@ -66,15 +79,15 @@ export function extractTokenUsage(
   // Check for camelCase tokenUsage
   if (event.tokenUsage && typeof event.tokenUsage === "object") {
     const usage = event.tokenUsage as Record<string, any>;
-    if (
-      typeof usage.promptTokens === "number" &&
-      typeof usage.completionTokens === "number"
-    ) {
+    const promptTokens = safeNumberFromUsage(usage.promptTokens);
+    const completionTokens = safeNumberFromUsage(usage.completionTokens);
+    
+    if (promptTokens !== null && completionTokens !== null) {
       return enrichTokenUsage(
         provider,
         model || usage.model || event.model,
-        usage.promptTokens,
-        usage.completionTokens,
+        promptTokens,
+        completionTokens,
       );
     }
   }
@@ -82,29 +95,29 @@ export function extractTokenUsage(
   // Check for snake_case token_usage
   if (event.token_usage && typeof event.token_usage === "object") {
     const usage = event.token_usage as Record<string, any>;
-    if (
-      typeof usage.prompt_tokens === "number" &&
-      typeof usage.completion_tokens === "number"
-    ) {
+    const promptTokens = safeNumberFromUsage(usage.prompt_tokens);
+    const completionTokens = safeNumberFromUsage(usage.completion_tokens);
+    
+    if (promptTokens !== null && completionTokens !== null) {
       return enrichTokenUsage(
         provider,
         model || usage.model || event.model,
-        usage.prompt_tokens,
-        usage.completion_tokens,
+        promptTokens,
+        completionTokens,
       );
     }
   }
 
   // Check for direct tokens object at top level
-  if (
-    typeof event.prompt_tokens === "number" &&
-    typeof event.completion_tokens === "number"
-  ) {
+  const promptTokens = safeNumberFromUsage(event.prompt_tokens);
+  const completionTokens = safeNumberFromUsage(event.completion_tokens);
+  
+  if (promptTokens !== null && completionTokens !== null) {
     return enrichTokenUsage(
       provider,
       model || event.model,
-      event.prompt_tokens,
-      event.completion_tokens,
+      promptTokens,
+      completionTokens,
     );
   }
 

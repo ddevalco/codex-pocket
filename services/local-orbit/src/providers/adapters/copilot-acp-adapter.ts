@@ -85,6 +85,18 @@ export interface CopilotAcpConfig {
 }
 
 /**
+ * Approval context for authorization validation
+ */
+export interface ApprovalContext {
+  sessionId: string;
+  threadId: string;
+  providerId: string;
+  createdAt: string;
+  resolve: (result: unknown) => void;
+  timeout: ReturnType<typeof setTimeout>;
+}
+
+/**
  * Copilot ACP adapter implementation
  */
 export class CopilotAcpAdapter implements ProviderAdapter {
@@ -120,10 +132,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   private consecutiveFailures = 0;
 
   /** Pending approval requests awaiting user resolution */
-  private pendingApprovals = new Map<
-    string,
-    { resolve: (result: unknown) => void; timeout: ReturnType<typeof setTimeout> }
-  >();
+  private pendingApprovals = new Map<string, ApprovalContext>();
 
   /** External handler registered via onApprovalRequest() */
   private approvalEventEmitter?: (event: NormalizedEvent) => void;
@@ -194,6 +203,8 @@ export class CopilotAcpAdapter implements ProviderAdapter {
 
         return new Promise<unknown>((resolve) => {
           const key = String(rpcId);
+          const sessionId = typeof params.sessionId === "string" ? params.sessionId : "";
+          const threadId = `copilot-acp:${sessionId}`;
 
           const timeoutHandle = setTimeout(() => {
             const entry = this.pendingApprovals.get(key);
@@ -203,7 +214,16 @@ export class CopilotAcpAdapter implements ProviderAdapter {
             }
           }, 60_000);
 
-          this.pendingApprovals.set(key, { resolve, timeout: timeoutHandle });
+          const context: ApprovalContext = {
+            sessionId,
+            threadId,
+            providerId: this.providerId,
+            createdAt: new Date().toISOString(),
+            resolve,
+            timeout: timeoutHandle,
+          };
+
+          this.pendingApprovals.set(key, context);
           this.emitApprovalRequest(event);
         });
       });
@@ -681,6 +701,25 @@ export class CopilotAcpAdapter implements ProviderAdapter {
    */
   public onApprovalRequest(handler: (event: NormalizedEvent) => void): void {
     this.approvalEventEmitter = handler;
+  }
+
+  /**
+   * Get pending approval context for authorization checks.
+   * @param rpcId - The JSON-RPC request ID
+   * @returns Approval context or null if not found/expired
+   */
+  public getPendingApprovalContext(
+    rpcId: string,
+  ): Omit<ApprovalContext, "resolve" | "timeout"> | null {
+    const entry = this.pendingApprovals.get(rpcId);
+    if (!entry) return null;
+
+    return {
+      sessionId: entry.sessionId,
+      threadId: entry.threadId,
+      providerId: entry.providerId,
+      createdAt: entry.createdAt,
+    };
   }
 
   /**

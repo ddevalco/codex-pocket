@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { validateAgentSchema, type CustomAgent } from './agent-schema';
 
@@ -17,7 +17,7 @@ export class AgentStore {
   }
 
   private ensureStorageExists() {
-    const dir = this.storagePath.split('/').slice(0, -1).join('/');
+    const dir = dirname(this.storagePath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }

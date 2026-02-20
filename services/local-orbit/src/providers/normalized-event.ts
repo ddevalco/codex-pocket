@@ -8,6 +8,20 @@
 import type { NormalizedEvent, EventCategory } from "./provider-types.js";
 
 /**
+ * Checks if value is a plain object (not null, not array, not function)
+ * @param value Value to check
+ * @returns true if plain object Record
+ */
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype
+  );
+}
+
+/**
  * Create a minimal valid normalized event.
  * Useful for testing and event construction.
  */
@@ -93,8 +107,11 @@ export function validateNormalizedEvent(event: unknown): string[] {
     errors.push("text must be a string");
   }
 
-  if (e.payload !== undefined && (typeof e.payload !== "object" || e.payload === null)) {
-    errors.push("payload must be an object");
+  // Harden payload validation - must be plain object, not array/null/primitive
+  if (e.payload !== undefined) {
+    if (!isPlainRecord(e.payload)) {
+      errors.push("payload must be a plain object, not array/null/primitive");
+    }
   }
 
   if (e.rawEvent === undefined) {
