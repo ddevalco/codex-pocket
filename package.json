@@ -20,6 +20,7 @@
     "@pierre/diffs": "^1.0.6",
     "dompurify": "^3.3.1",
     "highlight.js": "^11.11.1",
+    "lucide-svelte": "^0.575.0",
     "marked": "^17.0.1",
     "qrcode": "^1.5.4",
     "sv-router": "^0.13.0",
