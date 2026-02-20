@@ -1159,8 +1159,16 @@
   .admin {
     min-height: 100vh;
     background:
-      radial-gradient(1200px 520px at 8% -18%, color-mix(in srgb, var(--cli-prefix-agent) 14%, transparent), transparent 70%),
-      radial-gradient(800px 420px at 92% -30%, color-mix(in srgb, var(--cli-prefix-web) 11%, transparent), transparent 74%),
+      radial-gradient(
+        1200px 520px at 8% -18%,
+        color-mix(in oklch, var(--cli-prefix-agent) 14%, oklch(0% 0 0 / 0)),
+        transparent 70%
+      ),
+      radial-gradient(
+        800px 420px at 92% -30%,
+        color-mix(in oklch, var(--cli-prefix-web) 11%, oklch(0% 0 0 / 0)),
+        transparent 74%
+      ),
       var(--cli-bg);
   }
 
@@ -1246,8 +1254,8 @@
 
   .admin :global(.section) {
     border-radius: 12px;
-    border-color: color-mix(in srgb, var(--cli-border) 85%, transparent);
-    background: color-mix(in srgb, var(--cli-bg-elevated) 84%, var(--cli-bg));
+    border-color: color-mix(in oklch, var(--cli-border) 85%, oklch(0% 0 0 / 0));
+    background: color-mix(in oklch, var(--cli-bg-elevated) 84%, var(--cli-bg));
     box-shadow: 0 16px 34px -30px rgba(0, 0, 0, 0.9);
   }
 
@@ -1255,8 +1263,8 @@
     padding: var(--space-md) var(--space-md) var(--space-sm);
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--cli-bg-elevated) 75%, var(--cli-bg)),
-      color-mix(in srgb, var(--cli-bg) 88%, transparent)
+      color-mix(in oklch, var(--cli-bg-elevated) 75%, var(--cli-bg)),
+      color-mix(in oklch, var(--cli-bg) 88%, oklch(0% 0 0 / 0))
     );
   }
 
@@ -1296,7 +1304,7 @@
     word-break: break-all;
     padding: 0.08rem 0.35rem;
     border-radius: 6px;
-    background: color-mix(in srgb, var(--cli-bg-hover) 65%, transparent);
+    background: color-mix(in oklch, var(--cli-bg-hover) 65%, oklch(0% 0 0 / 0));
   }
 
   .buttons {
@@ -1339,11 +1347,11 @@
 
   button {
     padding: 0.5rem 0.9rem;
-    border: 1px solid color-mix(in srgb, var(--cli-border) 70%, transparent);
+    border: 1px solid color-mix(in oklch, var(--cli-border) 70%, oklch(0% 0 0 / 0));
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--cli-bg-elevated) 95%, #fff 5%),
-      color-mix(in srgb, var(--cli-bg-elevated) 80%, var(--cli-bg))
+      color-mix(in oklch, var(--cli-bg-elevated) 95%, oklch(100% 0 0) 5%),
+      color-mix(in oklch, var(--cli-bg-elevated) 80%, var(--cli-bg))
     );
     color: var(--cli-text);
     font-family: var(--font-sans);
@@ -1356,11 +1364,11 @@
 
   button:hover:enabled {
     transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--cli-prefix-agent) 45%, var(--cli-border));
+    border-color: color-mix(in oklch, var(--cli-prefix-agent) 45%, var(--cli-border));
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--cli-bg-hover) 70%, #fff 8%),
-      color-mix(in srgb, var(--cli-bg-elevated) 88%, var(--cli-bg))
+      color-mix(in oklch, var(--cli-bg-hover) 70%, oklch(100% 0 0) 8%),
+      color-mix(in oklch, var(--cli-bg-elevated) 88%, var(--cli-bg))
     );
   }
 
@@ -1370,18 +1378,18 @@
   }
 
   button.primary {
-    border-color: color-mix(in srgb, var(--cli-prefix-agent) 46%, var(--cli-border));
-    background: color-mix(in srgb, var(--cli-prefix-agent) 20%, var(--cli-bg-elevated));
+    border-color: color-mix(in oklch, var(--cli-prefix-agent) 46%, var(--cli-border));
+    background: color-mix(in oklch, var(--cli-prefix-agent) 20%, var(--cli-bg-elevated));
   }
 
   .advanced {
-    border: 1px solid color-mix(in srgb, var(--cli-border) 78%, transparent);
+    border: 1px solid color-mix(in oklch, var(--cli-border) 78%, oklch(0% 0 0 / 0));
     border-radius: 12px;
     overflow: hidden;
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--cli-bg-elevated) 92%, var(--cli-bg)),
-      color-mix(in srgb, var(--cli-bg-elevated) 82%, #000 4%)
+      color-mix(in oklch, var(--cli-bg-elevated) 92%, var(--cli-bg)),
+      color-mix(in oklch, var(--cli-bg-elevated) 82%, oklch(0% 0 0) 4%)
     );
     box-shadow: 0 14px 32px -30px rgba(0, 0, 0, 0.85);
   }
@@ -1403,13 +1411,13 @@
 
   .advanced > summary:focus-visible {
     outline: none;
-    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
+    box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--cli-prefix-agent) 55%, var(--cli-border));
     border-bottom-color: var(--cli-border);
   }
 
   .advanced[open] > summary {
     border-bottom-color: var(--cli-border);
-    background: color-mix(in srgb, var(--cli-bg-hover) 45%, var(--cli-bg-elevated));
+    background: color-mix(in oklch, var(--cli-bg-hover) 45%, var(--cli-bg-elevated));
     color: var(--cli-text);
   }
 
@@ -1433,7 +1441,7 @@
   input:focus-visible,
   select:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--cli-prefix-agent) 55%, var(--cli-border));
   }
 
   .row :global(.danger-zone) {
@@ -1488,9 +1496,9 @@
   }
 
   .danger {
-    border-color: color-mix(in srgb, var(--cli-error) 55%, var(--cli-border));
-    color: color-mix(in srgb, var(--cli-error) 75%, var(--cli-text));
-    background: color-mix(in srgb, var(--cli-error) 18%, var(--cli-bg-elevated));
+    border-color: color-mix(in oklch, var(--cli-error) 55%, var(--cli-border));
+    color: color-mix(in oklch, var(--cli-error) 75%, var(--cli-text));
+    background: color-mix(in oklch, var(--cli-error) 18%, var(--cli-bg-elevated));
   }
 
   .logs {
@@ -1500,10 +1508,10 @@
     padding: var(--space-md);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    background: color-mix(in srgb, var(--cli-bg) 84%, #000 16%);
+    background: color-mix(in oklch, var(--cli-bg) 84%, oklch(0% 0 0) 16%);
     padding: var(--space-md);
     border-radius: 10px;
-    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    border: 1px solid color-mix(in oklch, var(--cli-border) 82%, oklch(0% 0 0 / 0));
     line-height: 1.45;
     font-size: 0.76rem;
   }
@@ -1511,9 +1519,9 @@
   .field input {
     width: 100%;
     padding: var(--space-sm);
-    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
+    background: color-mix(in oklch, var(--cli-bg) 72%, var(--cli-bg-elevated));
     color: var(--cli-text);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border: 1px solid color-mix(in oklch, var(--cli-border) 86%, oklch(0% 0 0 / 0));
     border-radius: 8px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
@@ -1522,9 +1530,9 @@
   .field select {
     width: 100%;
     padding: var(--space-sm);
-    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
+    background: color-mix(in oklch, var(--cli-bg) 72%, var(--cli-bg-elevated));
     color: var(--cli-text);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    border: 1px solid color-mix(in oklch, var(--cli-border) 86%, oklch(0% 0 0 / 0));
     border-radius: 8px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
@@ -1550,7 +1558,7 @@
   }
 
   .hint-ok {
-    color: color-mix(in srgb, var(--cli-success) 72%, var(--cli-text));
+    color: color-mix(in oklch, var(--cli-success) 72%, var(--cli-text));
   }
 
   .auth-bad {
@@ -1590,8 +1598,8 @@
     background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--cli-border);
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--cli-bg) 84%, #000 16%);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    background: color-mix(in oklch, var(--cli-bg) 84%, oklch(0% 0 0) 16%);
+    border: 1px solid color-mix(in oklch, var(--cli-border) 82%, oklch(0% 0 0 / 0));
     border-radius: 8px;
     max-height: 200px;
     overflow: auto;
@@ -1604,8 +1612,8 @@
     background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--cli-border);
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--cli-bg) 84%, #000 16%);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    background: color-mix(in oklch, var(--cli-bg) 84%, oklch(0% 0 0) 16%);
+    border: 1px solid color-mix(in oklch, var(--cli-border) 82%, oklch(0% 0 0 / 0));
     border-radius: 8px;
     max-height: 260px;
     overflow: auto;
@@ -1621,7 +1629,7 @@
   .token-sessions {
     margin-top: var(--space-sm);
     padding-top: var(--space-sm);
-    border-top: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    border-top: 1px solid color-mix(in oklch, var(--cli-border) 82%, oklch(0% 0 0 / 0));
   }
 
   .token-session-list {
@@ -1629,10 +1637,10 @@
   }
 
   .token-session-item {
-    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    border: 1px solid color-mix(in oklch, var(--cli-border) 82%, oklch(0% 0 0 / 0));
     border-radius: 8px;
     padding: var(--space-sm);
-    background: color-mix(in srgb, var(--cli-bg) 76%, var(--cli-bg-elevated));
+    background: color-mix(in oklch, var(--cli-bg) 76%, var(--cli-bg-elevated));
   }
 
   .token-session-head {

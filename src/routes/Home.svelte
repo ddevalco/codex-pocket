@@ -1608,8 +1608,8 @@
     white-space: nowrap;
     padding: 1px 8px;
     border-radius: 999px;
-    border: 1px solid color-mix(in oklab, var(--cli-prefix-agent) 35%, transparent);
-    background: color-mix(in oklab, var(--cli-prefix-agent) 10%, transparent);
+    border: 1px solid color-mix(in oklch, var(--cli-prefix-agent) 35%, transparent);
+    background: color-mix(in oklch, var(--cli-prefix-agent) 10%, transparent);
     color: var(--cli-text);
     font-size: 11px;
     line-height: 1.35;
@@ -1623,8 +1623,8 @@
     white-space: nowrap;
     padding: 1px 8px;
     border-radius: 999px;
-    border: 1px solid color-mix(in oklab, var(--cli-prefix-web) 40%, transparent);
-    background: color-mix(in oklab, var(--cli-prefix-web) 14%, transparent);
+    border: 1px solid color-mix(in oklch, var(--cli-prefix-web) 40%, transparent);
+    background: color-mix(in oklch, var(--cli-prefix-web) 14%, transparent);
     color: var(--cli-text);
     font-size: 11px;
     line-height: 1.35;
@@ -1643,13 +1643,13 @@
     line-height: 1;
   }
   .thread-indicator-idle {
-    color: #2fd47a;
+    color: var(--cli-success);
   }
   .thread-indicator-working {
-    color: #f2c94c;
+    color: var(--cli-warning);
   }
   .thread-indicator-blocked {
-    color: #eb5757;
+    color: var(--cli-error);
   }
 
   .export-btn {

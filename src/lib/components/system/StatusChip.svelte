@@ -23,23 +23,23 @@
 <style>
   /* Custom utility-like classes for color-mix that Tailwind doesn't support natively cleanly yet */
   .border-cli-success-opacity {
-    border-color: color-mix(in srgb, var(--color-cli-success) 50%, var(--color-cli-border));
+    border-color: color-mix(in oklch, var(--color-cli-success) 50%, var(--color-cli-border));
   }
   .bg-cli-success-low {
-    background: color-mix(in srgb, var(--color-cli-success) 10%, transparent);
+    background: color-mix(in oklch, var(--color-cli-success) 10%, transparent);
   }
   
   .border-cli-warning-opacity {
-    border-color: color-mix(in srgb, var(--color-cli-warning) 50%, var(--color-cli-border));
+    border-color: color-mix(in oklch, var(--color-cli-warning) 50%, var(--color-cli-border));
   }
   .bg-cli-warning-low {
-    background: color-mix(in srgb, var(--color-cli-warning) 12%, transparent);
+    background: color-mix(in oklch, var(--color-cli-warning) 12%, transparent);
   }
 
   .border-cli-error-opacity {
-    border-color: color-mix(in srgb, var(--color-cli-error) 50%, var(--color-cli-border));
+    border-color: color-mix(in oklch, var(--color-cli-error) 50%, var(--color-cli-border));
   }
   .bg-cli-error-low {
-    background: color-mix(in srgb, var(--color-cli-error) 12%, transparent);
+    background: color-mix(in oklch, var(--color-cli-error) 12%, transparent);
   }
 </style>
