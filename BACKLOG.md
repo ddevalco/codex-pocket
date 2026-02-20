@@ -662,6 +662,23 @@ Migrate terminal/message components from CSS variables to Tailwind utility class
 
 - Issues #224-226 (other Phase 1 work)
 
+## 🔍 Copilot Review Findings
+
+**Epic Issue:** #TBD
+**Status:** Phase 1 - Tracking Infrastructure ✅
+
+- Total Findings: 182 (from 43 PRs)
+- Critical/High: 17
+- See [COPILOT_FINDINGS.md](COPILOT_FINDINGS.md) for full details
+
+**Phases:**
+
+- [ ] Phase 1: Security & Critical Fixes
+- [ ] Phase 2: OKLCH Color System Fixes
+- [ ] Phase 3: Provider/Adapter Alignment
+- [ ] Phase 4: UI/UX Polish
+- [ ] Phase 5: Technical Debt & Testing
+
 ## Technical Debt & Refactoring
 
 - **CodexAdapter Migration**: Migrate Codex provider logic from index.ts into CodexAdapter class.
