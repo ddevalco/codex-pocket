@@ -906,7 +906,7 @@
 
 </script>
 
-<div class="thread-page stack">
+<div class="thread-page stack h-full bg-cli-bg">
     <AppHeader
         status={socket.status}
         threadId={threadId}
@@ -916,10 +916,10 @@
         {#snippet actions()}
             {#if uiToggles.showThreadHeaderActions}
                 <a href={`/thread/${threadId}/review`}>review</a>
-                <div class="more-menu" role="group" onpointerdown={(e) => e.stopPropagation()}>
+                <div class="more-menu relative inline-flex items-center" role="group" onpointerdown={(e) => e.stopPropagation()}>
                     <button
                         type="button"
-                        class="more-btn"
+                        class="more-btn px-3 min-h-7 leading-7"
                         aria-haspopup="menu"
                         aria-expanded={helperMenuOpen}
                         aria-label="Launch helper"
@@ -934,14 +934,15 @@
                         helpers
                     </button>
                     {#if helperMenuOpen}
-                        <div class="more-popover" role="menu" aria-label="Helper profiles">
+                        <div class="more-popover absolute right-0 top-[calc(100%+0.5rem)] z-50 flex min-w-[11rem] flex-col gap-0 rounded-md border border-cli-border bg-cli-bg-elevated p-2 shadow-md" role="menu" aria-label="Helper profiles">
                             {#if helperProfiles.length === 0}
-                                <a href="/settings">Create helper profiles in Settings</a>
+                                <a href="/settings" class="block w-full rounded-sm px-3 py-2 text-left font-mono text-xs text-cli-text no-underline hover:bg-cli-bg-hover">Create helper profiles in Settings</a>
                             {:else}
                                 {#each helperProfiles as profile (profile.id)}
                                     <button
                                         type="button"
                                         role="menuitem"
+                                        class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                         onclick={() => launchHelper(profile)}
                                         title={profile.prompt}
                                     >
@@ -958,10 +959,10 @@
                 <button type="button" onclick={() => theme.cycle()} title="Theme: {theme.current}">
                     {themeIcons[theme.current]}
                 </button>
-                <div class="more-menu" role="group" onpointerdown={(e) => e.stopPropagation()}>
+                <div class="more-menu relative inline-flex items-center" role="group" onpointerdown={(e) => e.stopPropagation()}>
                     <button
                         type="button"
-                        class="more-btn"
+                        class="more-btn px-3 min-h-7 leading-7"
                         aria-haspopup="menu"
                         aria-expanded={moreMenuOpen}
                         aria-label="More actions"
@@ -971,10 +972,11 @@
                         ⋯
                     </button>
                     {#if moreMenuOpen}
-                        <div class="more-popover" role="menu" aria-label="Thread actions">
+                        <div class="more-popover absolute right-0 top-[calc(100%+0.5rem)] z-50 flex min-w-[11rem] flex-col gap-0 rounded-md border border-cli-border bg-cli-bg-elevated p-2 shadow-md" role="menu" aria-label="Thread actions">
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     copyLastN(20);
@@ -986,6 +988,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     downloadThread();
@@ -997,6 +1000,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     downloadThreadJson();
@@ -1008,6 +1012,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     downloadThreadHtml();
@@ -1019,6 +1024,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     printThreadPdf();
@@ -1030,6 +1036,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     shareThreadJson();
@@ -1041,6 +1048,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     shareThreadHtml();
@@ -1053,6 +1061,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     exportThreadServer("json");
@@ -1064,6 +1073,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     exportThreadServer("markdown");
@@ -1075,6 +1085,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     importThread();
@@ -1086,6 +1097,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     const mock = createMockHelperOutcome();
@@ -1099,6 +1111,7 @@
                             <button
                                 type="button"
                                 role="menuitem"
+                                class="w-full rounded-sm border-0 bg-transparent px-3 py-2 text-left font-mono text-xs text-cli-text hover:bg-cli-bg-hover"
                                 onclick={() => {
                                     closeMoreMenu();
                                     showSearch = !showSearch;
@@ -1118,34 +1131,34 @@
     </AppHeader>
 
     {#if threadProvider === "copilot-acp"}
-        <div class="provider-badge row">
+        <div class="provider-badge row gap-0 px-4 pb-2 text-cli-text-muted text-xs font-mono">
             <span>Copilot ACP</span>
         </div>
     {/if}
 
     {#if showAutoApproveBanner}
-        <div class="auto-approve-banner">
+        <div class="auto-approve-banner mx-4 mt-3 rounded-md border border-amber-400/60 bg-amber-400/15 px-4 py-3 text-cli-text font-mono text-xs">
             ⚠️ Copilot is running in <strong>auto-approve mode</strong>.
             Tools execute without confirmation.
-            <a href="/settings">Manage in Settings</a>
+            <a href="/settings" class="text-cli-prefix-agent">Manage in Settings</a>
         </div>
     {/if}
 
     {#if showSearch}
-        <div class="search-bar">
-            <div class="search-input-wrapper">
+        <div class="search-bar border-b border-cli-border bg-cli-bg p-3">
+            <div class="search-input-wrapper relative flex items-center gap-2">
                 <input
                     type="search"
                     bind:value={searchQuery}
                     oninput={onSearchInput}
                     placeholder="Search in thread..."
-                    class="search-input"
+                    class="search-input flex-1 rounded-sm border border-cli-border bg-cli-bg-surface px-3 py-2 font-mono text-sm text-cli-text focus:border-cli-accent focus:outline-none"
                 />
                 {#if searchQuery}
                     <button
                         type="button"
                         onclick={clearSearch}
-                        class="search-clear-btn"
+                        class="search-clear-btn p-2 text-sm text-cli-text-muted hover:text-cli-text"
                         title="Clear search"
                     >
                         ✕
@@ -1153,41 +1166,43 @@
                 {/if}
             </div>
             {#if isSearching}
-                <div class="search-status">Searching...</div>
+                <div class="search-status mt-2 font-mono text-xs text-cli-text-muted">Searching...</div>
             {:else if searchError}
-                <div class="search-error">{searchError}</div>
+                <div class="search-error mt-2 font-mono text-xs text-cli-error">{searchError}</div>
             {:else if searchQuery && searchResults.length > 0}
-                <div class="search-results-header">
+                <div class="search-results-header mt-2 font-mono text-xs text-cli-success">
                     Found {searchResults.length} result{searchResults.length === 1 ? "" : "s"}
                 </div>
             {:else if searchQuery && searchResults.length === 0 && !isSearching}
-                <div class="search-no-results">No results for "{searchQuery}"</div>
+                <div class="search-no-results mt-2 font-mono text-xs text-cli-text-muted">No results for "{searchQuery}"</div>
             {/if}
         </div>
     {/if}
 
-    <div class="transcript" bind:this={container}>
+    <div class="transcript flex-1 overflow-y-auto overflow-x-hidden py-3" bind:this={container}>
         {#if pendingAcpApproval}
             {@const toolLabel = pendingAcpApproval.toolTitle ?? pendingAcpApproval.toolKind ?? "Tool action"}
             {@const toolMeta = pendingAcpApproval.toolTitle && pendingAcpApproval.toolKind ? pendingAcpApproval.toolKind : null}
-            <div class="acp-approval-card">
-                <div class="acp-approval-header">
-                    <span class="header-label">Approval Required</span>
-                    <span class="header-type">Copilot ACP</span>
+            <div class="acp-approval-card mx-4 my-2 overflow-hidden rounded-md border border-cli-border bg-cli-bg-elevated font-mono text-sm">
+                <div class="acp-approval-header flex items-center justify-between border-b border-cli-border px-4 py-3">
+                    <span class="header-label text-xs font-semibold uppercase tracking-[0.04em] text-cli-prefix-tool">Approval Required</span>
+                    <span class="header-type text-xs text-cli-text-muted">Copilot ACP</span>
                 </div>
-                <div class="acp-approval-body">
-                    <div class="acp-tool-title">{toolLabel}</div>
+                <div class="acp-approval-body flex flex-col gap-2 px-4 py-3">
+                    <div class="acp-tool-title text-xs text-cli-text">{toolLabel}</div>
                     {#if toolMeta}
-                        <div class="acp-tool-meta">{toolMeta}</div>
+                        <div class="acp-tool-meta text-xs text-cli-text-muted">{toolMeta}</div>
                     {/if}
                 </div>
-                <div class="acp-approval-actions">
+                <div class="acp-approval-actions flex flex-wrap gap-2 border-t border-cli-border px-4 py-3">
                     {#each pendingAcpApproval.options as option (option.optionId)}
                         <button
                             type="button"
-                            class="acp-option-btn"
-                            class:allow={option.kind === "allow_once" || option.kind === "allow_always"}
-                            class:reject={option.kind === "reject_once" || option.kind === "reject_always"}
+                            class="acp-option-btn inline-flex items-center gap-2 rounded-sm border border-cli-border bg-transparent px-3 py-2 font-mono text-xs text-cli-text transition-all duration-200 hover:border-cli-text-muted hover:bg-cli-bg-hover"
+                            class:border-cli-success={option.kind === "allow_once" || option.kind === "allow_always"}
+                            class:text-cli-success={option.kind === "allow_once" || option.kind === "allow_always"}
+                            class:border-cli-error={option.kind === "reject_once" || option.kind === "reject_always"}
+                            class:text-cli-error={option.kind === "reject_once" || option.kind === "reject_always"}
                             onclick={() => messages.resolveAcpApproval(
                                 pendingAcpApproval.threadId,
                                 pendingAcpApproval.rpcId,
@@ -1199,7 +1214,7 @@
                     {/each}
                     <button
                         type="button"
-                        class="acp-option-btn acp-cancel-btn"
+                        class="acp-option-btn inline-flex items-center gap-2 rounded-sm border border-cli-border bg-transparent px-3 py-2 font-mono text-xs text-cli-text-muted transition-all duration-200 hover:border-cli-text-muted hover:bg-cli-bg-hover"
                         onclick={() => messages.resolveAcpApproval(
                             pendingAcpApproval.threadId,
                             pendingAcpApproval.rpcId,
@@ -1212,9 +1227,9 @@
             </div>
         {/if}
         {#if messages.current.length === 0}
-            <div class="empty row">
-                <span class="empty-prompt">&gt;</span>
-                <span class="empty-text">No messages yet. Start a conversation.</span>
+            <div class="empty row gap-3 px-4 py-6 font-mono text-sm">
+                <span class="empty-prompt text-cli-prefix-agent">&gt;</span>
+                <span class="empty-text text-cli-text-muted">No messages yet. Start a conversation.</span>
             </div>
         {:else if searchResults.length > 0 && showSearch}
             <!-- Show search results -->
@@ -1268,7 +1283,7 @@
             {/each}
 
             {#if isReasoningStreaming}
-                <div class="streaming-reasoning">
+                <div class="streaming-reasoning px-4 py-2">
                     <Reasoning
                         content={streamingReasoningText}
                         isStreaming={true}
@@ -1287,13 +1302,17 @@
         {/if}
 
         {#if sendError || promptError || (socket.status !== "connected" && socket.status !== "connecting" && socket.error)}
-            <div class="connection-error row">
-                <span class="error-icon row">!</span>
-                <span class="error-text">{sendError || promptError || socket.error}</span>
+            <div class="connection-error row gap-3 mx-4 my-3 rounded-md border border-cli-error bg-cli-error-bg px-4 py-3 font-mono text-sm">
+                <span class="error-icon row gap-0 h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-cli-error text-xs font-bold text-white">!</span>
+                <span class="error-text flex-1 text-cli-error">{sendError || promptError || socket.error}</span>
                 {#if socket.status === "reconnecting"}
-                    <span class="error-hint">Reconnecting automatically...</span>
+                    <span class="error-hint text-xs text-cli-text-muted">Reconnecting automatically...</span>
                 {:else if socket.status === "error" || socket.status === "disconnected"}
-                    <button type="button" class="retry-btn" onclick={() => socket.reconnect()}>
+                    <button
+                        type="button"
+                        class="retry-btn rounded-sm border border-cli-error bg-transparent px-3 py-2 font-mono text-xs text-cli-error transition-all duration-200 hover:bg-cli-error hover:text-white"
+                        onclick={() => socket.reconnect()}
+                    >
                         Retry
                     </button>
                 {/if}
@@ -1301,9 +1320,9 @@
         {/if}
 
         {#if helperLaunchNote}
-            <div class="helper-note row">
-                <span class="helper-icon row">i</span>
-                <span class="helper-text">{helperLaunchNote}</span>
+            <div class="helper-note row gap-3 mx-4 my-3 rounded-md border border-cli-border bg-cli-bg-elevated px-4 py-3 font-mono text-sm">
+                <span class="helper-icon row gap-0 h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-cli-prefix-agent text-xs font-bold text-cli-bg">i</span>
+                <span class="helper-text flex-1 text-cli-text">{helperLaunchNote}</span>
             </div>
         {/if}
     </div>
@@ -1338,363 +1357,3 @@
     />
 </div>
 
-<style>
-    .thread-page {
-        --stack-gap: 0;
-        height: 100%;
-        background: oklch(var(--color-cli-bg));
-    }
-
-    .provider-badge {
-        --row-gap: 0;
-        padding: 0 var(--space-md) var(--space-xs);
-        color: oklch(var(--color-cli-text-muted));
-        font-size: var(--text-xs);
-        font-family: var(--font-mono);
-    }
-
-    .auto-approve-banner {
-        margin: var(--space-sm) var(--space-md) 0;
-        padding: var(--space-sm) var(--space-md);
-        border-radius: var(--radius-md);
-        border: 1px solid color-mix(in srgb, #f59e0b 48%, oklch(var(--color-cli-border)));
-        background: color-mix(in srgb, #fbbf24 18%, oklch(var(--color-cli-bg-elevated)));
-        color: oklch(var(--color-cli-text));
-        font-family: var(--font-mono);
-        font-size: var(--text-xs);
-    }
-
-    .auto-approve-banner a {
-        color: oklch(var(--color-cli-prefix-agent));
-    }
-
-    /* Transcript */
-    .transcript {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding: var(--space-sm) 0;
-    }
-
-    .acp-approval-card {
-        margin: var(--space-xs) var(--space-md);
-        border: 1px solid oklch(var(--color-cli-border));
-        border-radius: var(--radius-md);
-        background: oklch(var(--color-cli-bg-elevated));
-        font-family: var(--font-mono);
-        font-size: var(--text-sm);
-        overflow: hidden;
-    }
-
-    .acp-approval-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: var(--space-sm) var(--space-md);
-        border-bottom: 1px solid oklch(var(--color-cli-border));
-    }
-
-    .acp-approval-header .header-label {
-        color: oklch(var(--color-cli-prefix-tool));
-        font-size: var(--text-xs);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-
-    .acp-approval-header .header-type {
-        color: oklch(var(--color-cli-text-muted));
-        font-size: var(--text-xs);
-    }
-
-    .acp-approval-body {
-        padding: var(--space-sm) var(--space-md);
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-xs);
-    }
-
-    .acp-tool-title {
-        color: oklch(var(--color-cli-text));
-        font-size: var(--text-xs);
-    }
-
-    .acp-tool-meta {
-        color: oklch(var(--color-cli-text-muted));
-        font-size: var(--text-xs);
-    }
-
-    .acp-approval-actions {
-        display: flex;
-        gap: var(--space-xs);
-        padding: var(--space-sm) var(--space-md);
-        border-top: 1px solid oklch(var(--color-cli-border));
-        flex-wrap: wrap;
-    }
-
-    .acp-option-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-xs);
-        padding: var(--space-xs) var(--space-sm);
-        background: transparent;
-        border: 1px solid oklch(var(--color-cli-border));
-        border-radius: var(--radius-sm);
-        color: oklch(var(--color-cli-text));
-        font-family: var(--font-mono);
-        font-size: var(--text-xs);
-        cursor: pointer;
-        transition: all var(--transition-fast);
-    }
-
-    .acp-option-btn:hover {
-        border-color: oklch(var(--color-cli-text-muted));
-        background: oklch(var(--color-cli-bg-hover));
-    }
-
-    .acp-option-btn.allow {
-        border-color: color-mix(in srgb, oklch(var(--color-cli-success, #4ade80)) 45%, oklch(var(--color-cli-border)));
-        color: oklch(var(--color-cli-success, #4ade80));
-    }
-
-    .acp-option-btn.reject {
-        border-color: color-mix(in srgb, oklch(var(--color-cli-error)) 55%, oklch(var(--color-cli-border)));
-        color: oklch(var(--color-cli-error));
-    }
-
-    .acp-cancel-btn {
-        color: oklch(var(--color-cli-text-muted));
-    }
-
-    .streaming-reasoning {
-        padding: var(--space-xs) var(--space-md);
-    }
-
-    .empty {
-        --row-gap: var(--space-sm);
-        padding: var(--space-xl) var(--space-md);
-        font-family: var(--font-mono);
-        font-size: var(--text-sm);
-    }
-
-    .empty-prompt {
-        color: oklch(var(--color-cli-prefix-agent));
-    }
-
-    .empty-text {
-        color: oklch(var(--color-cli-text-muted));
-    }
-
-    .connection-error {
-        --row-gap: var(--space-sm);
-        margin: var(--space-sm) var(--space-md);
-        padding: var(--space-sm) var(--space-md);
-        background: oklch(var(--color-cli-error-bg));
-        border: 1px solid oklch(var(--color-cli-error));
-        border-radius: var(--radius-md);
-        font-family: var(--font-mono);
-        font-size: var(--text-sm);
-    }
-
-    .error-icon {
-        justify-content: center;
-        width: 1.25rem;
-        height: 1.25rem;
-        background: oklch(var(--color-cli-error));
-        color: white;
-        border-radius: 50%;
-        font-size: var(--text-xs);
-        font-weight: bold;
-        flex-shrink: 0;
-        --row-gap: 0;
-    }
-
-    .error-text {
-        color: oklch(var(--color-cli-error));
-        flex: 1;
-    }
-
-    .error-hint {
-        color: oklch(var(--color-cli-text-muted));
-        font-size: var(--text-xs);
-    }
-
-    .helper-note {
-        --row-gap: var(--space-sm);
-        margin: var(--space-sm) var(--space-md);
-        padding: var(--space-sm) var(--space-md);
-        background: color-mix(in srgb, oklch(var(--color-cli-bg-elevated)) 88%, oklch(var(--color-cli-bg)));
-        border: 1px solid oklch(var(--color-cli-border));
-        border-radius: var(--radius-md);
-        font-family: var(--font-mono);
-        font-size: var(--text-sm);
-    }
-
-    .helper-icon {
-        justify-content: center;
-        width: 1.25rem;
-        height: 1.25rem;
-        background: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 84%, oklch(var(--color-cli-bg)));
-        color: oklch(var(--color-cli-bg));
-        border-radius: 50%;
-        font-size: var(--text-xs);
-        font-weight: bold;
-        flex-shrink: 0;
-        --row-gap: 0;
-    }
-
-    .helper-text {
-        color: oklch(var(--color-cli-text));
-        flex: 1;
-    }
-
-    .retry-btn {
-        padding: var(--space-xs) var(--space-sm);
-        background: transparent;
-        border: 1px solid oklch(var(--color-cli-error));
-        border-radius: var(--radius-sm);
-        color: oklch(var(--color-cli-error));
-        font-family: var(--font-mono);
-        font-size: var(--text-xs);
-        cursor: pointer;
-        transition: all var(--transition-fast);
-    }
-
-    .retry-btn:hover {
-        background: oklch(var(--color-cli-error));
-        color: white;
-    }
-
-    .more-menu {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-    }
-
-    /* Match AppHeader button styling, but keep it compact. */
-    .more-btn {
-        padding: 0 var(--space-sm);
-        min-height: 1.75rem;
-        line-height: 1.75rem;
-    }
-
-    .more-popover {
-        position: absolute;
-        top: calc(100% + var(--space-xs));
-        right: 0;
-        z-index: 50;
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-        min-width: 11rem;
-        padding: var(--space-xs);
-        background: oklch(var(--color-cli-bg-elevated));
-        border: 1px solid oklch(var(--color-cli-border));
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-md);
-    }
-
-    .more-popover :global(a),
-    .more-popover button {
-        text-align: left;
-        width: 100%;
-    }
-
-    .more-popover :global(a) {
-        display: block;
-        padding: var(--space-xs) var(--space-sm);
-        border-radius: var(--radius-sm);
-        color: oklch(var(--color-cli-text));
-        text-decoration: none;
-        font-family: var(--font-mono);
-        font-size: var(--text-xs);
-    }
-
-    .more-popover :global(a:hover) {
-        background: oklch(var(--color-cli-bg-hover));
-    }
-
-    .more-popover button {
-        background: transparent;
-        border: none;
-        padding: var(--space-xs) var(--space-sm);
-        border-radius: var(--radius-sm);
-        color: oklch(var(--color-cli-text));
-        font-family: var(--font-mono);
-        font-size: var(--text-xs);
-        cursor: pointer;
-    }
-
-    .more-popover button:hover {
-        background: oklch(var(--color-cli-bg-hover));
-    }
-
-    /* Search bar styles (Issue #201) */
-    .search-bar {
-        padding: var(--space-sm);
-        background: oklch(var(--color-cli-bg));
-        border-bottom: 1px solid oklch(var(--color-cli-border));
-    }
-
-    .search-input-wrapper {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: var(--space-xs);
-    }
-
-    .search-input {
-        flex: 1;
-        padding: var(--space-xs) var(--space-sm);
-        font-family: var(--font-mono);
-        font-size: var(--text-sm);
-        background: oklch(var(--color-cli-bg-surface));
-        border: 1px solid oklch(var(--color-cli-border));
-        border-radius: var(--radius-sm);
-        color: oklch(var(--color-cli-text));
-    }
-
-    .search-input:focus {
-        outline: none;
-        border-color: oklch(var(--color-cli-accent));
-    }
-
-    .search-clear-btn {
-        padding: var(--space-xs);
-        background: transparent;
-        border: none;
-        color: oklch(var(--color-cli-text-muted));
-        cursor: pointer;
-        font-size: var(--text-sm);
-    }
-
-    .search-clear-btn:hover {
-        color: oklch(var(--color-cli-text));
-    }
-
-    .search-status,
-    .search-error,
-    .search-results-header,
-    .search-no-results {
-        margin-top: var(--space-xs);
-        font-family: var(--font-mono);
-        font-size: var(--text-xs);
-    }
-
-    .search-status {
-        color: oklch(var(--color-cli-text-muted));
-    }
-
-    .search-error {
-        color: oklch(var(--color-cli-error));
-    }
-
-    .search-results-header {
-        color: oklch(var(--color-cli-success));
-    }
-
-    .search-no-results {
-        color: oklch(var(--color-cli-text-muted));
-    }
-
-</style>

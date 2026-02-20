@@ -658,25 +658,31 @@ import { agents } from "../lib/agents.svelte";
 
 </script>
 
-<div class="settings stack">
-  <AppHeader status={socket.status}>
-    {#snippet actions()}
-      <button
-        type="button"
-        onclick={() => theme.cycle()}
-        title="Theme: {theme.current}"
-        aria-label={`Cycle theme (current: ${theme.current})`}
-      >
-        {themeIcons[theme.current]}
-      </button>
-    {/snippet}
-  </AppHeader>
+<div class="settings stack relative min-h-screen bg-cli-bg text-cli-text font-sans text-sm">
+  <div class="pointer-events-none absolute inset-0 overflow-hidden">
+    <div class="absolute -left-32 -top-40 h-[460px] w-[920px] rounded-full bg-cli-prefix-agent/10 blur-[80px]"></div>
+    <div class="absolute -right-32 -top-48 h-[360px] w-[780px] rounded-full bg-cli-prefix-web/10 blur-[90px]"></div>
+  </div>
+  <div class="relative z-10">
+    <AppHeader status={socket.status}>
+      {#snippet actions()}
+        <button
+          type="button"
+          class="rounded-sm px-2 py-1 font-mono text-xs text-cli-text-muted transition-colors duration-200 hover:text-cli-text"
+          onclick={() => theme.cycle()}
+          title="Theme: {theme.current}"
+          aria-label={`Cycle theme (current: ${theme.current})`}
+        >
+          {themeIcons[theme.current]}
+        </button>
+      {/snippet}
+    </AppHeader>
 
-  <div class="content">
-    <div class="panel panel-wide">
+    <div class="content mx-auto grid w-full max-w-[1220px] grid-cols-1 gap-6 px-4 pt-6 pb-8 min-[1040px]:grid-cols-[1.35fr_1fr] min-[1040px]:items-start max-[660px]:px-2 max-[660px]:pt-4 max-[660px]:pb-6">
+    <div class="panel min-w-0 col-span-full">
       <SectionCard title="Connection">
-        <div class="field stack">
-          <label for="orbit-url">orbit url</label>
+        <div class="field flex flex-col gap-1">
+          <label class="text-xs font-sans lowercase text-cli-text-dim" for="orbit-url">orbit url</label>
           <input
             id="orbit-url"
             type="text"
@@ -684,9 +690,10 @@ import { agents } from "../lib/agents.svelte";
             placeholder="wss://orbit.example.com/ws/client"
             aria-describedby="orbit-url-help"
             disabled={orbitLocked}
+            class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           />
         </div>
-        <p class="hint" id="orbit-url-help">
+        <p class="text-xs leading-relaxed text-cli-text-muted" id="orbit-url-help">
           {LOCAL_MODE
             ? "Local mode: Orbit URL is derived automatically from the site you opened."
             : "Use your orbit websocket URL. Disconnect first to edit while connected."}
@@ -696,9 +703,8 @@ import { agents } from "../lib/agents.svelte";
             {socket.status}
           </StatusChip>
         </div>
-        <div class="connect-actions row">
+        <div class="connect-actions row gap-2">
           <button
-            class="connect-btn"
             type="button"
             onclick={() => {
               if (canDisconnect) {
@@ -708,14 +714,15 @@ import { agents } from "../lib/agents.svelte";
               }
             }}
             disabled={!canDisconnect && !canConnect}
+            class="connect-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text transition-all duration-200 hover:border-cli-prefix-agent/40 hover:bg-cli-bg-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {connectionActionLabel}
           </button>
         </div>
         {#if socket.error}
-          <p class="hint hint-error">{socket.error}</p>
+          <p class="text-xs leading-relaxed text-cli-error">{socket.error}</p>
         {/if}
-        <p class="hint">
+        <p class="text-xs leading-relaxed text-cli-text-muted">
           {socket.status === "disconnected"
             ? "Auto-connect paused. Click Connect to resume."
             : "Connection is automatic on app load. Disconnect to pause and to change the URL."}
@@ -723,24 +730,24 @@ import { agents } from "../lib/agents.svelte";
       </SectionCard>
     </div>
 
-    <div class="panel">
+    <div class="panel min-w-0">
       <SectionCard title="Devices">
         {#if !isSocketConnected}
-          <p class="hint">
+          <p class="text-xs leading-relaxed text-cli-text-muted">
             Connect to load devices.
           </p>
         {:else if anchorList.length === 0}
-          <p class="hint">
-            No devices connected yet. If this is a fresh install, give it a few seconds. Otherwise check <a href="/admin">/admin</a>.
+          <p class="text-xs leading-relaxed text-cli-text-muted">
+            No devices connected yet. If this is a fresh install, give it a few seconds. Otherwise check <a class="text-cli-prefix-agent hover:opacity-80" href="/admin">/admin</a>.
           </p>
         {:else}
-          <ul class="anchor-list">
+          <ul class="anchor-list flex flex-col gap-1 list-none p-0 m-0">
             {#each anchorList as anchor (anchor.id)}
-              <li class="anchor-item">
-                <span class="anchor-status" title="Connected" aria-hidden="true">●</span>
-                <div class="anchor-info">
-                  <span class="anchor-hostname">{anchor.hostname}</span>
-                  <span class="anchor-meta">{platformLabels[anchor.platform] ?? anchor.platform} · since {formatSince(anchor.connectedAt)}</span>
+              <li class="anchor-item flex items-start gap-2 py-1">
+                <span class="anchor-status mt-0.5 text-xs text-cli-success" title="Connected" aria-hidden="true">●</span>
+                <div class="anchor-info flex min-w-0 flex-col gap-0.5">
+                  <span class="anchor-hostname font-medium text-cli-text">{anchor.hostname}</span>
+                  <span class="anchor-meta text-xs text-cli-text-muted">{platformLabels[anchor.platform] ?? anchor.platform} · since {formatSince(anchor.connectedAt)}</span>
                 </div>
               </li>
             {/each}
@@ -749,185 +756,193 @@ import { agents } from "../lib/agents.svelte";
       </SectionCard>
     </div>
 
-    <div class="panel">
+    <div class="panel min-w-0">
       <NotificationSettings />
     </div>
 
-    <div class="panel panel-wide">
+    <div class="panel min-w-0 col-span-full">
       <SectionCard title="Providers" subtitle="Configure AI providers">
         {#if configError}
-          <p class="hint hint-error" role="alert">{configError}</p>
+          <p class="text-xs leading-relaxed text-cli-error" role="alert">{configError}</p>
         {/if}
         {#if showRestartBanner}
-          <div class="restart-banner" role="status" aria-live="polite">
-            <div class="restart-title">Configuration saved.</div>
-            <div class="restart-body">Restart the service to apply changes.</div>
+          <div class="restart-banner flex flex-col gap-0.5 rounded-md border border-cli-prefix-agent/45 bg-cli-prefix-agent/12 p-3 text-cli-text" role="status" aria-live="polite">
+            <div class="restart-title text-xs font-semibold">Configuration saved.</div>
+            <div class="restart-body text-xs text-cli-text-muted">Restart the service to apply changes.</div>
           </div>
         {/if}
         {#if loadingConfig}
-          <p class="hint">Loading provider configuration...</p>
+          <p class="text-xs leading-relaxed text-cli-text-muted">Loading provider configuration...</p>
         {:else}
-          <div class="provider-grid">
-            <div class="provider-card">
-              <div class="provider-header">
-                <h4>Codex</h4>
+          <div class="provider-grid grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
+            <div class="provider-card flex flex-col gap-2 rounded-md border border-cli-border bg-cli-bg-elevated p-4">
+              <div class="provider-header flex flex-wrap items-center gap-2">
+                <h4 class="m-0 font-sans text-sm text-cli-text">Codex</h4>
                 <StatusChip tone={mapStatus(providerHealth.codex?.status)}>
                   {formatStatusLabel(providerHealth.codex?.status)}
                 </StatusChip>
               </div>
-              <p class="provider-subtitle">Local CLI via Anchor (always enabled)</p>
-              <div class="provider-status">
+              <p class="provider-subtitle m-0 text-xs text-cli-text-muted">Local CLI via Anchor (always enabled)</p>
+              <div class="provider-status text-xs text-cli-text-muted">
                 {providerHealth.codex?.message || "Unknown"}
               </div>
             </div>
 
-            <div class="provider-card">
-              <div class="provider-header">
-                <h4>GitHub Copilot</h4>
+            <div class="provider-card flex flex-col gap-2 rounded-md border border-cli-border bg-cli-bg-elevated p-4">
+              <div class="provider-header flex flex-wrap items-center gap-2">
+                <h4 class="m-0 font-sans text-sm text-cli-text">GitHub Copilot</h4>
                 <StatusChip tone={mapStatus(providerHealth["copilot-acp"]?.status)}>
                   {formatStatusLabel(providerHealth["copilot-acp"]?.status)}
                 </StatusChip>
-                <label class="provider-toggle">
+                <label class="provider-toggle inline-flex items-center gap-1.5 text-xs text-cli-text-dim">
                   <input type="checkbox" bind:checked={providerConfig["copilot-acp"].enabled} />
                   <span>Enabled</span>
                 </label>
               </div>
-              <div class="field stack">
-                <label for="provider-copilot-exec">executable path (optional)</label>
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-copilot-exec">executable path (optional)</label>
                 <input
                   id="provider-copilot-exec"
                   type="text"
                   bind:value={providerConfig["copilot-acp"].executablePath}
                   placeholder="Auto-detected from PATH"
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 />
               </div>
-              <div class="provider-status">
+              <div class="provider-status text-xs text-cli-text-muted">
                 {providerHealth["copilot-acp"]?.message || "Unknown"}
               </div>
             </div>
 
-            <div class="provider-card">
-              <div class="provider-header">
-                <h4>Claude (Web API)</h4>
+            <div class="provider-card flex flex-col gap-2 rounded-md border border-cli-border bg-cli-bg-elevated p-4">
+              <div class="provider-header flex flex-wrap items-center gap-2">
+                <h4 class="m-0 font-sans text-sm text-cli-text">Claude (Web API)</h4>
                 <StatusChip tone={mapStatus(providerHealth.claude?.status)}>
                   {formatStatusLabel(providerHealth.claude?.status)}
                 </StatusChip>
-                <label class="provider-toggle">
+                <label class="provider-toggle inline-flex items-center gap-1.5 text-xs text-cli-text-dim">
                   <input type="checkbox" bind:checked={providerConfig.claude.enabled} />
                   <span>Enabled</span>
                 </label>
               </div>
               {#if providerConfig.claude.enabled}
-                <div class="field stack">
-                  <label for="provider-claude-api-key">api key</label>
+                <div class="field flex flex-col gap-1">
+                  <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-claude-api-key">api key</label>
                   <input
                     id="provider-claude-api-key"
                     type="password"
                     bind:value={providerConfig.claude.apiKey}
                     placeholder="sk-ant-..."
                     autocomplete="off"
+                    class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                   />
                 </div>
-                <div class="field stack">
-                  <label for="provider-claude-model">model</label>
-                  <select id="provider-claude-model" bind:value={providerConfig.claude.model}>
+                <div class="field flex flex-col gap-1">
+                  <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-claude-model">model</label>
+                  <select id="provider-claude-model" bind:value={providerConfig.claude.model} class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-text-muted focus:outline-none">
                     <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
                     <option value="claude-3-opus-20240229">Claude 3 Opus</option>
                     <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
                   </select>
                 </div>
-                <details class="advanced-section">
-                  <summary>Advanced settings</summary>
-                  <div class="field stack">
-                    <label for="provider-claude-base-url">base url</label>
+                <details class="advanced-section flex flex-col gap-2">
+                  <summary class="cursor-pointer text-xs text-cli-text-dim">Advanced settings</summary>
+                  <div class="field flex flex-col gap-1">
+                    <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-claude-base-url">base url</label>
                     <input
                       id="provider-claude-base-url"
                       type="text"
                       bind:value={providerConfig.claude.baseUrl}
                       placeholder="https://api.anthropic.com"
+                      class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                     />
                   </div>
-                  <div class="field stack">
-                    <label for="provider-claude-timeout">timeout (ms)</label>
+                  <div class="field flex flex-col gap-1">
+                    <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-claude-timeout">timeout (ms)</label>
                     <input
                       id="provider-claude-timeout"
                       type="number"
                       bind:value={providerConfig.claude.timeout}
                       placeholder="30000"
+                      class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                     />
                   </div>
                 </details>
               {/if}
-              <div class="provider-status">
+              <div class="provider-status text-xs text-cli-text-muted">
                 {providerHealth.claude?.message || "Not configured"}
               </div>
             </div>
 
-            <div class="provider-card">
-              <div class="provider-header">
-                <h4>Claude (Local CLI)</h4>
+            <div class="provider-card flex flex-col gap-2 rounded-md border border-cli-border bg-cli-bg-elevated p-4">
+              <div class="provider-header flex flex-wrap items-center gap-2">
+                <h4 class="m-0 font-sans text-sm text-cli-text">Claude (Local CLI)</h4>
                 <StatusChip tone={mapStatus(providerHealth["claude-mcp"]?.status)}>
                   {formatStatusLabel(providerHealth["claude-mcp"]?.status)}
                 </StatusChip>
-                <label class="provider-toggle">
+                <label class="provider-toggle inline-flex items-center gap-1.5 text-xs text-cli-text-dim">
                   <input type="checkbox" bind:checked={providerConfig["claude-mcp"].enabled} />
                   <span>Enabled</span>
                 </label>
               </div>
               {#if providerConfig["claude-mcp"].enabled}
-                <div class="field stack">
-                  <label for="provider-claude-mcp-exec">executable path (optional)</label>
+                <div class="field flex flex-col gap-1">
+                  <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-claude-mcp-exec">executable path (optional)</label>
                   <input
                     id="provider-claude-mcp-exec"
                     type="text"
                     bind:value={providerConfig["claude-mcp"].executablePath}
                     placeholder="Auto-detected from PATH"
+                    class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                   />
                 </div>
-                <div class="field stack">
-                  <label for="provider-claude-mcp-model">model</label>
+                <div class="field flex flex-col gap-1">
+                  <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-claude-mcp-model">model</label>
                   <input
                     id="provider-claude-mcp-model"
                     type="text"
                     bind:value={providerConfig["claude-mcp"].model}
                     placeholder="claude-sonnet-4-6"
+                    class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                   />
                 </div>
-                <details class="advanced-section">
-                  <summary>Advanced settings</summary>
-                  <div class="field stack">
-                    <label for="provider-claude-mcp-max-tokens">max tokens</label>
+                <details class="advanced-section flex flex-col gap-2">
+                  <summary class="cursor-pointer text-xs text-cli-text-dim">Advanced settings</summary>
+                  <div class="field flex flex-col gap-1">
+                    <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-claude-mcp-max-tokens">max tokens</label>
                     <input
                       id="provider-claude-mcp-max-tokens"
                       type="number"
                       bind:value={providerConfig["claude-mcp"].maxTokens}
                       placeholder="8192"
+                      class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                     />
                   </div>
-                  <div class="field stack">
-                    <label for="provider-claude-mcp-prompt-timeout">prompt timeout (ms)</label>
+                  <div class="field flex flex-col gap-1">
+                    <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-claude-mcp-prompt-timeout">prompt timeout (ms)</label>
                     <input
                       id="provider-claude-mcp-prompt-timeout"
                       type="number"
                       bind:value={providerConfig["claude-mcp"].promptTimeout}
                       placeholder="60000"
+                      class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                     />
                   </div>
-                  <label class="provider-checkbox">
+                  <label class="provider-checkbox inline-flex items-center gap-1.5 text-xs text-cli-text-dim">
                     <input type="checkbox" bind:checked={providerConfig["claude-mcp"].debug} />
                     <span>Debug mode</span>
                   </label>
                 </details>
               {/if}
-              <div class="provider-status">
+              <div class="provider-status text-xs text-cli-text-muted">
                 {providerHealth["claude-mcp"]?.message || "Not configured"}
               </div>
             </div>
           </div>
 
-          <div class="save-actions">
+          <div class="save-actions mt-4 flex flex-wrap items-center justify-end gap-2">
             <button
-              class="connect-btn"
+              class="connect-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text transition-all duration-200 hover:border-cli-prefix-agent/40 hover:bg-cli-bg-hover disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
               onclick={saveProviderConfig}
               disabled={!isProviderConfigDirty || savingConfig}
@@ -935,88 +950,93 @@ import { agents } from "../lib/agents.svelte";
               {savingConfig ? "Saving..." : "Save changes"}
             </button>
             {#if isProviderConfigDirty && !savingConfig}
-              <span class="hint">Unsaved changes</span>
+              <span class="text-xs leading-relaxed text-cli-text-muted">Unsaved changes</span>
             {/if}
           </div>
         {/if}
       </SectionCard>
     </div>
 
-    <div class="panel">
+    <div class="panel min-w-0">
       <SectionCard title="Composer">
-        <div class="field stack">
-          <label for="enter-behavior">enter key</label>
+        <div class="field flex flex-col gap-1">
+          <label class="text-xs font-sans lowercase text-cli-text-dim" for="enter-behavior">enter key</label>
           <select
             id="enter-behavior"
             aria-describedby="enter-behavior-help"
             bind:value={enterBehavior}
             onchange={(e) => setEnterBehavior((e.target as HTMLSelectElement).value as EnterBehavior)}
+            class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-text-muted focus:outline-none"
           >
             <option value="newline">Enter inserts newline (Cmd/Ctrl+Enter sends)</option>
             <option value="send">Enter sends (Shift+Enter newline)</option>
           </select>
         </div>
-        <p class="hint" id="enter-behavior-help">Default is newline on all devices. This is stored per-device in your browser.</p>
+        <p class="text-xs leading-relaxed text-cli-text-muted" id="enter-behavior-help">Default is newline on all devices. This is stored per-device in your browser.</p>
       </SectionCard>
     </div>
 
-    <div class="panel panel-wide">
+    <div class="panel min-w-0 col-span-full">
       <SectionCard title="UI Elements" subtitle="Control optional interface elements">
-        <div class="stack ui-toggles">
-          <div class="ui-toggles-header row">
-            <div class="row ui-toggles-chips">
+        <div class="stack ui-toggles flex flex-col gap-2">
+          <div class="ui-toggles-header row flex-wrap items-center justify-between gap-2">
+            <div class="row ui-toggles-chips gap-1">
               <StatusChip tone="neutral">Per-device</StatusChip>
               <StatusChip tone="success">Defaults on</StatusChip>
             </div>
-            <button type="button" class="plain-btn ui-toggle-reset" onclick={resetUiToggles}>Reset to defaults</button>
+            <button type="button" class="plain-btn inline-flex items-center justify-center rounded-full border border-cli-border/80 bg-cli-bg-elevated px-3 py-1 text-xs font-semibold text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text" onclick={resetUiToggles}>Reset to defaults</button>
           </div>
           {#if uiToggleNote}
-            <p class="hint" aria-live="polite">{uiToggleNote}</p>
+            <p class="text-xs leading-relaxed text-cli-text-muted" aria-live="polite">{uiToggleNote}</p>
           {/if}
-          <p class="hint">These preferences are stored on this device only.</p>
-          <div class="ui-toggle-groups">
+          <p class="text-xs leading-relaxed text-cli-text-muted">These preferences are stored on this device only.</p>
+          <div class="ui-toggle-groups grid grid-cols-1 gap-4 min-[980px]:grid-cols-2">
             {#each uiToggleGroups as group (group.title)}
-              <div class="ui-toggle-group">
-                <div class="ui-toggle-group-header">{group.title}</div>
-                <p class="ui-toggle-group-help">{group.description}</p>
-                <div class="ui-toggle-list">
+              <div class="ui-toggle-group rounded-md border border-cli-border bg-cli-bg-elevated p-4">
+                <div class="ui-toggle-group-header text-xs font-sans uppercase tracking-[0.06em] text-cli-text-dim">{group.title}</div>
+                <p class="ui-toggle-group-help mt-1 text-xs leading-relaxed text-cli-text-muted">{group.description}</p>
+                <div class="ui-toggle-list mt-2 flex flex-col gap-2">
                   {#each group.items as item (item.key)}
-                    <label class="ui-toggle-row">
-                      <span class="ui-toggle-text">
-                        <span class="ui-toggle-label">{item.label}</span>
-                        <span class="ui-toggle-help">{item.help}</span>
+                    <label class="ui-toggle-row flex items-center justify-between gap-4 max-[640px]:items-start">
+                      <span class="ui-toggle-text flex min-w-0 flex-col gap-0.5">
+                        <span class="ui-toggle-label text-sm font-sans text-cli-text">{item.label}</span>
+                        <span class="ui-toggle-help text-xs leading-relaxed text-cli-text-muted">{item.help}</span>
                       </span>
-                      <span class="ui-toggle-control">
+                      <span class="ui-toggle-control relative h-6 w-11 flex-shrink-0">
                         <input
                           type="checkbox"
                           role="switch"
                           checked={getToggleState(item.key)}
                           onchange={(e) => setToggleState(item.key, (e.target as HTMLInputElement).checked)}
+                          class="peer absolute inset-0 m-0 cursor-pointer opacity-0"
                         />
-                        <span class="ui-toggle-track" aria-hidden="true"></span>
+                        <span
+                          class="ui-toggle-track absolute inset-0 rounded-full border border-cli-border bg-cli-bg transition-all duration-200 after:absolute after:left-0.5 after:top-0.5 after:h-[18px] after:w-[18px] after:rounded-full after:bg-cli-text-muted after:transition-all after:duration-200 peer-checked:border-cli-prefix-agent/60 peer-checked:bg-cli-prefix-agent/25 peer-checked:after:translate-x-5 peer-checked:after:bg-cli-prefix-agent peer-focus-visible:ring-2 peer-focus-visible:ring-cli-prefix-agent/55"
+                          aria-hidden="true"
+                        ></span>
                       </span>
                     </label>
                   {/each}
                 </div>
               </div>
             {/each}
-            <div class="ui-toggle-group">
-                <div class="ui-toggle-group-header">Thread Limits</div>
-                <p class="ui-toggle-group-help">Limit the number of threads shown per project group.</p>
-                <div class="ui-toggle-list">
-                  <label class="ui-toggle-row">
-                    <span class="ui-toggle-text">
-                      <span class="ui-toggle-label">Threads per project</span>
-                      <span class="ui-toggle-help">Maximum threads to show per project group (1-50)</span>
+            <div class="ui-toggle-group rounded-md border border-cli-border bg-cli-bg-elevated p-4">
+                <div class="ui-toggle-group-header text-xs font-sans uppercase tracking-[0.06em] text-cli-text-dim">Thread Limits</div>
+                <p class="ui-toggle-group-help mt-1 text-xs leading-relaxed text-cli-text-muted">Limit the number of threads shown per project group.</p>
+                <div class="ui-toggle-list mt-2 flex flex-col gap-2">
+                  <label class="ui-toggle-row flex items-center justify-between gap-4 max-[640px]:items-start">
+                    <span class="ui-toggle-text flex min-w-0 flex-col gap-0.5">
+                      <span class="ui-toggle-label text-sm font-sans text-cli-text">Threads per project</span>
+                      <span class="ui-toggle-help text-xs leading-relaxed text-cli-text-muted">Maximum threads to show per project group (1-50)</span>
                     </span>
-                    <span class="ui-toggle-control">
+                    <span class="ui-toggle-control flex-shrink-0">
                       <input
                         type="number"
                         min="1"
                         max="50"
                         bind:value={threadsPerProjectLimit}
                         onchange={saveThreadsPerProjectLimit}
-                        style="width: 80px; padding: 4px; border: 1px solid oklch(var(--color-cli-border)); border-radius: 4px; background: oklch(var(--color-cli-bg)); color: oklch(var(--color-cli-text));"
+                        class="w-20 rounded-sm border border-cli-border bg-cli-bg p-1 text-sm text-cli-text"
                       />
                     </span>
                   </label>
@@ -1027,29 +1047,29 @@ import { agents } from "../lib/agents.svelte";
       </SectionCard>
     </div>
 
-    <div class="panel panel-wide">
+    <div class="panel min-w-0 col-span-full">
       <SectionCard title="Copilot Tool Approvals">
-        <div class="stack approval-policy-settings">
-          <p class="hint">Manage your saved "always allow" and "always reject" rules for Copilot tool actions.</p>
+        <div class="stack approval-policy-settings flex flex-col gap-2">
+          <p class="text-xs leading-relaxed text-cli-text-muted">Manage your saved "always allow" and "always reject" rules for Copilot tool actions.</p>
           {#if approvalPolicyStore.policies.length === 0}
-            <p class="hint empty">No saved rules. Rules are created when you choose "always allow" or "always reject" during an approval prompt.</p>
+            <p class="text-xs leading-relaxed text-cli-text-muted">No saved rules. Rules are created when you choose "always allow" or "always reject" during an approval prompt.</p>
           {:else}
-            <div class="policy-list">
+            <div class="policy-list flex flex-col gap-1">
               {#each approvalPolicyStore.policies as policy (policy.id)}
-                <div class="policy-row">
+                <div class="policy-row grid items-center gap-2 rounded-md border border-cli-border bg-cli-bg-elevated px-2 py-1.5 [grid-template-columns:max-content_1fr_auto] max-[760px]:grid-cols-1 max-[760px]:items-start">
                   <span
-                    class="policy-decision"
-                    class:allow={policy.decision === "allow"}
-                    class:reject={policy.decision === "reject"}
+                    class="policy-decision font-mono text-xs uppercase tracking-[0.04em]"
+                    class:text-cli-success={policy.decision === "allow"}
+                    class:text-cli-error={policy.decision === "reject"}
                   >
                     {policy.decision === "allow" ? "✓ Always Allow" : "✗ Always Reject"}
                   </span>
-                  <span class="policy-tool">
+                  <span class="policy-tool font-mono text-xs text-cli-text">
                     {policy.toolKind ?? "any tool"}{policy.toolTitle ? `: ${policy.toolTitle}` : ""}
                   </span>
                   <button
                     type="button"
-                    class="plain-btn"
+                    class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text"
                     onclick={() => approvalPolicyStore.revokePolicy(policy.id)}
                   >
                     Revoke
@@ -1062,13 +1082,13 @@ import { agents } from "../lib/agents.svelte";
       </SectionCard>
     </div>
 
-    <div class="panel panel-wide">
+    <div class="panel min-w-0 col-span-full">
       <SectionCard title="Quick Replies">
-        <div class="stack quick-reply-settings">
+        <div class="stack quick-reply-settings flex flex-col gap-2">
           {#each quickReplies as reply, i (`${i}-${reply.label}-${reply.text}`)}
-            <div class="quick-reply-row">
-              <div class="field stack">
-                <label for={`quick-reply-label-${i}`}>label</label>
+            <div class="quick-reply-row grid items-end gap-2 min-[760px]:grid-cols-[160px_1fr_auto] max-[760px]:grid-cols-1 max-[760px]:items-stretch">
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`quick-reply-label-${i}`}>label</label>
                 <input
                   id={`quick-reply-label-${i}`}
                   type="text"
@@ -1076,10 +1096,11 @@ import { agents } from "../lib/agents.svelte";
                   value={reply.label}
                   oninput={(e) => updateQuickReply(i, "label", (e.target as HTMLInputElement).value)}
                   placeholder="Proceed"
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 />
               </div>
-              <div class="field stack">
-                <label for={`quick-reply-text-${i}`}>text</label>
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`quick-reply-text-${i}`}>text</label>
                 <input
                   id={`quick-reply-text-${i}`}
                   type="text"
@@ -1087,11 +1108,12 @@ import { agents } from "../lib/agents.svelte";
                   value={reply.text}
                   oninput={(e) => updateQuickReply(i, "text", (e.target as HTMLInputElement).value)}
                   placeholder="Proceed."
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 />
               </div>
               <button
                 type="button"
-                class="plain-btn"
+                class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text"
                 onclick={() => removeQuickReply(i)}
                 aria-label={`Remove quick reply ${reply.label || i + 1}`}
               >
@@ -1100,80 +1122,79 @@ import { agents } from "../lib/agents.svelte";
             </div>
           {/each}
           <div class="row">
-            <button type="button" class="plain-btn" onclick={addQuickReply} disabled={quickReplies.length >= MAX_QUICK_REPLIES}>
+            <button type="button" class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text disabled:cursor-not-allowed disabled:opacity-60" onclick={addQuickReply} disabled={quickReplies.length >= MAX_QUICK_REPLIES}>
               Add preset
             </button>
-            <button type="button" class="connect-btn" onclick={saveQuickReplyConfig}>Save presets</button>
+            <button type="button" class="connect-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text transition-all duration-200 hover:border-cli-prefix-agent/40 hover:bg-cli-bg-hover" onclick={saveQuickReplyConfig}>Save presets</button>
             {#if quickReplySaveNote}
-              <span class="hint">{quickReplySaveNote}</span>
+              <span class="text-xs leading-relaxed text-cli-text-muted">{quickReplySaveNote}</span>
             {/if}
           </div>
-          <p class="hint">Shown in the thread composer as one-tap shortcuts. Stored per-device in your browser.</p>
+          <p class="text-xs leading-relaxed text-cli-text-muted">Shown in the thread composer as one-tap shortcuts. Stored per-device in your browser.</p>
         </div>
       </SectionCard>
     </div>
 
-    <div class="panel panel-wide">
+    <div class="panel min-w-0 col-span-full">
       <SectionCard title="Custom Agents">
          {#if customAgentImportError}
-           <div class="error-msg">{customAgentImportError}</div>
+          <div class="error-msg rounded-md border border-cli-error/50 bg-cli-error/10 px-3 py-2 text-xs text-cli-error">{customAgentImportError}</div>
          {/if}
-         <div class="stack custom-agents">
+        <div class="stack custom-agents flex flex-col gap-3">
             {#if agents.list.length === 0}
-               <p class="hint">No custom agents imported yet.</p>
+            <p class="text-xs leading-relaxed text-cli-text-muted">No custom agents imported yet.</p>
             {/if}
             {#each agents.list as agent (agent.id)}
-               <div class="agent-row">
-                  <div class="agent-info">
-                     <strong>{agent.name}</strong>
-                     <span class="muted">{agent.description}</span>
-                     {#if agent.model}
-                       <span class="badge">{agent.model}</span>
-                     {/if}
-                  </div>
-                  <div class="agent-actions">
-                     <button
-                        class="plain-btn"
-                        onclick={() => syncAgentToVSCode(agent)}
-                        disabled={syncingAgentId === agent.id}
-                        title={agent.lastSyncedAt ? `Last synced: ${formatSyncTime(agent.lastSyncedAt)}` : "Sync to VS Code"}
-                     >
-                        {syncingAgentId === agent.id ? 'Syncing...' : 'Sync to VS Code'}
-                     </button>
-                     <button class="plain-btn" onclick={() => agents.export(agent.id)}>Export</button>
-                     <button class="plain-btn danger" onclick={() => agents.delete(agent.id)}>Delete</button>
-                  </div>
-                  {#if agent.lastSyncedAt}
-                    <div class="sync-status temp-sync-status">
-                      <small class="muted">Synced: {formatSyncTime(agent.lastSyncedAt)}</small>
-                    </div>
-                  {/if}
-                  {#if syncError && syncingAgentId === agent.id}
-                    <div class="error-msg">{syncError}</div>
-                  {/if}
-               </div>
+            <div class="agent-row flex flex-wrap items-center justify-between gap-3 rounded-md border border-cli-border bg-cli-bg-elevated p-3">
+              <div class="agent-info flex flex-col gap-1">
+                <strong class="text-sm text-cli-text">{agent.name}</strong>
+                <span class="text-xs text-cli-text-muted">{agent.description}</span>
+                {#if agent.model}
+                  <span class="badge inline-flex max-w-full rounded-full border border-cli-border px-2 py-0.5 text-xs text-cli-text-dim">{agent.model}</span>
+                {/if}
+              </div>
+              <div class="agent-actions flex flex-wrap gap-2">
+                <button
+                  class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text disabled:cursor-not-allowed disabled:opacity-60"
+                  onclick={() => syncAgentToVSCode(agent)}
+                  disabled={syncingAgentId === agent.id}
+                  title={agent.lastSyncedAt ? `Last synced: ${formatSyncTime(agent.lastSyncedAt)}` : "Sync to VS Code"}
+                >
+                  {syncingAgentId === agent.id ? 'Syncing...' : 'Sync to VS Code'}
+                </button>
+                <button class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text" onclick={() => agents.export(agent.id)}>Export</button>
+                <button class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-error/60 bg-cli-error/10 px-3 py-2 font-mono text-xs text-cli-error transition-all duration-200 hover:border-cli-error/70 hover:bg-cli-error/20" onclick={() => agents.delete(agent.id)}>Delete</button>
+              </div>
+              {#if agent.lastSyncedAt}
+                <div class="sync-status temp-sync-status w-full text-xs text-cli-text-muted">
+                 <small>Synced: {formatSyncTime(agent.lastSyncedAt)}</small>
+                </div>
+              {/if}
+              {#if syncError && syncingAgentId === agent.id}
+                <div class="error-msg w-full rounded-md border border-cli-error/50 bg-cli-error/10 px-3 py-2 text-xs text-cli-error">{syncError}</div>
+              {/if}
+            </div>
             {/each}
             
             <input
                bind:this={customAgentImportInput}
                type="file"
                accept=".json"
-               class="file-input-hidden"
+              class="hidden"
                onchange={handleCustomAgentImport}
-               style="display:none"
             />
-            <div class="actions">
-               <button class="plain-btn" onclick={() => customAgentImportInput?.click()}>Import Agent JSON</button>
-               <button
-                  class="plain-btn"
-                  onclick={syncAllAgents}
-                  disabled={isSyncingAll || agents.list.length === 0}
-               >
-                  {isSyncingAll ? 'Syncing All...' : 'Sync All to VS Code'}
-               </button>
-            </div>
+          <div class="actions flex flex-wrap gap-2">
+            <button class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text" onclick={() => customAgentImportInput?.click()}>Import Agent JSON</button>
+            <button
+              class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text disabled:cursor-not-allowed disabled:opacity-60"
+              onclick={syncAllAgents}
+              disabled={isSyncingAll || agents.list.length === 0}
+            >
+              {isSyncingAll ? 'Syncing All...' : 'Sync All to VS Code'}
+            </button>
+          </div>
             {#if syncAllResult}
-               <div class="sync-status">
+            <div class="sync-status text-xs text-cli-text-muted">
                   Synced {syncAllResult.synced} agents.
                   {#if syncAllResult.failed > 0}
                      {syncAllResult.failed} failed.
@@ -1183,21 +1204,21 @@ import { agents } from "../lib/agents.svelte";
          </div>
       </SectionCard>
       <SectionCard title="Presets">
-        <div class="stack preset-settings">
+        <div class="stack preset-settings flex flex-col gap-2">
           <input
             bind:this={presetImportInput}
             type="file"
             accept="application/json"
-            class="file-input-hidden"
+            class="hidden"
             onchange={handlePresetImport}
           />
           {#if agentPresets.length === 0}
-            <p class="hint">No presets yet. Add one to reuse mode/model/instructions and starter prompts.</p>
+            <p class="text-xs leading-relaxed text-cli-text-muted">No presets yet. Add one to reuse mode/model/instructions and starter prompts.</p>
           {/if}
           {#each agentPresets as preset, i (preset.id)}
-            <div class="preset-row">
-              <div class="field stack">
-                <label for={`preset-name-${i}`}>name</label>
+            <div class="preset-row grid items-end gap-2 min-[760px]:grid-cols-[minmax(120px,170px)_110px_1fr_130px_1fr_1fr_auto] max-[760px]:grid-cols-1 max-[760px]:items-stretch">
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`preset-name-${i}`}>name</label>
                 <input
                   id={`preset-name-${i}`}
                   type="text"
@@ -1205,21 +1226,23 @@ import { agents } from "../lib/agents.svelte";
                   value={preset.name}
                   oninput={(e) => updateAgentPreset(i, "name", (e.target as HTMLInputElement).value)}
                   placeholder="Plan review"
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 />
               </div>
-              <div class="field stack">
-                <label for={`preset-mode-${i}`}>mode</label>
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`preset-mode-${i}`}>mode</label>
                 <select
                   id={`preset-mode-${i}`}
                   value={preset.mode}
                   onchange={(e) => updateAgentPreset(i, "mode", (e.target as HTMLSelectElement).value)}
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-text-muted focus:outline-none"
                 >
                   <option value="code">Code</option>
                   <option value="plan">Plan</option>
                 </select>
               </div>
-              <div class="field stack">
-                <label for={`preset-model-${i}`}>model</label>
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`preset-model-${i}`}>model</label>
                 <input
                   id={`preset-model-${i}`}
                   type="text"
@@ -1227,22 +1250,24 @@ import { agents } from "../lib/agents.svelte";
                   value={preset.model}
                   oninput={(e) => updateAgentPreset(i, "model", (e.target as HTMLInputElement).value)}
                   placeholder="gpt-5"
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 />
               </div>
-              <div class="field stack">
-                <label for={`preset-reasoning-${i}`}>reasoning</label>
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`preset-reasoning-${i}`}>reasoning</label>
                 <select
                   id={`preset-reasoning-${i}`}
                   value={preset.reasoningEffort}
                   onchange={(e) => updateAgentPreset(i, "reasoningEffort", (e.target as HTMLSelectElement).value)}
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-text-muted focus:outline-none"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
                 </select>
               </div>
-              <div class="field stack">
-                <label for={`preset-dev-${i}`}>developer instructions</label>
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`preset-dev-${i}`}>developer instructions</label>
                 <textarea
                   id={`preset-dev-${i}`}
                   rows="2"
@@ -1250,10 +1275,11 @@ import { agents } from "../lib/agents.svelte";
                   value={preset.developerInstructions}
                   oninput={(e) => updateAgentPreset(i, "developerInstructions", (e.target as HTMLTextAreaElement).value)}
                   placeholder="Prioritize small safe diffs and explain tradeoffs."
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 ></textarea>
               </div>
-              <div class="field stack">
-                <label for={`preset-starter-${i}`}>starter prompt</label>
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`preset-starter-${i}`}>starter prompt</label>
                 <textarea
                   id={`preset-starter-${i}`}
                   rows="2"
@@ -1261,11 +1287,12 @@ import { agents } from "../lib/agents.svelte";
                   value={preset.starterPrompt}
                   oninput={(e) => updateAgentPreset(i, "starterPrompt", (e.target as HTMLTextAreaElement).value)}
                   placeholder="Review open PR feedback and apply requested changes."
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 ></textarea>
               </div>
               <button
                 type="button"
-                class="plain-btn"
+                class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text"
                 onclick={() => removeAgentPreset(i)}
                 aria-label={`Remove preset ${preset.name || i + 1}`}
               >
@@ -1274,34 +1301,34 @@ import { agents } from "../lib/agents.svelte";
             </div>
           {/each}
           <div class="row">
-            <button type="button" class="plain-btn" onclick={addAgentPreset} disabled={agentPresets.length >= MAX_AGENT_PRESETS}>
+            <button type="button" class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text disabled:cursor-not-allowed disabled:opacity-60" onclick={addAgentPreset} disabled={agentPresets.length >= MAX_AGENT_PRESETS}>
               Add preset
             </button>
-            <button type="button" class="connect-btn" onclick={saveAgentPresetConfig}>Save presets</button>
-            <button type="button" class="plain-btn" onclick={exportAgentPresetConfig} disabled={agentPresets.length === 0}>Export JSON</button>
-            <button type="button" class="plain-btn" onclick={() => presetImportInput?.click()}>Import JSON</button>
+            <button type="button" class="connect-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text transition-all duration-200 hover:border-cli-prefix-agent/40 hover:bg-cli-bg-hover" onclick={saveAgentPresetConfig}>Save presets</button>
+            <button type="button" class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text disabled:cursor-not-allowed disabled:opacity-60" onclick={exportAgentPresetConfig} disabled={agentPresets.length === 0}>Export JSON</button>
+            <button type="button" class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text" onclick={() => presetImportInput?.click()}>Import JSON</button>
             {#if presetSaveNote}
-              <span class="hint">{presetSaveNote}</span>
+              <span class="text-xs leading-relaxed text-cli-text-muted">{presetSaveNote}</span>
             {/if}
           </div>
-          <p class="hint">Apply these from the thread composer to set mode, model, reasoning, developer instructions, and optional starter prompt in one action.</p>
+          <p class="text-xs leading-relaxed text-cli-text-muted">Apply these from the thread composer to set mode, model, reasoning, developer instructions, and optional starter prompt in one action.</p>
         </div>
       </SectionCard>
     </div>
 
-    <div class="panel panel-wide">
+    <div class="panel min-w-0 col-span-full">
       <SectionCard title="Helper Profiles">
-        <div class="stack preset-settings">
+        <div class="stack preset-settings flex flex-col gap-2">
           {#if agentPresets.length === 0}
-            <p class="hint">Create at least one preset first. Helper profiles reuse preset mode/model/instructions.</p>
+            <p class="text-xs leading-relaxed text-cli-text-muted">Create at least one preset first. Helper profiles reuse preset mode/model/instructions.</p>
           {:else if helperProfiles.length === 0}
-            <p class="hint">No helper profiles yet. Add one to launch helper agents from thread UI in one tap.</p>
+            <p class="text-xs leading-relaxed text-cli-text-muted">No helper profiles yet. Add one to launch helper agents from thread UI in one tap.</p>
           {/if}
 
           {#each helperProfiles as profile, i (profile.id)}
-            <div class="helper-row">
-              <div class="field stack">
-                <label for={`helper-name-${i}`}>name</label>
+            <div class="helper-row grid items-end gap-2 min-[760px]:grid-cols-[minmax(120px,190px)_minmax(160px,220px)_1fr_auto] max-[760px]:grid-cols-1 max-[760px]:items-stretch">
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`helper-name-${i}`}>name</label>
                 <input
                   id={`helper-name-${i}`}
                   type="text"
@@ -1309,22 +1336,24 @@ import { agents } from "../lib/agents.svelte";
                   value={profile.name}
                   oninput={(e) => updateHelperProfile(i, "name", (e.target as HTMLInputElement).value)}
                   placeholder="Code reviewer"
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 />
               </div>
-              <div class="field stack">
-                <label for={`helper-preset-${i}`}>preset</label>
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`helper-preset-${i}`}>preset</label>
                 <select
                   id={`helper-preset-${i}`}
                   value={profile.presetId}
                   onchange={(e) => updateHelperProfile(i, "presetId", (e.target as HTMLSelectElement).value)}
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-text-muted focus:outline-none"
                 >
                   {#each agentPresets as preset (preset.id)}
                     <option value={preset.id}>{preset.name}</option>
                   {/each}
                 </select>
               </div>
-              <div class="field stack">
-                <label for={`helper-prompt-${i}`}>helper objective</label>
+              <div class="field flex flex-col gap-1">
+                <label class="text-xs font-sans lowercase text-cli-text-dim" for={`helper-prompt-${i}`}>helper objective</label>
                 <textarea
                   id={`helper-prompt-${i}`}
                   rows="2"
@@ -1332,11 +1361,12 @@ import { agents } from "../lib/agents.svelte";
                   value={profile.prompt}
                   oninput={(e) => updateHelperProfile(i, "prompt", (e.target as HTMLTextAreaElement).value)}
                   placeholder="Review current implementation and list concrete follow-up patches."
+                  class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 ></textarea>
               </div>
               <button
                 type="button"
-                class="plain-btn"
+                class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text"
                 onclick={() => removeHelperProfile(i)}
                 aria-label={`Remove helper profile ${profile.name || i + 1}`}
               >
@@ -1348,729 +1378,72 @@ import { agents } from "../lib/agents.svelte";
           <div class="row">
             <button
               type="button"
-              class="plain-btn"
+              class="plain-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text disabled:cursor-not-allowed disabled:opacity-60"
               onclick={addHelperProfile}
               disabled={agentPresets.length === 0 || helperProfiles.length >= MAX_HELPER_PROFILES}
             >
               Add helper
             </button>
-            <button type="button" class="connect-btn" onclick={saveHelperProfileConfig} disabled={agentPresets.length === 0}>
+            <button type="button" class="connect-btn inline-flex items-center justify-center rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text transition-all duration-200 hover:border-cli-prefix-agent/40 hover:bg-cli-bg-hover disabled:cursor-not-allowed disabled:opacity-60" onclick={saveHelperProfileConfig} disabled={agentPresets.length === 0}>
               Save helpers
             </button>
             {#if helperProfileSaveNote}
-              <span class="hint">{helperProfileSaveNote}</span>
+              <span class="text-xs leading-relaxed text-cli-text-muted">{helperProfileSaveNote}</span>
             {/if}
           </div>
-          <p class="hint">Thread view uses these profiles to launch helper agents without manual prompt crafting.</p>
+          <p class="text-xs leading-relaxed text-cli-text-muted">Thread view uses these profiles to launch helper agents without manual prompt crafting.</p>
         </div>
       </SectionCard>
     </div>
 
-    <div class="panel">
+    <div class="panel min-w-0">
       <SectionCard title="About">
-        <p class="hint">
-          UI build: <span class="mono">{UI_COMMIT || "unknown"}</span>
+        <p class="text-xs leading-relaxed text-cli-text-muted">
+          UI build: <span class="font-mono text-cli-text">{UI_COMMIT || "unknown"}</span>
           {#if UI_BUILT_AT}
-            <span class="dim">({UI_BUILT_AT})</span>
+            <span class="text-cli-text-dim">({UI_BUILT_AT})</span>
           {/if}
         </p>
-        <p class="hint">
-          Server: <span class="mono">{appCommit || "unknown"}</span>
+        <p class="text-xs leading-relaxed text-cli-text-muted">
+          Server: <span class="font-mono text-cli-text">{appCommit || "unknown"}</span>
         </p>
       </SectionCard>
     </div>
 
-    <div class="panel">
+    <div class="panel min-w-0">
       <SectionCard title="Account">
         <DangerZone>
-          <button class="sign-out-btn" type="button" onclick={() => auth.signOut()} aria-label="Sign out and clear local auth token">Sign out</button>
+          <button class="sign-out-btn inline-flex items-center justify-center rounded-sm border border-cli-error/60 bg-cli-error/10 px-3 py-2 font-mono text-xs text-cli-error transition-all duration-200 hover:border-cli-error/70 hover:bg-cli-error/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cli-prefix-agent/55" type="button" onclick={() => auth.signOut()} aria-label="Sign out and clear local auth token">Sign out</button>
         </DangerZone>
       </SectionCard>
     </div>
   </div>
 </div>
+</div>
 
 <!-- Confirmation Modal -->
 {#if showConfirmModal}
-  <div class="modal-overlay">
-    <div class="modal">
-      <h3>Overwrite Existing Agent?</h3>
-      <p>
+  <div class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="modal max-w-[400px] rounded-md border border-cli-border bg-cli-bg-elevated p-6 text-cli-text shadow-popover">
+      <h3 class="text-base font-semibold">Overwrite Existing Agent?</h3>
+      <p class="mt-2 text-sm text-cli-text-muted">
         Agent <strong>{confirmAgent?.name}</strong> already exists in VS Code.
         Do you want to overwrite it?
       </p>
-      <div class="modal-actions">
-        <button onclick={() => { showConfirmModal = false; confirmAgent = null; }}>
+      <div class="modal-actions mt-6 flex justify-end gap-4">
+        <button
+          class="rounded-sm border border-cli-border bg-cli-bg-elevated px-3 py-2 font-mono text-xs text-cli-text-dim transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text"
+          onclick={() => { showConfirmModal = false; confirmAgent = null; }}
+        >
           Cancel
         </button>
-        <button onclick={confirmOverwrite} class="primary-btn">
+        <button
+          onclick={confirmOverwrite}
+          class="rounded-sm bg-cli-prefix-agent px-3 py-2 font-mono text-xs text-cli-bg transition-opacity duration-200 hover:opacity-90"
+        >
           Overwrite
         </button>
       </div>
     </div>
   </div>
 {/if}
-
-<style>
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-  
-  .modal {
-    background: oklch(var(--color-bg));
-    padding: 2rem;
-    border-radius: 0.5rem;
-    max-width: 400px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border: 1px solid oklch(var(--color-border));
-  }
-  
-  .modal-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-    margin-top: 1.5rem;
-  }
-  
-  .primary-btn {
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  .sync-status {
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
-  }
-
-
-  .settings {
-    --stack-gap: 0;
-    min-height: 100vh;
-    background:
-      radial-gradient(920px 460px at 0% -20%, color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 12%, transparent), transparent 72%),
-      radial-gradient(780px 360px at 100% -30%, color-mix(in srgb, oklch(var(--color-cli-prefix-web)) 10%, transparent), transparent 74%),
-      oklch(var(--color-cli-bg));
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-sans);
-    font-size: var(--text-sm);
-  }
-
-  .content {
-    padding: var(--space-lg) var(--space-md) var(--space-xl);
-    max-width: 1220px;
-    margin: 0 auto;
-    width: 100%;
-    display: grid;
-    gap: var(--space-lg);
-    grid-template-columns: 1fr;
-  }
-
-  @media (min-width: 1040px) {
-    .content {
-      grid-template-columns: 1.35fr 1fr;
-      align-items: start;
-    }
-  }
-
-  .panel {
-    min-width: 0;
-  }
-
-  .panel-wide {
-    grid-column: 1 / -1;
-  }
-
-  .settings :global(.section) {
-    border-radius: 12px;
-    border-color: color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    background: color-mix(in srgb, oklch(var(--color-cli-bg-elevated)) 86%, oklch(var(--color-cli-bg)));
-    box-shadow: 0 15px 34px -30px rgba(0, 0, 0, 0.88);
-  }
-
-  .settings :global(.section-header) {
-    padding: var(--space-md) var(--space-md) var(--space-sm);
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, oklch(var(--color-cli-bg-elevated)) 76%, oklch(var(--color-cli-bg))),
-      color-mix(in srgb, oklch(var(--color-cli-bg)) 90%, transparent)
-    );
-  }
-
-  .settings :global(.section-title) {
-    font-size: 0.69rem;
-    letter-spacing: 0.1em;
-  }
-
-  .field {
-    --stack-gap: var(--space-xs);
-  }
-
-  .field label {
-    color: oklch(var(--color-cli-text-dim));
-    font-size: var(--text-xs);
-    text-transform: lowercase;
-  }
-
-  .field input {
-    padding: var(--space-sm);
-    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    border-radius: 8px;
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-mono);
-  }
-
-  .field textarea {
-    width: 100%;
-    padding: var(--space-sm);
-    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    border-radius: 8px;
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    resize: vertical;
-  }
-
-  .field select {
-    width: 100%;
-    padding: var(--space-sm);
-    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
-    color: oklch(var(--color-cli-text));
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    border-radius: 8px;
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-  }
-
-  .field select:focus {
-    outline: none;
-    border-color: oklch(var(--color-cli-text-muted));
-    box-shadow: var(--shadow-focus);
-  }
-
-  .field input:focus {
-    outline: none;
-    border-color: oklch(var(--color-cli-prefix-agent));
-    box-shadow: var(--shadow-focus);
-  }
-
-  .field textarea:focus {
-    outline: none;
-    border-color: oklch(var(--color-cli-prefix-agent));
-    box-shadow: var(--shadow-focus);
-  }
-
-  .field input:disabled {
-    opacity: 0.6;
-    background: oklch(var(--color-cli-bg-elevated));
-  }
-
-  .connect-actions {
-    align-items: center;
-    gap: var(--space-sm);
-  }
-
-  .connect-btn {
-    padding: 0.45rem 0.72rem;
-    background: color-mix(in srgb, oklch(var(--color-cli-bg-elevated)) 86%, transparent);
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    border-radius: 7px;
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-mono);
-    font-size: 0.74rem;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-
-  .plain-btn {
-    padding: 0.45rem 0.72rem;
-    background: color-mix(in srgb, oklch(var(--color-cli-bg-elevated)) 86%, transparent);
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    border-radius: 7px;
-    color: oklch(var(--color-cli-text-dim));
-    font-family: var(--font-sans);
-    font-size: 0.74rem;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-
-  .plain-btn:hover:enabled {
-    background: oklch(var(--color-cli-bg-hover));
-    color: oklch(var(--color-cli-text));
-  }
-
-  .connect-btn:hover:enabled {
-    background: color-mix(in srgb, oklch(var(--color-cli-bg-hover)) 60%, oklch(var(--color-cli-bg-elevated)));
-    border-color: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 38%, oklch(var(--color-cli-border)));
-  }
-
-  .connect-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .connect-btn:focus-visible,
-  .plain-btn:focus-visible,
-  .sign-out-btn:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 55%, oklch(var(--color-cli-border)));
-  }
-
-  .quick-reply-settings {
-    --stack-gap: var(--space-sm);
-  }
-
-  .approval-policy-settings {
-    --stack-gap: var(--space-sm);
-  }
-
-  .preset-settings {
-    --stack-gap: var(--space-sm);
-  }
-
-  .ui-toggles {
-    --stack-gap: var(--space-sm);
-  }
-
-  .ui-toggles-header {
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-  }
-
-  .ui-toggle-reset {
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 80%, transparent);
-    border-radius: 999px;
-    padding: 4px 12px;
-    font-weight: 600;
-  }
-
-  .ui-toggles-chips {
-    gap: var(--space-xs);
-  }
-
-  .ui-toggle-groups {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-  }
-
-  .ui-toggle-group {
-    border-radius: 10px;
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
-    padding: var(--space-sm) var(--space-md);
-  }
-
-  .ui-toggle-group-header {
-    font-family: var(--font-sans);
-    font-size: var(--text-xs);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: oklch(var(--color-cli-text-dim));
-  }
-
-  .ui-toggle-group-help {
-    margin: var(--space-xs) 0 0;
-    color: oklch(var(--color-cli-text-muted));
-    font-size: var(--text-xs);
-    line-height: 1.4;
-  }
-
-  .ui-toggle-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    margin-top: var(--space-sm);
-  }
-
-  .ui-toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
-  }
-
-  .ui-toggle-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  .ui-toggle-label {
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-sans);
-    font-size: var(--text-sm);
-  }
-
-  .ui-toggle-help {
-    color: oklch(var(--color-cli-text-muted));
-    font-size: var(--text-xs);
-    line-height: 1.4;
-  }
-
-  .ui-toggle-control {
-    position: relative;
-    width: 44px;
-    height: 24px;
-    flex: 0 0 auto;
-  }
-
-  .ui-toggle-control input {
-    position: absolute;
-    inset: 0;
-    margin: 0;
-    opacity: 0;
-    cursor: pointer;
-  }
-
-  .ui-toggle-track {
-    position: absolute;
-    inset: 0;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    background: oklch(var(--color-cli-bg));
-    transition: border-color var(--transition-fast), background var(--transition-fast);
-  }
-
-  .ui-toggle-track::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: oklch(var(--color-cli-text-muted));
-    transition: transform var(--transition-fast), background var(--transition-fast);
-  }
-
-  .ui-toggle-control input:checked + .ui-toggle-track {
-    background: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 25%, oklch(var(--color-cli-bg)));
-    border-color: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 60%, oklch(var(--color-cli-border)));
-  }
-
-  .ui-toggle-control input:checked + .ui-toggle-track::after {
-    transform: translateX(20px);
-    background: oklch(var(--color-cli-prefix-agent));
-  }
-
-  .ui-toggle-control input:focus-visible + .ui-toggle-track {
-    outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 55%, oklch(var(--color-cli-border)));
-  }
-
-  .provider-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: var(--space-md);
-  }
-
-  .provider-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    padding: var(--space-md);
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    border-radius: 10px;
-    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
-  }
-
-  .provider-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-  }
-
-  .provider-header h4 {
-    margin: 0;
-    font-size: var(--text-sm);
-    font-family: var(--font-sans);
-    color: oklch(var(--color-cli-text));
-  }
-
-  .provider-subtitle {
-    margin: 0;
-    font-size: var(--text-xs);
-    color: oklch(var(--color-cli-text-muted));
-  }
-
-  .provider-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--text-xs);
-    color: oklch(var(--color-cli-text-dim));
-  }
-
-  .provider-status {
-    font-size: var(--text-xs);
-    color: oklch(var(--color-cli-text-muted));
-  }
-
-  .provider-checkbox {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--text-xs);
-    color: oklch(var(--color-cli-text-dim));
-  }
-
-  .advanced-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .advanced-section summary {
-    cursor: pointer;
-    font-size: var(--text-xs);
-    color: oklch(var(--color-cli-text-dim));
-  }
-
-  .restart-banner {
-    padding: var(--space-sm) var(--space-md);
-    border-radius: 10px;
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 45%, oklch(var(--color-cli-border)));
-    background: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 12%, oklch(var(--color-cli-bg)));
-    color: oklch(var(--color-cli-text));
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .restart-title {
-    font-weight: 600;
-    font-size: var(--text-xs);
-  }
-
-  .restart-body {
-    font-size: var(--text-xs);
-    color: oklch(var(--color-cli-text-muted));
-  }
-
-  .save-actions {
-    margin-top: var(--space-md);
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-  }
-
-  .policy-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .policy-row {
-    display: grid;
-    grid-template-columns: max-content 1fr auto;
-    gap: var(--space-sm);
-    align-items: center;
-    padding: var(--space-xs) var(--space-sm);
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
-    border-radius: 10px;
-    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
-  }
-
-  .policy-decision {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .policy-decision.allow {
-    color: oklch(var(--color-cli-success, #4ade80));
-  }
-
-  .policy-decision.reject {
-    color: oklch(var(--color-cli-error));
-  }
-
-  .policy-tool {
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-  }
-
-  .quick-reply-row {
-    display: grid;
-    grid-template-columns: 160px 1fr auto;
-    gap: var(--space-sm);
-    align-items: end;
-  }
-
-  .preset-row {
-    display: grid;
-    grid-template-columns: minmax(120px, 170px) 110px 1fr 130px 1fr 1fr auto;
-    gap: var(--space-sm);
-    align-items: end;
-  }
-
-  .helper-row {
-    display: grid;
-    grid-template-columns: minmax(120px, 190px) minmax(160px, 220px) 1fr auto;
-    gap: var(--space-sm);
-    align-items: end;
-  }
-
-  @media (max-width: 760px) {
-    .quick-reply-row {
-      grid-template-columns: 1fr;
-      align-items: stretch;
-    }
-
-    .policy-row {
-      grid-template-columns: 1fr;
-      align-items: start;
-    }
-
-    .preset-row {
-      grid-template-columns: 1fr;
-      align-items: stretch;
-    }
-
-    .helper-row {
-      grid-template-columns: 1fr;
-      align-items: stretch;
-    }
-  }
-
-  @media (min-width: 980px) {
-    .ui-toggle-groups {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 640px) {
-    .ui-toggle-row {
-      align-items: flex-start;
-    }
-  }
-
-  .file-input-hidden {
-    display: none;
-  }
-
-  .anchor-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .anchor-item {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-sm);
-    padding: var(--space-xs) 0;
-  }
-
-  .anchor-status {
-    font-size: var(--text-xs);
-    color: oklch(var(--color-cli-success, #4ade80));
-    margin-top: 2px;
-  }
-
-  .anchor-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  .anchor-hostname {
-    color: oklch(var(--color-cli-text));
-    font-weight: 500;
-  }
-
-  .anchor-meta {
-    color: oklch(var(--color-cli-text-muted));
-    font-size: var(--text-xs);
-  }
-
-  .hint {
-    color: oklch(var(--color-cli-text-muted));
-    font-size: var(--text-xs);
-    line-height: 1.55;
-    margin: 0;
-  }
-
-  .hint-error {
-    color: oklch(var(--color-cli-error));
-  }
-
-  .hint a {
-    color: oklch(var(--color-cli-prefix-agent));
-  }
-
-  .sign-out-btn {
-    align-self: flex-start;
-    padding: 0.45rem 0.72rem;
-    background: color-mix(in srgb, oklch(var(--color-cli-error)) 10%, oklch(var(--color-cli-bg-elevated)));
-    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-error)) 55%, oklch(var(--color-cli-border)));
-    border-radius: 7px;
-    color: color-mix(in srgb, oklch(var(--color-cli-error)) 76%, oklch(var(--color-cli-text)));
-    font-family: var(--font-mono);
-    font-size: 0.74rem;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-
-  .sign-out-btn:hover {
-    background: color-mix(in srgb, oklch(var(--color-cli-error)) 16%, oklch(var(--color-cli-bg-elevated)));
-    border-color: color-mix(in srgb, oklch(var(--color-cli-error)) 68%, oklch(var(--color-cli-border)));
-  }
-
-  @media (max-width: 660px) {
-    .content {
-      padding: var(--space-md) var(--space-sm) var(--space-lg);
-      gap: var(--space-md);
-    }
-  }
-  .mono { font-family: var(--font-mono); }
-  .dim { color: oklch(var(--color-cli-text-dim)); }
-
-  .custom-agents {
-    gap: 0.75rem;
-    display: flex;
-    flex-direction: column;
-  }
-  .agent-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    border: 1px solid oklch(var(--color-cli-border));
-    border-radius: 6px;
-    background: oklch(var(--color-cli-bg-subtle));
-  }
-  .agent-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  .agent-actions {
-    display: flex;
-    gap: 0.5rem;
-  }
-</style>

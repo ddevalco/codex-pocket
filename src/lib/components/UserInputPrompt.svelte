@@ -81,29 +81,31 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="input-card" class:resolved={request.status !== "pending"}>
-  <div class="card-header">
-    <span class="header-label">Questions</span>
+<div class="my-xs mx-md border border-cli-border rounded-md bg-cli-bg-elevated font-mono text-sm overflow-hidden" class:opacity-60={request.status !== "pending"}>
+  <div class="py-sm px-md border-b border-cli-border">
+    <span class="text-cli-prefix-agent text-xs font-semibold uppercase tracking-wider">Questions</span>
   </div>
 
   {#each questions as question, qi}
-    <div class="question-section" class:has-border={qi > 0}>
-      <div class="question-header">{question.header || question.question}</div>
+    <div class="flex flex-col gap-xs py-sm px-md" class:border-t={qi > 0} class:border-cli-border={qi > 0}>
+      <div class="text-cli-text font-medium">{question.header || question.question}</div>
 
       {#if question.header && question.question !== question.header}
-        <div class="question-text">{question.question}</div>
+        <div class="text-cli-text-dim text-xs">{question.question}</div>
       {/if}
 
       {#if question.options && question.options.length > 0}
-        <div class="options-list">
+        <div class="flex flex-col gap-[2px] mt-xs">
           {#each question.options as option, oi}
             {@const isSelected = selections[question.id]?.includes(option.label)}
             {@const isFocused = request.status === "pending" && focusedQuestion === qi && focusedOption === oi}
             <button
               type="button"
-              class="option-btn"
-              class:focused={isFocused}
-              class:chosen={isSelected}
+              class="flex items-start gap-sm py-xs px-sm bg-transparent border border-transparent rounded-sm text-cli-text font-mono text-sm text-left cursor-pointer transition-all duration-200 w-full hover:bg-cli-bg-hover disabled:cursor-default"
+              class:border-cli-border={isFocused}
+              class:bg-cli-bg-hover={isFocused}
+              class:border-cli-prefix-agent={isSelected}
+              style:background-color={isSelected ? "color-mix(in srgb, var(--color-cli-prefix-agent), transparent 92%)" : ""}
               onclick={() => {
                 focusedQuestion = qi;
                 focusedOption = oi;
@@ -111,21 +113,21 @@
               }}
               disabled={request.status !== "pending"}
             >
-              <span class="radio">{isSelected ? "●" : "○"}</span>
-              <span class="option-content">
-                <span class="option-label">{option.label}</span>
+              <span class="flex-shrink-0 leading-relaxed text-cli-text-muted" class:text-cli-prefix-agent={isSelected}>{isSelected ? "●" : "○"}</span>
+              <span class="flex flex-col gap-[1px] min-w-0">
+                <span class="text-cli-text whitespace-normal break-words" class:text-cli-prefix-agent={isSelected}>{option.label}</span>
                 {#if option.description}
-                  <span class="option-desc">{option.description}</span>
+                  <span class="text-cli-text-muted text-xs whitespace-normal break-words">{option.description}</span>
                 {/if}
               </span>
             </button>
           {/each}
         </div>
       {:else}
-        <div class="text-input-wrap">
+        <div class="mt-xs">
           <input
             type={question.isSecret ? "password" : "text"}
-            class="text-input"
+            class="w-full py-xs px-sm bg-cli-bg border border-cli-border rounded-sm text-cli-text font-mono text-sm box-border focus:outline-none focus:border-cli-prefix-agent disabled:opacity-50"
             placeholder="Type your answer..."
             bind:value={textInputs[question.id]}
             disabled={request.status !== "pending"}
@@ -135,204 +137,21 @@
     </div>
   {/each}
 
-  <div class="card-footer">
+  <div class="py-sm px-md border-t border-cli-border flex items-center">
     {#if request.status === "pending"}
       <button
         type="button"
-        class="submit-btn"
+        class="py-xs px-md bg-cli-prefix-agent border-none rounded-sm text-cli-bg font-mono text-xs font-medium cursor-pointer transition-opacity duration-200 hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed"
         disabled={!canSubmit}
         onclick={handleSubmit}
       >
         Submit
       </button>
     {:else}
-      <span class="status-badge">Answered</span>
+      <span class="text-cli-success text-xs font-semibold">Answered</span>
     {/if}
   </div>
 </div>
 
 <style>
-  .input-card {
-    margin: var(--space-xs) var(--space-md);
-    border: 1px solid oklch(var(--color-cli-border));
-    border-radius: var(--radius-md);
-    background: oklch(var(--color-cli-bg-elevated));
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    overflow: hidden;
-  }
-
-  .input-card.resolved {
-    opacity: 0.6;
-  }
-
-  .card-header {
-    padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid oklch(var(--color-cli-border));
-  }
-
-  .header-label {
-    color: oklch(var(--color-cli-prefix-agent));
-    font-size: var(--text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  .question-section {
-    padding: var(--space-sm) var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .question-section.has-border {
-    border-top: 1px solid oklch(var(--color-cli-border));
-  }
-
-  .question-header {
-    color: oklch(var(--color-cli-text));
-    font-weight: 500;
-  }
-
-  .question-text {
-    color: oklch(var(--color-cli-text-dim));
-    font-size: var(--text-xs);
-  }
-
-  .options-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin-top: var(--space-xs);
-  }
-
-  .option-btn {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-sm);
-    padding: var(--space-xs) var(--space-sm);
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    text-align: left;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    width: 100%;
-  }
-
-  .option-btn:hover:not(:disabled) {
-    background: oklch(var(--color-cli-bg-hover));
-  }
-
-  .option-btn.focused {
-    border-color: oklch(var(--color-cli-border));
-    background: oklch(var(--color-cli-bg-hover));
-  }
-
-  .option-btn.chosen {
-    border-color: oklch(var(--color-cli-prefix-agent));
-    background: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 8%, transparent);
-  }
-
-  .option-btn:disabled {
-    cursor: default;
-  }
-
-  .radio {
-    color: oklch(var(--color-cli-text-muted));
-    flex-shrink: 0;
-    line-height: 1.6;
-  }
-
-  .option-btn.chosen .radio {
-    color: oklch(var(--color-cli-prefix-agent));
-  }
-
-  .option-content {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
-  }
-
-  .option-label {
-    color: oklch(var(--color-cli-text));
-    white-space: normal;
-    word-break: break-word;
-  }
-
-  .option-btn.chosen .option-label {
-    color: oklch(var(--color-cli-prefix-agent));
-  }
-
-  .option-desc {
-    color: oklch(var(--color-cli-text-muted));
-    font-size: var(--text-xs);
-    white-space: normal;
-    word-break: break-word;
-  }
-
-  .text-input-wrap {
-    margin-top: var(--space-xs);
-  }
-
-  .text-input {
-    width: 100%;
-    padding: var(--space-xs) var(--space-sm);
-    background: oklch(var(--color-cli-bg));
-    border: 1px solid oklch(var(--color-cli-border));
-    border-radius: var(--radius-sm);
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    box-sizing: border-box;
-  }
-
-  .text-input:focus {
-    outline: none;
-    border-color: oklch(var(--color-cli-prefix-agent));
-  }
-
-  .text-input:disabled {
-    opacity: 0.5;
-  }
-
-  .card-footer {
-    padding: var(--space-sm) var(--space-md);
-    border-top: 1px solid oklch(var(--color-cli-border));
-    display: flex;
-    align-items: center;
-  }
-
-  .submit-btn {
-    padding: var(--space-xs) var(--space-md);
-    background: oklch(var(--color-cli-prefix-agent));
-    border: none;
-    border-radius: var(--radius-sm);
-    color: oklch(var(--color-cli-bg));
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity var(--transition-fast);
-  }
-
-  .submit-btn:hover:not(:disabled) {
-    opacity: 0.85;
-  }
-
-  .submit-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .status-badge {
-    color: oklch(var(--color-cli-success));
-    font-size: var(--text-xs);
-    font-weight: 600;
-  }
 </style>
