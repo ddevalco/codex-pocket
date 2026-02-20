@@ -336,6 +336,11 @@ export interface SessionListResult {
    * Whether there are more results
    */
   hasMore: boolean;
+
+  /**
+   * Error message when listing fails or capability is unavailable
+   */
+  error?: string;
 }
 
 /**

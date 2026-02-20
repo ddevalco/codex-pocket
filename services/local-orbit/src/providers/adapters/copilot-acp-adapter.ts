@@ -128,6 +128,11 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   /** External handler registered via onApprovalRequest() */
   private approvalEventEmitter?: (event: NormalizedEvent) => void;
 
+  /** Runtime-detected capabilities from CLI probing */
+  private detectedCapabilities = {
+    listSessions: false,  // Probed during handshake
+  };
+
   constructor(config: CopilotAcpConfig = {}) {
     this.config = {
       timeout: 5000,
@@ -288,6 +293,26 @@ export class CopilotAcpAdapter implements ProviderAdapter {
 
     // Try a simple ping/health check via JSON-RPC
     const healthCheckStart = Date.now();
+    
+    // Check if list_sessions is supported
+    if (!this.detectedCapabilities.listSessions) {
+      // Capability not available - return degraded status with explanation
+      const status: ProviderHealthStatus = {
+        status: "degraded",
+        message: "Copilot ACP running with limited session support",
+        lastCheck: now,
+        details: {
+          pid: this.process.pid,
+          executable: this.executablePath,
+          reason: "list_sessions not supported by CLI version",
+          recommendation: "Update Copilot CLI to latest version for full session listing",
+          consecutiveFailures: this.consecutiveFailures,
+        },
+      };
+      this.lastHealthCheck = status;
+      return status;
+    }
+    
     try {
       // Attempt to list sessions as a health check with short timeout
       await this.client?.sendRequest("list_sessions", {}, 2000);
@@ -345,6 +370,15 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   ): Promise<SessionListResult> {
     if (!this.client) {
       throw new Error("Copilot adapter not started or not available");
+    }
+
+    // Check if list_sessions capability is available
+    if (!this.detectedCapabilities.listSessions) {
+      return {
+        sessions: [],
+        hasMore: false,
+        error: "Session listing not supported by this Copilot CLI version. Update CLI to view sessions.",
+      };
     }
 
     try {
@@ -707,9 +741,29 @@ export class CopilotAcpAdapter implements ProviderAdapter {
    * The actual protocol may vary - this is a placeholder.
    */
   private async performHandshake(): Promise<void> {
-    // Phase 1: Assume no handshake required or that the process handles it internally
-    // Phase 2: Implement actual handshake protocol if needed
-    console.log("[copilot-acp] Handshake complete (placeholder)");
+    // Probe for list_sessions capability
+    // Older Copilot CLI versions may not support this method
+    try {
+      await this.client?.sendRequest("list_sessions", { limit: 0 }, 2000);
+      this.detectedCapabilities.listSessions = true;
+      console.log("[copilot-acp] Detected list_sessions capability: supported");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("Method not found") || message.includes("-32601")) {
+        this.detectedCapabilities.listSessions = false;
+        console.warn(
+          "[copilot-acp] Detected list_sessions capability: NOT supported (CLI version incompatibility)"
+        );
+      } else {
+        // Other errors (timeout, etc.) - assume capability exists but call failed
+        this.detectedCapabilities.listSessions = true;
+        console.warn(
+          `[copilot-acp] list_sessions probe failed but assuming supported: ${message}`
+        );
+      }
+    }
+    
+    console.log("[copilot-acp] Handshake complete");
   }
 
   /**
