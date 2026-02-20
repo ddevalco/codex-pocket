@@ -1318,6 +1318,140 @@ function parseJsonMessage(text: string): Record<string, unknown> | null {
   }
 }
 
+// ========== Provider Config Management ==========
+
+/**
+ * Read provider configuration from config.json with API keys masked.
+ */
+function readProviderConfig(): Record<string, any> {
+  const config = loadConfigJson();
+  const providers = (config?.providers as Record<string, any>) || {};
+  return maskProviderConfig(providers);
+}
+
+/**
+ * Mask sensitive fields in provider configuration.
+ */
+function maskProviderConfig(providers: Record<string, any>): Record<string, any> {
+  const masked = JSON.parse(JSON.stringify(providers));
+  
+  // Mask Claude API key
+  if (masked.claude?.apiKey && typeof masked.claude.apiKey === 'string' && masked.claude.apiKey.trim()) {
+    masked.claude.apiKey = '••••';
+  }
+  
+  return masked;
+}
+
+/**
+ * Validate provider configuration before writing.
+ * Returns { ok: true } or { ok: false, error: string }
+ */
+function validateProviderConfig(providers: Record<string, any>): { ok: true } | { ok: false; error: string } {
+  for (const [providerId, cfg] of Object.entries(providers)) {
+    if (!cfg || typeof cfg !== 'object') {
+      return { ok: false, error: `Provider ${providerId} config must be an object` };
+    }
+    
+    // Validate Claude config
+    if (providerId === 'claude') {
+      if (cfg.enabled === true) {
+        const key = cfg.apiKey;
+        if (!key || typeof key !== 'string' || !key.trim()) {
+          return { ok: false, error: 'Claude provider requires non-empty apiKey when enabled' };
+        }
+      }
+      
+      if (cfg.timeout !== undefined) {
+        const timeout = Number(cfg.timeout);
+        if (!Number.isFinite(timeout) || timeout <= 0) {
+          return { ok: false, error: 'Claude timeout must be a positive number' };
+        }
+      }
+      
+      if (cfg.model !== undefined && typeof cfg.model === 'string' && !cfg.model.trim()) {
+        return { ok: false, error: 'Claude model must be non-empty if provided' };
+      }
+    }
+    
+    // Validate Claude MCP config
+    if (providerId === 'claude-mcp') {
+      if (cfg.executablePath !== undefined && typeof cfg.executablePath === 'string' && cfg.executablePath.trim()) {
+        // Could add file existence check here if needed
+      }
+      
+      if (cfg.maxTokens !== undefined) {
+        const maxTokens = Number(cfg.maxTokens);
+        if (!Number.isFinite(maxTokens) || maxTokens <= 0) {
+          return { ok: false, error: 'Claude MCP maxTokens must be a positive number' };
+        }
+      }
+      
+      if (cfg.promptTimeout !== undefined) {
+        const timeout = Number(cfg.promptTimeout);
+        if (!Number.isFinite(timeout) || timeout <= 0) {
+          return { ok: false, error: 'Claude MCP promptTimeout must be a positive number' };
+        }
+      }
+      
+      if (cfg.model !== undefined && typeof cfg.model === 'string' && !cfg.model.trim()) {
+        return { ok: false, error: 'Claude MCP model must be non-empty if provided' };
+      }
+    }
+    
+    // Validate Copilot ACP config
+    if (providerId === 'copilot-acp') {
+      if (cfg.executablePath !== undefined && typeof cfg.executablePath === 'string' && cfg.executablePath.trim()) {
+        // Could add file existence check here if needed
+      }
+    }
+  }
+  
+  return { ok: true };
+}
+
+/**
+ * Write provider configuration to config.json atomically.
+ * Deep merges with existing config.
+ */
+function writeProviderConfig(providers: Record<string, any>): void {
+  if (!EFFECTIVE_CONFIG_JSON_PATH) {
+    throw new Error('Config path not configured');
+  }
+  
+  // Read existing config
+  const config = loadConfigJson() || {};
+  const existingProviders = (config.providers as Record<string, any>) || {};
+  
+  // Deep merge provider configs
+  for (const [providerId, newCfg] of Object.entries(providers)) {
+    if (!existingProviders[providerId]) {
+      existingProviders[providerId] = {};
+    }
+    Object.assign(existingProviders[providerId], newCfg);
+  }
+  
+  config.providers = existingProviders;
+  
+  // Write atomically using temp file
+  const tempPath = `${EFFECTIVE_CONFIG_JSON_PATH}.tmp`;
+  try {
+    writeFileSync(tempPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
+    // Atomic rename
+    const { renameSync } = require('node:fs');
+    renameSync(tempPath, EFFECTIVE_CONFIG_JSON_PATH);
+  } catch (err) {
+    // Clean up temp file on failure
+    try {
+      const { unlinkSync } = require('node:fs');
+      unlinkSync(tempPath);
+    } catch {
+      // ignore
+    }
+    throw err;
+  }
+}
+
 function extractThreadId(message: Record<string, unknown>): string | null {
   // Some upstreams include thread ids at the top-level (non-RPC envelopes).
   const topLevelCandidates = [(message as any).threadId, (message as any).thread_id];
@@ -2708,6 +2842,60 @@ const server = Bun.serve<WsData>({
           console.error("[archive] Error:", error);
           return new Response(JSON.stringify({ error: "Archive operation failed" }), { status: 500 });
         }
+      }
+    }
+
+    // Provider Configuration API
+    if (url.pathname === "/api/config/providers" && method === "GET") {
+      if (!authorised(req)) return unauth();
+      
+      try {
+        const providers = readProviderConfig();
+        return okJson({ providers });
+      } catch (error) {
+        console.error("[provider-config] Read error:", error);
+        return okJson(
+          { error: "Failed to read provider configuration" },
+          { status: 500 }
+        );
+      }
+    }
+
+    if (url.pathname === "/api/config/providers" && method === "PATCH") {
+      if (!authorised(req)) return unauth();
+      
+      try {
+        const body = await req.json().catch(() => null) as { providers?: Record<string, any> } | null;
+        
+        if (!body || !body.providers || typeof body.providers !== "object" || Array.isArray(body.providers)) {
+          return okJson(
+            { success: false, error: "Request body must contain 'providers' object" },
+            { status: 400 }
+          );
+        }
+        
+        // Validate configuration
+        const validation = validateProviderConfig(body.providers);
+        if (!validation.ok) {
+          return okJson(
+            { success: false, error: validation.error },
+            { status: 400 }
+          );
+        }
+        
+        // Write configuration
+        writeProviderConfig(body.providers);
+        
+        logAdmin(`provider configuration updated: ${Object.keys(body.providers).join(", ")}`);
+        
+        return okJson({ success: true });
+      } catch (error) {
+        console.error("[provider-config] Write error:", error);
+        const message = error instanceof Error ? error.message : "Failed to update provider configuration";
+        return okJson(
+          { success: false, error: message },
+          { status: 500 }
+        );
       }
     }
 

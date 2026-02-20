@@ -9,6 +9,7 @@
   import SectionCard from "../lib/components/system/SectionCard.svelte";
   import StatusChip from "../lib/components/system/StatusChip.svelte";
   import DangerZone from "../lib/components/system/DangerZone.svelte";
+  import { getProviderConfig, updateProviderConfig, type ProviderConfig } from "../lib/api/config";
   import {
     DEFAULT_QUICK_REPLIES,
     MAX_QUICK_REPLIES,
@@ -179,6 +180,113 @@ import { agents } from "../lib/agents.svelte";
   let helperProfiles = $state<HelperProfile[]>([]);
   let helperProfileSaveNote = $state<string>("");
   let uiToggleNote = $state<string>("");
+
+  type ProviderKey = "codex" | "copilot-acp" | "claude" | "claude-mcp";
+  type ProviderHealth = { status?: string; message?: string };
+
+  const providerKeys: ProviderKey[] = ["codex", "copilot-acp", "claude", "claude-mcp"];
+  const defaultProviderConfig: Record<ProviderKey, ProviderConfig> = {
+    codex: { enabled: true },
+    "copilot-acp": { enabled: false },
+    claude: { enabled: false },
+    "claude-mcp": { enabled: false },
+  };
+
+  function normalizeProviderConfig(
+    input?: Record<string, ProviderConfig>
+  ): Record<ProviderKey, ProviderConfig> {
+    return providerKeys.reduce((acc, key) => {
+      acc[key] = { ...defaultProviderConfig[key], ...(input?.[key] ?? {}) };
+      return acc;
+    }, {} as Record<ProviderKey, ProviderConfig>);
+  }
+
+  function cloneProviderConfig(value: Record<ProviderKey, ProviderConfig>) {
+    return JSON.parse(JSON.stringify(value)) as Record<ProviderKey, ProviderConfig>;
+  }
+
+  function normalizeProviderHealth(input?: Record<string, ProviderHealth>) {
+    return providerKeys.reduce((acc, key) => {
+      acc[key] = { ...(input?.[key] ?? {}) };
+      return acc;
+    }, {} as Record<ProviderKey, ProviderHealth>);
+  }
+
+  function mapStatus(status?: string): "success" | "warning" | "error" | "neutral" {
+    if (status === "healthy") return "success";
+    if (status === "degraded") return "warning";
+    if (status === "unhealthy") return "error";
+    return "neutral";
+  }
+
+  function formatStatusLabel(status?: string): string {
+    if (!status) return "unknown";
+    return status;
+  }
+
+  let providerConfig = $state<Record<ProviderKey, ProviderConfig>>(normalizeProviderConfig());
+  let originalConfig = $state<Record<ProviderKey, ProviderConfig>>(normalizeProviderConfig());
+  let loadingConfig = $state(false);
+  let savingConfig = $state(false);
+  let configError = $state<string | null>(null);
+  let showRestartBanner = $state(false);
+
+  let providerHealth = $state<Record<ProviderKey, ProviderHealth>>(normalizeProviderHealth());
+  let healthInterval: ReturnType<typeof setInterval> | null = null;
+
+  async function loadProviderConfig() {
+    if (!auth.token) return;
+    loadingConfig = true;
+    configError = null;
+    showRestartBanner = false;
+    try {
+      const data = await getProviderConfig(auth.token);
+      const normalized = normalizeProviderConfig(data.providers);
+      providerConfig = normalized;
+      originalConfig = cloneProviderConfig(normalized);
+    } catch {
+      configError = "Failed to load provider configuration.";
+    } finally {
+      loadingConfig = false;
+    }
+  }
+
+  async function pollHealth() {
+    if (!auth.token) return;
+    try {
+      const res = await fetch("/admin/health", {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => null);
+      providerHealth = normalizeProviderHealth(data?.providers ?? {});
+    } catch {
+      // ignore health polling errors
+    }
+  }
+
+  async function saveProviderConfig() {
+    if (!auth.token) return;
+    savingConfig = true;
+    configError = null;
+    try {
+      const result = await updateProviderConfig(auth.token, providerConfig);
+      if (result.success) {
+        originalConfig = cloneProviderConfig(providerConfig);
+        showRestartBanner = true;
+      } else {
+        configError = result.error || "Failed to save configuration.";
+      }
+    } catch {
+      configError = "Failed to save configuration.";
+    } finally {
+      savingConfig = false;
+    }
+  }
+
+  const isProviderConfigDirty = $derived(
+    JSON.stringify(providerConfig) !== JSON.stringify(originalConfig)
+  );
 
   type UiToggleItem = {
     key: UIToggleKey;
@@ -497,6 +605,21 @@ import { agents } from "../lib/agents.svelte";
     })();
   });
 
+  $effect(() => {
+    if (!auth.token) {
+      if (healthInterval) clearInterval(healthInterval);
+      healthInterval = null;
+      return;
+    }
+    loadProviderConfig();
+    pollHealth();
+    if (healthInterval) clearInterval(healthInterval);
+    healthInterval = setInterval(pollHealth, 30000);
+    return () => {
+      if (healthInterval) clearInterval(healthInterval);
+    };
+  });
+
   const themeIcons = { system: "◐", light: "○", dark: "●" } as const;
 
   const anchorList = $derived(anchors.list);
@@ -628,6 +751,195 @@ import { agents } from "../lib/agents.svelte";
 
     <div class="panel">
       <NotificationSettings />
+    </div>
+
+    <div class="panel panel-wide">
+      <SectionCard title="Providers" subtitle="Configure AI providers">
+        {#if configError}
+          <p class="hint hint-error" role="alert">{configError}</p>
+        {/if}
+        {#if showRestartBanner}
+          <div class="restart-banner" role="status" aria-live="polite">
+            <div class="restart-title">Configuration saved.</div>
+            <div class="restart-body">Restart the service to apply changes.</div>
+          </div>
+        {/if}
+        {#if loadingConfig}
+          <p class="hint">Loading provider configuration...</p>
+        {:else}
+          <div class="provider-grid">
+            <div class="provider-card">
+              <div class="provider-header">
+                <h4>Codex</h4>
+                <StatusChip tone={mapStatus(providerHealth.codex?.status)}>
+                  {formatStatusLabel(providerHealth.codex?.status)}
+                </StatusChip>
+              </div>
+              <p class="provider-subtitle">Local CLI via Anchor (always enabled)</p>
+              <div class="provider-status">
+                {providerHealth.codex?.message || "Unknown"}
+              </div>
+            </div>
+
+            <div class="provider-card">
+              <div class="provider-header">
+                <h4>GitHub Copilot</h4>
+                <StatusChip tone={mapStatus(providerHealth["copilot-acp"]?.status)}>
+                  {formatStatusLabel(providerHealth["copilot-acp"]?.status)}
+                </StatusChip>
+                <label class="provider-toggle">
+                  <input type="checkbox" bind:checked={providerConfig["copilot-acp"].enabled} />
+                  <span>Enabled</span>
+                </label>
+              </div>
+              <div class="field stack">
+                <label for="provider-copilot-exec">executable path (optional)</label>
+                <input
+                  id="provider-copilot-exec"
+                  type="text"
+                  bind:value={providerConfig["copilot-acp"].executablePath}
+                  placeholder="Auto-detected from PATH"
+                />
+              </div>
+              <div class="provider-status">
+                {providerHealth["copilot-acp"]?.message || "Unknown"}
+              </div>
+            </div>
+
+            <div class="provider-card">
+              <div class="provider-header">
+                <h4>Claude (Web API)</h4>
+                <StatusChip tone={mapStatus(providerHealth.claude?.status)}>
+                  {formatStatusLabel(providerHealth.claude?.status)}
+                </StatusChip>
+                <label class="provider-toggle">
+                  <input type="checkbox" bind:checked={providerConfig.claude.enabled} />
+                  <span>Enabled</span>
+                </label>
+              </div>
+              {#if providerConfig.claude.enabled}
+                <div class="field stack">
+                  <label for="provider-claude-api-key">api key</label>
+                  <input
+                    id="provider-claude-api-key"
+                    type="password"
+                    bind:value={providerConfig.claude.apiKey}
+                    placeholder="sk-ant-..."
+                    autocomplete="off"
+                  />
+                </div>
+                <div class="field stack">
+                  <label for="provider-claude-model">model</label>
+                  <select id="provider-claude-model" bind:value={providerConfig.claude.model}>
+                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                    <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                  </select>
+                </div>
+                <details class="advanced-section">
+                  <summary>Advanced settings</summary>
+                  <div class="field stack">
+                    <label for="provider-claude-base-url">base url</label>
+                    <input
+                      id="provider-claude-base-url"
+                      type="text"
+                      bind:value={providerConfig.claude.baseUrl}
+                      placeholder="https://api.anthropic.com"
+                    />
+                  </div>
+                  <div class="field stack">
+                    <label for="provider-claude-timeout">timeout (ms)</label>
+                    <input
+                      id="provider-claude-timeout"
+                      type="number"
+                      bind:value={providerConfig.claude.timeout}
+                      placeholder="30000"
+                    />
+                  </div>
+                </details>
+              {/if}
+              <div class="provider-status">
+                {providerHealth.claude?.message || "Not configured"}
+              </div>
+            </div>
+
+            <div class="provider-card">
+              <div class="provider-header">
+                <h4>Claude (Local CLI)</h4>
+                <StatusChip tone={mapStatus(providerHealth["claude-mcp"]?.status)}>
+                  {formatStatusLabel(providerHealth["claude-mcp"]?.status)}
+                </StatusChip>
+                <label class="provider-toggle">
+                  <input type="checkbox" bind:checked={providerConfig["claude-mcp"].enabled} />
+                  <span>Enabled</span>
+                </label>
+              </div>
+              {#if providerConfig["claude-mcp"].enabled}
+                <div class="field stack">
+                  <label for="provider-claude-mcp-exec">executable path (optional)</label>
+                  <input
+                    id="provider-claude-mcp-exec"
+                    type="text"
+                    bind:value={providerConfig["claude-mcp"].executablePath}
+                    placeholder="Auto-detected from PATH"
+                  />
+                </div>
+                <div class="field stack">
+                  <label for="provider-claude-mcp-model">model</label>
+                  <input
+                    id="provider-claude-mcp-model"
+                    type="text"
+                    bind:value={providerConfig["claude-mcp"].model}
+                    placeholder="claude-sonnet-4-6"
+                  />
+                </div>
+                <details class="advanced-section">
+                  <summary>Advanced settings</summary>
+                  <div class="field stack">
+                    <label for="provider-claude-mcp-max-tokens">max tokens</label>
+                    <input
+                      id="provider-claude-mcp-max-tokens"
+                      type="number"
+                      bind:value={providerConfig["claude-mcp"].maxTokens}
+                      placeholder="8192"
+                    />
+                  </div>
+                  <div class="field stack">
+                    <label for="provider-claude-mcp-prompt-timeout">prompt timeout (ms)</label>
+                    <input
+                      id="provider-claude-mcp-prompt-timeout"
+                      type="number"
+                      bind:value={providerConfig["claude-mcp"].promptTimeout}
+                      placeholder="60000"
+                    />
+                  </div>
+                  <label class="provider-checkbox">
+                    <input type="checkbox" bind:checked={providerConfig["claude-mcp"].debug} />
+                    <span>Debug mode</span>
+                  </label>
+                </details>
+              {/if}
+              <div class="provider-status">
+                {providerHealth["claude-mcp"]?.message || "Not configured"}
+              </div>
+            </div>
+          </div>
+
+          <div class="save-actions">
+            <button
+              class="connect-btn"
+              type="button"
+              onclick={saveProviderConfig}
+              disabled={!isProviderConfigDirty || savingConfig}
+            >
+              {savingConfig ? "Saving..." : "Save changes"}
+            </button>
+            {#if isProviderConfigDirty && !savingConfig}
+              <span class="hint">Unsaved changes</span>
+            {/if}
+          </div>
+        {/if}
+      </SectionCard>
     </div>
 
     <div class="panel">
@@ -1459,6 +1771,105 @@ import { agents } from "../lib/agents.svelte";
   .ui-toggle-control input:focus-visible + .ui-toggle-track {
     outline: none;
     box-shadow: 0 0 0 2px color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 55%, oklch(var(--color-cli-border)));
+  }
+
+  .provider-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--space-md);
+  }
+
+  .provider-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-border)) 86%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, oklch(var(--color-cli-bg)) 72%, oklch(var(--color-cli-bg-elevated)));
+  }
+
+  .provider-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .provider-header h4 {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-family: var(--font-sans);
+    color: oklch(var(--color-cli-text));
+  }
+
+  .provider-subtitle {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: oklch(var(--color-cli-text-muted));
+  }
+
+  .provider-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-xs);
+    color: oklch(var(--color-cli-text-dim));
+  }
+
+  .provider-status {
+    font-size: var(--text-xs);
+    color: oklch(var(--color-cli-text-muted));
+  }
+
+  .provider-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-xs);
+    color: oklch(var(--color-cli-text-dim));
+  }
+
+  .advanced-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .advanced-section summary {
+    cursor: pointer;
+    font-size: var(--text-xs);
+    color: oklch(var(--color-cli-text-dim));
+  }
+
+  .restart-banner {
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 45%, oklch(var(--color-cli-border)));
+    background: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 12%, oklch(var(--color-cli-bg)));
+    color: oklch(var(--color-cli-text));
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .restart-title {
+    font-weight: 600;
+    font-size: var(--text-xs);
+  }
+
+  .restart-body {
+    font-size: var(--text-xs);
+    color: oklch(var(--color-cli-text-muted));
+  }
+
+  .save-actions {
+    margin-top: var(--space-md);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
   }
 
   .policy-list {
