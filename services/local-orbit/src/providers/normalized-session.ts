@@ -8,6 +8,20 @@
 import type { NormalizedSession, SessionStatus, ProviderId } from "./provider-types.js";
 
 /**
+ * Checks if value is a plain object (not null, not array, not function)
+ * @param value Value to check
+ * @returns true if plain object Record
+ */
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype
+  );
+}
+
+/**
  * Create a minimal valid normalized session.
  * Useful for testing and initial session creation.
  */
@@ -99,8 +113,11 @@ export function validateNormalizedSession(session: unknown): string[] {
     errors.push("capabilities is required and must be an object");
   }
 
-  if (s.metadata !== undefined && (typeof s.metadata !== "object" || s.metadata === null)) {
-    errors.push("metadata must be an object");
+  // Harden metadata validation - must be plain object, not array/null/primitive
+  if (s.metadata !== undefined) {
+    if (!isPlainRecord(s.metadata)) {
+      errors.push("metadata must be a plain object, not array/null/primitive");
+    }
   }
 
   return errors;

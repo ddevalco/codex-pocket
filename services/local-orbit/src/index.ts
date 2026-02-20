@@ -1846,6 +1846,39 @@ function broadcastToClients(data: unknown): void {
   for (const ws of clientSockets.keys()) send(ws, data);
 }
 
+/**
+ * Validate that a client is authorized to resolve an ACP approval decision.
+ * Authorization check ensures the client is subscribed to the approval's thread.
+ *
+ * @param rpcId - The JSON-RPC request ID from the approval request
+ * @param clientWs - The WebSocket connection making the resolution attempt
+ * @param adapter - The CopilotAcpAdapter instance
+ * @param threadToClients - Map of threadId to subscribed client WebSockets
+ * @returns Object with authorized flag and optional reason for denial
+ */
+function validateApprovalDecisionAuthorization(
+  rpcId: string,
+  clientWs: WebSocket,
+  adapter: CopilotAcpAdapter,
+  threadToClients: Map<string, Set<WebSocket>>
+): { authorized: boolean; reason?: string } {
+  const context = adapter.getPendingApprovalContext(rpcId);
+  if (!context) {
+    return { authorized: false, reason: "Unknown or expired approval" };
+  }
+
+  const threadId = context.threadId;
+  const subscribers = threadToClients.get(threadId);
+  if (!subscribers?.has(clientWs)) {
+    return {
+      authorized: false,
+      reason: "Client not subscribed to approval thread",
+    };
+  }
+
+  return { authorized: true };
+}
+
 // TODO: Emit helper-agent-outcome events when helper runs complete
 // This will be implemented when helper agent infrastructure is added
 // Example:
@@ -2502,10 +2535,12 @@ const server = Bun.serve<WsData>({
         const id = url.pathname.split('/')[3];
         const agent = agentStore.exportAgent(id);
         if (agent) {
+           const { sanitizeFilename } = await import('./agents/agent-schema.js');
+           const safeName = sanitizeFilename(agent.name);
            return new Response(JSON.stringify(agent, null, 2), {
              headers: {
                "Content-Type": "application/json",
-               "Content-Disposition": `attachment; filename="${agent.name}.json"`
+               "Content-Disposition": `attachment; filename="${safeName}"`
              }
            });
         }
@@ -3658,12 +3693,44 @@ const server = Bun.serve<WsData>({
       // Handle ACP approval decisions from UI clients — route back to adapter only.
       if (role === "client" && obj && obj.type === "acp:approval_decision") {
         const acpAdapter = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
-        if (acpAdapter && typeof acpAdapter.resolveApproval === "function") {
-          const outcome = obj.optionId
-            ? { outcome: "selected" as const, optionId: String(obj.optionId) }
-            : { outcome: "cancelled" as const };
-          acpAdapter.resolveApproval(String(obj.rpcId), outcome);
+        if (!acpAdapter || typeof acpAdapter.resolveApproval !== "function") {
+          send(ws, {
+            type: "orbit.error",
+            error: "ACP adapter not available",
+            rpcId: obj.rpcId,
+          });
+          return;
         }
+
+        const rpcId = String(obj.rpcId);
+
+        // Authorize approval decision
+        const authResult = validateApprovalDecisionAuthorization(
+          rpcId,
+          ws,
+          acpAdapter,
+          threadToClients
+        );
+
+        if (!authResult.authorized) {
+          reliabilityRecord(
+            "acpApprovalUnauthorized",
+            "acp_approval_unauthorized",
+            authResult.reason ?? "unknown"
+          );
+          send(ws, {
+            type: "orbit.error",
+            error: `Unauthorized: ${authResult.reason}`,
+            rpcId,
+          });
+          return;
+        }
+
+        // Authorization passed - resolve the approval
+        const outcome = obj.optionId
+          ? { outcome: "selected" as const, optionId: String(obj.optionId) }
+          : { outcome: "cancelled" as const };
+        acpAdapter.resolveApproval(rpcId, outcome);
         return;
       }
 

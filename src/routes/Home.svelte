@@ -155,11 +155,16 @@
       if (taskAgent) {
         const agent = agents.list.find(a => a.id === taskAgent);
         if (agent) {
+           // Frontend defense-in-depth: validate agent data
+           const allowedModels = ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo', 'claude-3-5-sonnet', 'claude-3-opus', 'claude-3-sonnet'];
+           const safeModel = (agent.model && allowedModels.includes(agent.model)) ? agent.model : taskModel;
+           const safeInstructions = agent.instructions?.replace(/[\x00-\x1F\x7F]/g, '').trim() || '';
+           
            collaborationMode = {
               mode: taskPlanFirst ? "plan" : "code",
               settings: {
-                 model: agent.model || taskModel,
-                 developer_instructions: agent.instructions
+                 model: safeModel,
+                 developer_instructions: safeInstructions
               }
            };
         }

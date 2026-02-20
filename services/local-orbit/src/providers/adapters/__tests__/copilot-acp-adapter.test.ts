@@ -617,4 +617,147 @@ describe("CopilotAcpAdapter - Approval handling", () => {
       expect((receivedEvent!.payload as any).sessionId).toBe("sess-123");
     });
   });
+
+  // -------------------------------------------------------------------------
+  // 6. Authorization checks for approval decisions (Packet p1p2-authz-approval-gate)
+  // -------------------------------------------------------------------------
+  describe("authorization checks for approval decisions", () => {
+    let adapter: CopilotAcpAdapter;
+
+    beforeEach(() => {
+      adapter = new CopilotAcpAdapter();
+      // Inject mock client to bypass start() process spawning
+      const mockClient = {
+        sendRequest: mock(() => Promise.resolve({})),
+        onNotification: mock(() => {}),
+        onRequest: mock(() => {}),
+        close: mock(() => {}),
+      };
+      (adapter as any).client = mockClient;
+    });
+
+    afterEach(() => {
+      (adapter as any).client = null;
+    });
+
+    it("getPendingApprovalContext returns context for valid rpcId", () => {
+      const rpcId = "test-rpc-123";
+      const mockContext = {
+        sessionId: "sess-abc",
+        threadId: "copilot-acp:sess-abc",
+        providerId: "copilot-acp",
+        createdAt: new Date().toISOString(),
+        resolve: mock(() => {}),
+        timeout: setTimeout(() => {}, 1000),
+      };
+
+      (adapter as any).pendingApprovals.set(rpcId, mockContext);
+
+      const context = adapter.getPendingApprovalContext(rpcId);
+
+      expect(context).toBeDefined();
+      expect(context?.sessionId).toBe("sess-abc");
+      expect(context?.threadId).toBe("copilot-acp:sess-abc");
+      expect(context?.providerId).toBe("copilot-acp");
+      expect(context?.createdAt).toBe(mockContext.createdAt);
+
+      // Cleanup
+      clearTimeout(mockContext.timeout);
+    });
+
+    it("getPendingApprovalContext returns null for unknown rpcId", () => {
+      const context = adapter.getPendingApprovalContext("unknown-rpc-456");
+      expect(context).toBeNull();
+    });
+
+    it("getPendingApprovalContext returns null after approval is resolved", () => {
+      const rpcId = "test-rpc-789";
+      let resolvedWith: any = null;
+      const mockContext = {
+        sessionId: "sess-xyz",
+        threadId: "copilot-acp:sess-xyz",
+        providerId: "copilot-acp",
+        createdAt: new Date().toISOString(),
+        resolve: (result: any) => {
+          resolvedWith = result;
+        },
+        timeout: setTimeout(() => {}, 1000),
+      };
+
+      (adapter as any).pendingApprovals.set(rpcId, mockContext);
+
+      // Resolve the approval
+      adapter.resolveApproval(rpcId, { outcome: "selected", optionId: "allow" });
+
+      // Context should be removed after resolution
+      const context = adapter.getPendingApprovalContext(rpcId);
+      expect(context).toBeNull();
+      expect(resolvedWith).toEqual({ outcome: { outcome: "selected", optionId: "allow" } });
+
+      // Cleanup
+      clearTimeout(mockContext.timeout);
+    });
+
+    it("tracks approval context when permission request is received", () => {
+      // Simulate the onRequest handler logic from start()
+      const rpcId = "perm-req-123";
+      const params = {
+        sessionId: "sess-tracking-test",
+        toolCall: { toolCallId: "tool-1", title: "Run command" },
+        options: [
+          { optionId: "opt-1", name: "Allow", kind: "allow_once" },
+          { optionId: "opt-2", name: "Deny", kind: "reject_once" },
+        ],
+      };
+
+      // Manually add approval context (simulating what onRequest does)
+      const context = {
+        sessionId: params.sessionId,
+        threadId: `copilot-acp:${params.sessionId}`,
+        providerId: adapter.providerId,
+        createdAt: new Date().toISOString(),
+        resolve: mock(() => {}),
+        timeout: setTimeout(() => {}, 60000),
+      };
+
+      (adapter as any).pendingApprovals.set(String(rpcId), context);
+
+      // Verify context is tracked
+      const retrievedContext = adapter.getPendingApprovalContext(String(rpcId));
+      expect(retrievedContext).toBeDefined();
+      expect(retrievedContext?.sessionId).toBe("sess-tracking-test");
+      expect(retrievedContext?.threadId).toBe("copilot-acp:sess-tracking-test");
+
+      // Cleanup
+      clearTimeout(context.timeout);
+    });
+
+    it("resolveApproval ensures one-time resolution", () => {
+      const rpcId = "one-time-123";
+      let resolutionCount = 0;
+      const mockContext = {
+        sessionId: "sess-once",
+        threadId: "copilot-acp:sess-once",
+        providerId: "copilot-acp",
+        createdAt: new Date().toISOString(),
+        resolve: () => {
+          resolutionCount++;
+        },
+        timeout: setTimeout(() => {}, 1000),
+      };
+
+      (adapter as any).pendingApprovals.set(rpcId, mockContext);
+
+      // First resolution should work
+      adapter.resolveApproval(rpcId, { outcome: "selected", optionId: "allow" });
+      expect(resolutionCount).toBe(1);
+
+      // Second resolution should be ignored (no-op)
+      adapter.resolveApproval(rpcId, { outcome: "cancelled" });
+      expect(resolutionCount).toBe(1); // Still 1, not 2
+
+      // Cleanup
+      clearTimeout(mockContext.timeout);
+    });
+  });
 });

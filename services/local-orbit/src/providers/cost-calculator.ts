@@ -122,6 +122,26 @@ const PRICING_TABLES: PricingTable[] = [
 ];
 
 /**
+ * Validates token counts are safe numeric values
+ * @param promptTokens - Number of prompt tokens to validate
+ * @param completionTokens - Number of completion tokens to validate
+ * @returns true if valid (finite, >= 0, <= 1e9), false otherwise
+ */
+export function validateTokenCounts(
+  promptTokens: number,
+  completionTokens: number
+): boolean {
+  return (
+    Number.isFinite(promptTokens) &&
+    Number.isFinite(completionTokens) &&
+    promptTokens >= 0 &&
+    completionTokens >= 0 &&
+    promptTokens <= 1e9 && // Sanity check: 1 billion tokens max
+    completionTokens <= 1e9
+  );
+}
+
+/**
  * Calculate estimated cost for token usage.
  *
  * @param provider - Provider identifier
@@ -136,6 +156,12 @@ export function calculateCost(
   promptTokens: number,
   completionTokens: number,
 ): number | null {
+  // Validate inputs first
+  if (!validateTokenCounts(promptTokens, completionTokens)) {
+    console.warn(`[cost-calculator] Invalid token counts: prompt=${promptTokens}, completion=${completionTokens}`);
+    return null;
+  }
+
   // Find pricing table for provider and model
   const pricing = PRICING_TABLES.find(
     (p) => p.provider === provider && p.model === model,
