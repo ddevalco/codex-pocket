@@ -170,3 +170,17 @@ coderelay restart
 ```
 
 If you use launchd, add the same env var to your launch configuration so it survives reboots.
+
+### launchd PATH Missing (Copilot CLI not found)
+
+If CodeRelay runs under launchd, it inherits a minimal PATH. This can prevent tools like the Copilot CLI
+from being found even if they work in your shell.
+
+Verify the PATH that launchd is using:
+
+```bash
+launchctl print "gui/$UID/com.coderelay" | grep -A 2 -B 2 PATH
+```
+
+You should see `/opt/homebrew/bin` listed when Copilot is installed there. If not, reinstall using
+`scripts/install-local.sh` so the launchd plist includes a PATH entry.

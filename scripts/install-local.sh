@@ -407,7 +407,9 @@ cat > "$PLIST" <<PLISTXML
   <key>WorkingDirectory</key>
   <string>${APP_DIR}/app</string>
   <key>EnvironmentVariables</key>
-<dict>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   <key>CODERELAY_LOCAL_TOKEN</key>
   <string>${CODERELAY_LOCAL_TOKEN}</string>
   <key>CODERELAY_LOCAL_CONFIG_JSON</key>
@@ -590,6 +592,8 @@ cat > "$PLIST" <<PLISTXML
   <string>${APP_DIR}/app</string>
   <key>EnvironmentVariables</key>
   <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     <key>CODERELAY_LOCAL_TOKEN</key>
     <string>${CODERELAY_LOCAL_TOKEN}</string>
     <key>CODERELAY_LOCAL_CONFIG_JSON</key>
