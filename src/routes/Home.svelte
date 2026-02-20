@@ -8,7 +8,7 @@
   import { agents } from "../lib/agents.svelte";
   import { theme } from "../lib/theme.svelte";
   import { auth } from "../lib/auth.svelte";
-  import { uiToggles } from "../lib/uiToggles";
+  import { uiToggles } from "../lib/uiToggles.svelte";
   import { canSendPrompt, getCapabilityTooltip } from "../lib/thread-capabilities";
   import AppHeader from "../lib/components/AppHeader.svelte";
   import ProjectPicker from "../lib/components/ProjectPicker.svelte";

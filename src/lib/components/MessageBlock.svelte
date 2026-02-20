@@ -2,7 +2,7 @@
   import { marked } from "marked";
   import DOMPurify from "dompurify";
   import type { Message } from "../types";
-  import { uiToggles } from "../uiToggles";
+  import { uiToggles } from "../uiToggles.svelte";
   import ShimmerDot from "./ShimmerDot.svelte";
   import Reasoning from "./Reasoning.svelte";
   import Tool from "./Tool.svelte";

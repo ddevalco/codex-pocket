@@ -6,7 +6,7 @@
   import { api } from "../api";
   import { loadQuickReplies, type QuickReply } from "../quickReplies";
   import { drafts } from "../drafts.svelte";
-  import { uiToggles } from "../uiToggles";
+  import { uiToggles } from "../uiToggles.svelte";
 
 	  interface Props {
     model: string;

@@ -3,7 +3,7 @@
   import type { Message } from "../types";
   import { marked } from "marked";
   import DOMPurify from "dompurify";
-  import { uiToggles } from "../uiToggles";
+  import { uiToggles } from "../uiToggles.svelte";
 
   interface Props {
     message: Message;

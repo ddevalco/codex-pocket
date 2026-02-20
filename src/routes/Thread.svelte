@@ -6,7 +6,7 @@
     import { messages } from "../lib/messages.svelte";
     import { models } from "../lib/models.svelte";
     import { theme } from "../lib/theme.svelte";
-    import { uiToggles } from "../lib/uiToggles";
+    import { uiToggles } from "../lib/uiToggles.svelte";
     import { canSendPrompt, getCapabilityTooltip, supportsApprovals } from "../lib/thread-capabilities";
     import { loadAgentPresets, type AgentPreset } from "../lib/presets";
     import { loadHelperProfiles, type HelperProfile } from "../lib/helperProfiles";

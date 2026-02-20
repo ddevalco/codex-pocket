@@ -31,7 +31,7 @@
     type HelperProfile,
   } from "../lib/helperProfiles";
   import { approvalPolicyStore } from "../lib/approval-policy-store.svelte";
-  import { getToggleState, resetToggles, setToggleState, type UIToggleKey } from "../lib/uiToggles";
+  import { getToggleState, resetToggles, setToggleState, type UIToggleKey } from "../lib/uiToggles.svelte";
   import { type CustomAgent } from "../lib/types";
 import { agents } from "../lib/agents.svelte";
 
