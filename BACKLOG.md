@@ -122,6 +122,144 @@ Issues are canonical for work items:
 - ✅ ACP provider initializes when Copilot installed
 - ✅ Clean developer experience
 
+### 2026-02-19: Post-Install Issues and Provider Architecture Improvements ✅
+
+**Context:** After resolving installation issues (#252-254), user tested the app and discovered three new issues plus architectural mismatch with Claude provider.
+
+---
+
+#### Issue #257 (P2): Settings Text Low Contrast in Dark Mode ✅ FIXED
+
+**Problem:**
+
+- Settings page text very low contrast in dark mode
+- Light gray on dark gray backgrounds hard to read
+- Affected all hint text, labels, secondary text
+- WCAG AA compliance issues
+
+**Root Cause:**
+
+- `--color-cli-text-muted`: 50% lightness (too dark)
+- `--color-cli-text-dim`: 65% lightness (too dark)  
+- OKLCH colors insufficient contrast on `oklch(15% 0 0)` dark backgrounds
+
+**Resolution:** (commit 82ad9bf)
+
+- ✅ Increased `--color-cli-text-dim`: 65% → 80% lightness
+- ✅ Increased `--color-cli-text-muted`: 50% → 70% lightness
+- ✅ Improved WCAG AA compliance for all dark mode text
+- ✅ Maintains visual hierarchy (primary > dim > muted)
+
+**Impact:** Settings, Home, Thread pages now clearly readable in dark mode.
+
+---
+
+#### Issue #255 (P1): Copilot Threads Not Appearing ✅ FIXED
+
+**Problem:**
+
+- User actively using GitHub Copilot Chat in VS Code
+- Expected to see Copilot threads in CodeRelay
+- Server logs: `JSON-RPC error -32601: "Method not found": list_sessions`
+- ACP provider status: "unhealthy"
+
+**Root Cause:**
+
+- User's Copilot CLI version doesn't support `list_sessions` method
+- Adapter unconditionally called method during health checks
+- Missing capability negotiation during handshake
+- Treated missing method as "unhealthy" instead of "degraded"
+
+**Resolution:** (commit 90b44c9)
+
+- ✅ Added capability probing during ACP handshake
+- ✅ Detects JSON-RPC -32601 errors to identify missing methods
+- ✅ Returns "degraded" status (not "unhealthy") when method unavailable
+- ✅ Friendly error message: "Session listing not supported by this Copilot CLI version"
+- ✅ Other Copilot features remain functional
+
+**Lesson:** Version compatibility requires capability detection, not assumption.
+
+---
+
+#### Issue #256 (P1): Claude Architectural Mismatch ✅ FIXED
+
+**Problem:**
+
+- User has Claude CLI (v2.1.49) running locally
+- Expected local CLI integration like Codex (Anchor) and Copilot (ACP)
+- Discovered we integrated Claude via Anthropic web API (requires API key)
+- Architectural inconsistency: 2 providers use local CLI, 1 uses web API
+
+**Root Cause:**
+
+- Original implementation used `@anthropic-ai/sdk` (web API)
+- User's Claude CLI supports MCP (Model Context Protocol)
+- `claude mcp serve` mode available
+- `--output-format=stream-json` for structured output
+- Never built local CLI adapter
+
+**Resolution:** (commit 83cf0ea)
+
+- ✅ Built new `claude-mcp-adapter.ts` (644 lines)
+- ✅ Process spawning: `claude --print --output-format=stream-json`
+- ✅ JSON streaming parser with real-time event emission
+- ✅ Local session tracking (in-memory Map)
+- ✅ Executable discovery with PATH search
+- ✅ Health monitoring with graceful degradation
+- ✅ Multi-turn conversation support via history
+
+**Dual Provider Architecture:**
+
+- **claude**: Anthropic web API (existing, requires API key)
+- **claude-mcp**: Local CLI via MCP (new, no API key needed)
+
+**Documentation:** Created comprehensive [CLAUDE_MCP_ADAPTER.md](services/local-orbit/src/providers/adapters/CLAUDE_MCP_ADAPTER.md) guide.
+
+---
+
+#### Issue #258 (Backlog): Web + Local Hybrid Architecture ✅ DOCUMENTED
+
+**Proposal:**
+Since we now support both web API and local CLI for Claude, consider offering same flexibility for Codex and Copilot in future.
+
+**Potential Enhancements:**
+
+- **Copilot Web:** GitHub Models API (`gpt-4o` via Copilot subscription)
+- **Codex Web:** Research if web API available (may be local-only)
+
+**Benefits:**
+
+- User flexibility (choose based on setup/preferences)
+- Reliability (fallback if one method unavailable)
+- Performance (local may be faster, web may have more features)
+- Cost (some prefer local execution, others managed API)
+
+**Status:** Backlog/future consideration, no immediate implementation.
+
+---
+
+**Summary:**
+
+- ✅ Fixed 3 critical post-install issues (contrast, Copilot, Claude)
+- ✅ Improved provider architecture with dual Claude support
+- ✅ Enhanced capability detection for version compatibility
+- ✅ Documented hybrid architecture pattern for future providers
+- 📦 Reinstall required to get all fixes
+
+**Provider Status After Fixes:**
+
+- **Codex:** Local CLI via Anchor ✅
+- **Copilot ACP:** Local CLI with capability detection ✅
+- **Claude:** Web API (existing) ✅
+- **Claude MCP:** Local CLI (new) ✅
+
+**Commits:**
+
+- 82ad9bf: Dark mode contrast fix
+- 90b44c9: Copilot capability detection
+- 83cf0ea: Claude MCP adapter
+
 ### 2026-02-19: Rebrand to CodeRelay
 
 - Phase 5: Rebrand to CodeRelay - COMPLETE (2026-02-19)
