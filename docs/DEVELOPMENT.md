@@ -16,6 +16,17 @@ This repo contains:
 bun install
 ```
 
+## Editor setup (VS Code)
+
+To avoid phantom TypeScript errors (for example, Vite `ImportMetaEnv` or Svelte types), configure VS Code to use the workspace TypeScript and Svelte plugin.
+
+Create the following files in `.vscode/` (they are committed):
+
+- `.vscode/settings.json`
+- `.vscode/extensions.json`
+
+After adding them, reload the VS Code window.
+
 ## Run UI (dev)
 
 ```bash
