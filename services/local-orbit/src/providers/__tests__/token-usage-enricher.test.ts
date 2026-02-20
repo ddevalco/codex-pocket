@@ -379,4 +379,153 @@ describe("Token Usage Enricher", () => {
       expect(events[1].tokenUsage?.totalTokens).toBe(150);
     });
   });
+
+  describe("validation of invalid token values", () => {
+    test("rejects negative prompt tokens", () => {
+      const rawEvent = {
+        usage: {
+          prompt_tokens: -100,
+          completion_tokens: 50,
+        },
+        model: "gpt-4o",
+      };
+
+      const usage = extractTokenUsage(rawEvent, "codex", "gpt-4o");
+      expect(usage).toBeNull();
+    });
+
+    test("rejects negative completion tokens", () => {
+      const rawEvent = {
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: -50,
+        },
+        model: "gpt-4o",
+      };
+
+      const usage = extractTokenUsage(rawEvent, "codex", "gpt-4o");
+      expect(usage).toBeNull();
+    });
+
+    test("rejects NaN prompt tokens", () => {
+      const rawEvent = {
+        usage: {
+          prompt_tokens: NaN,
+          completion_tokens: 50,
+        },
+        model: "gpt-4o",
+      };
+
+      const usage = extractTokenUsage(rawEvent, "codex", "gpt-4o");
+      expect(usage).toBeNull();
+    });
+
+    test("rejects NaN completion tokens", () => {
+      const rawEvent = {
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: NaN,
+        },
+        model: "gpt-4o",
+      };
+
+      const usage = extractTokenUsage(rawEvent, "codex", "gpt-4o");
+      expect(usage).toBeNull();
+    });
+
+    test("rejects Infinity tokens", () => {
+      const rawEvent1 = {
+        usage: {
+          prompt_tokens: Infinity,
+          completion_tokens: 50,
+        },
+        model: "gpt-4o",
+      };
+
+      const rawEvent2 = {
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: Infinity,
+        },
+        model: "gpt-4o",
+      };
+
+      expect(extractTokenUsage(rawEvent1, "codex", "gpt-4o")).toBeNull();
+      expect(extractTokenUsage(rawEvent2, "codex", "gpt-4o")).toBeNull();
+    });
+
+    test("rejects unreasonably large token counts (> 1 billion)", () => {
+      const rawEvent = {
+        usage: {
+          prompt_tokens: 1e10,
+          completion_tokens: 50,
+        },
+        model: "gpt-4o",
+      };
+
+      const usage = extractTokenUsage(rawEvent, "codex", "gpt-4o");
+      expect(usage).toBeNull();
+    });
+
+    test("enrichEventWithTokenUsage handles invalid tokens", () => {
+      const rawEvent = {
+        usage: {
+          prompt_tokens: -100,
+          completion_tokens: 50,
+        },
+        model: "gpt-4o",
+      };
+
+      const event: NormalizedEvent = {
+        provider: "codex",
+        sessionId: "session-1",
+        eventId: "event-1",
+        category: "agent_message",
+        timestamp: new Date().toISOString(),
+        rawEvent,
+      };
+
+      enrichEventWithTokenUsage(event);
+
+      // Should not add tokenUsage for invalid values
+      expect(event.tokenUsage).toBeUndefined();
+    });
+
+    test("validates Claude-style input_tokens", () => {
+      const rawEvent = {
+        usage: {
+          input_tokens: NaN,
+          output_tokens: 100,
+        },
+        model: "claude-3-5-sonnet-20241022",
+      };
+
+      const usage = extractTokenUsage(rawEvent, "claude", "claude-3-5-sonnet-20241022");
+      expect(usage).toBeNull();
+    });
+
+    test("validates camelCase tokenUsage", () => {
+      const rawEvent = {
+        tokenUsage: {
+          promptTokens: -50,
+          completionTokens: 100,
+        },
+        model: "gpt-4o",
+      };
+
+      const usage = extractTokenUsage(rawEvent, "codex", "gpt-4o");
+      expect(usage).toBeNull();
+    });
+
+    test("validates top-level tokens", () => {
+      const rawEvent = {
+        prompt_tokens: Infinity,
+        completion_tokens: 100,
+        model: "gpt-4o",
+      };
+
+      const usage = extractTokenUsage(rawEvent, "codex", "gpt-4o");
+      expect(usage).toBeNull();
+    });
+  });
 });
