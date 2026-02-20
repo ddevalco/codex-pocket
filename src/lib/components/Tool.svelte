@@ -4,6 +4,7 @@
   import { marked } from "marked";
   import DOMPurify from "dompurify";
   import { uiToggles } from "../uiToggles.svelte";
+  import { fade } from "svelte/transition";
 
   interface Props {
     message: Message;
@@ -63,23 +64,23 @@
     const kind = message.kind;
     switch (kind) {
       case "command":
-        return { icon: "terminal", label: "Command", colorVar: "--color-cli-prefix-tool" };
+        return { icon: "terminal", label: "Command", colorClass: "text-cli-prefix-tool" };
       case "file":
-        return { icon: "file", label: "File Change", colorVar: "--color-cli-prefix-file" };
+        return { icon: "file", label: "File Change", colorClass: "text-cli-prefix-file" };
       case "mcp":
-        return { icon: "plug", label: "MCP Tool", colorVar: "--color-cli-prefix-mcp" };
+        return { icon: "plug", label: "MCP Tool", colorClass: "text-cli-prefix-mcp" };
       case "web":
-        return { icon: "search", label: "Web Search", colorVar: "--color-cli-prefix-web" };
+        return { icon: "search", label: "Web Search", colorClass: "text-cli-prefix-web" };
       case "image":
-        return { icon: "image", label: "Image", colorVar: "--color-cli-prefix-image" };
+        return { icon: "image", label: "Image", colorClass: "text-cli-prefix-image" };
       case "review":
-        return { icon: "eye", label: "Review", colorVar: "--color-cli-prefix-review" };
+        return { icon: "eye", label: "Review", colorClass: "text-cli-prefix-review" };
       case "plan":
-        return { icon: "plan", label: "Plan", colorVar: "--color-cli-prefix-agent" };
+        return { icon: "plan", label: "Plan", colorClass: "text-cli-prefix-agent" };
       case "collab":
-        return { icon: "users", label: "Agent", colorVar: "--color-cli-prefix-mcp" };
+        return { icon: "users", label: "Agent", colorClass: "text-cli-prefix-mcp" };
       default:
-        return { icon: "wrench", label: "Tool", colorVar: "--color-cli-prefix-tool" };
+        return { icon: "wrench", label: "Tool", colorClass: "text-cli-prefix-tool" };
     }
   });
 
@@ -207,27 +208,27 @@
   const statusConfig = $derived.by(() => {
     switch (status) {
       case "success":
-        return { icon: "check", label: "Done", colorVar: "--color-cli-success" };
+        return { icon: "check", label: "Done", colorClass: "text-cli-success" };
       case "running":
-        return { icon: "dot", label: "Running", colorVar: "--color-cli-prefix-agent" };
+        return { icon: "dot", label: "Running", colorClass: "text-cli-prefix-agent" };
       case "error":
         return {
           icon: "x",
           label: message.kind === "collab" ? "Failed" : `Exit ${message.metadata?.exitCode}`,
-          colorVar: "--color-cli-error",
+          colorClass: "text-cli-error",
         };
       default:
-        return { icon: "check", label: "Done", colorVar: "--color-cli-success" };
+        return { icon: "check", label: "Done", colorClass: "text-cli-success" };
     }
   });
 
   const hasContent = $derived(toolInfo.content && toolInfo.content.trim().length > 0);
 </script>
 
-<div class="overflow-hidden rounded-md border border-cli-border font-mono text-sm" class:open={isOpen}>
+<div class="group overflow-hidden rounded-md border border-cli-border font-mono text-sm" class:open={isOpen}>
   <div class="relative flex w-full items-center gap-sm border-none bg-cli-bg-elevated px-md py-sm text-left font-inherit text-inherit text-cli-text transition-[background] duration-150 hover:bg-cli-bg-hover">
     <button class="flex min-w-0 flex-1 cursor-pointer items-center gap-sm border-none bg-transparent p-0 text-left font-inherit text-inherit" onclick={toggle} type="button">
-    <span class="flex shrink-0 items-center justify-center gap-0" style:color={`oklch(var(${toolConfig.colorVar}))`}>
+    <span class="flex shrink-0 items-center justify-center gap-0 {toolConfig.colorClass}">
       {#if toolConfig.icon === "terminal"}
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="4 17 10 11 4 5"/>
@@ -286,7 +287,7 @@
 
     <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-cli-text">{toolInfo.title}</span>
 
-    <span class="flex shrink-0 items-center gap-xs text-xs" style:color={`oklch(var(${statusConfig.colorVar}))`}>
+    <span class="flex shrink-0 items-center gap-xs text-xs {statusConfig.colorClass}">
       {#if statusConfig.icon === "check"}
         <svg class="h-[0.875rem] w-[0.875rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <polyline points="20 6 9 17 4 12"/>
@@ -321,9 +322,7 @@
     {#if hasContent && uiToggles.showToolOutputCopy}
       <button
         type="button"
-        class="copy-btn absolute right-[10px] top-2 z-[1] cursor-pointer rounded-sm border border-cli-border bg-black/25 px-[10px] py-1 font-mono text-[11px] text-cli-text-muted"
-        class:copied={copyState === "copied"}
-        class:error={copyState === "error"}
+        class="absolute right-[10px] top-2 z-[1] cursor-pointer rounded-sm border border-cli-border bg-black/25 px-[10px] py-1 font-mono text-[11px] text-cli-text-muted opacity-0 shadow-none transition-all duration-150 hover:text-cli-text group-hover:opacity-100 group-focus-within:opacity-100 max-[520px]:px-[12px] max-[520px]:py-[6px] max-[520px]:text-[12px] max-[520px]:opacity-100 {copyState === 'copied' ? 'border-[#2c8a5a] text-[#9be3bf] !opacity-100' : ''} {copyState === 'error' ? 'border-cli-error text-cli-error !opacity-100' : ''}"
         onclick={(e) => {
           e.stopPropagation();
           copyToolOutput();
@@ -337,7 +336,7 @@
   </div>
 
   {#if isOpen && hasContent}
-    <div class="border-t border-cli-border bg-cli-bg" style:animation="slideIn 0.2s ease">
+    <div class="border-t border-cli-border bg-cli-bg" transition:fade={{ duration: 200 }}>
       {#if renderMarkdown}
         <div class="m-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words px-md py-sm text-xs leading-relaxed text-cli-text-dim markdown">{@html renderedToolHtml}</div>
       {:else}
@@ -346,49 +345,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  .copy-btn {
-    opacity: 0;
-    transition: opacity var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-  }
-
-  /* .tool became the updated root div, so we select based on the root element having hover or focus-within */
-  div:hover .copy-btn,
-  div:focus-within .copy-btn {
-    opacity: 1;
-  }
-
-  .copy-btn:hover {
-    color: oklch(var(--color-cli-text));
-  }
-
-  .copy-btn.copied {
-    opacity: 1;
-    border-color: #2c8a5a;
-    color: #9be3bf;
-  }
-
-  .copy-btn.error {
-    opacity: 1;
-    border-color: oklch(var(--color-cli-error));
-    color: oklch(var(--color-cli-error));
-  }
-
-  @media (max-width: 520px) {
-    .copy-btn {
-      opacity: 1;
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-  }
-
-  @keyframes slideIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-</style>

@@ -136,21 +136,21 @@
 
   const prefixConfig = $derived.by(() => {
     if (message.status === "sending") {
-      return { prefix: "◌", colorVar: "--color-cli-text-muted", bgClass: "user-bg sending" };
+      return { prefix: "◌", colorClass: "text-cli-text-muted", bgClass: "bg-cli-bg-user border-l-0 shadow-none pl-md sending" };
     }
     if (message.status === "error") {
-      return { prefix: "!", colorVar: "--color-cli-error", bgClass: "user-bg error" };
+      return { prefix: "!", colorClass: "text-cli-error", bgClass: "bg-cli-bg-user border-l-0 shadow-none pl-md error" };
     }
     if (message.role === "user") {
-      return { prefix: ">", colorVar: "--color-cli-prefix-agent", bgClass: "user-bg" };
+      return { prefix: ">", colorClass: "text-cli-prefix-agent", bgClass: "bg-cli-bg-user border-l-0 shadow-none pl-md" };
     }
     if (message.role === "assistant") {
-      return { prefix: "•", colorVar: "--color-cli-prefix-agent", bgClass: "" };
+      return { prefix: "•", colorClass: "text-cli-prefix-agent", bgClass: "" };
     }
     if (message.role === "tool") {
-      return { prefix: "•", colorVar: "--color-cli-prefix-tool", bgClass: "" };
+      return { prefix: "•", colorClass: "text-cli-prefix-tool", bgClass: "" };
     }
-    return { prefix: "•", colorVar: "--color-cli-text-dim", bgClass: "" };
+    return { prefix: "•", colorClass: "text-cli-text-dim", bgClass: "" };
   });
 
   const terminalLines = $derived.by(() => {
@@ -205,7 +205,7 @@
 </script>
 
 <div
-  class="message-block {prefixConfig.bgClass}"
+  class="relative px-md py-xs font-mono text-sm leading-relaxed message-block {prefixConfig.bgClass}"
   role="button"
   aria-label="Copy message"
   tabindex="0"
@@ -224,10 +224,10 @@
   }}
 >
   {#if uiToggles.showMessageCopyButton || uiToggles.showMessageCopyMarkdown || uiToggles.showMessageCopyQuoted}
-    <div class="message-actions" data-message-menu={message.id}>
+    <div class="absolute top-xs right-md z-10 flex items-center gap-xs max-sm:right-sm" data-message-menu={message.id}>
       <button
         type="button"
-        class="menu-btn"
+        class="bg-transparent border-none text-cli-text-muted cursor-pointer px-1.5 py-0.5 rounded-[6px] text-base leading-none hover:text-cli-text hover:bg-cli-bg-elevated"
         onclick={(e) => {
           e.stopPropagation();
           menuOpen = !menuOpen;
@@ -238,16 +238,17 @@
         ⋯
       </button>
       {#if menuOpen}
-        <div class="menu" role="menu" aria-label="Message actions">
+        <div class="absolute top-[22px] right-0 min-w-[160px] bg-cli-bg-elevated border border-white/10 rounded-[10px] p-1.5 shadow-popover z-20" role="menu" aria-label="Message actions">
           {#if uiToggles.showMessageCopyButton}
-            <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyMessage(); }}>Copy</button>
+            <button type="button" class="w-full text-left bg-transparent border-none text-cli-text font-mono text-sm px-2.5 py-2 rounded-lg cursor-pointer hover:bg-white/5" role="menuitem" onclick={() => { menuOpen = false; copyMessage(); }}>Copy</button>
           {/if}
           {#if uiToggles.showMessageCopyMarkdown}
-            <button type="button" role="menuitem" onclick={() => { menuOpen = false; copyRawMarkdown(); }}>Copy markdown</button>
+            <button type="button" class="w-full text-left bg-transparent border-none text-cli-text font-mono text-sm px-2.5 py-2 rounded-lg cursor-pointer hover:bg-white/5" role="menuitem" onclick={() => { menuOpen = false; copyRawMarkdown(); }}>Copy markdown</button>
           {/if}
           {#if uiToggles.showMessageCopyQuoted}
             <button
               type="button"
+              class="w-full text-left bg-transparent border-none text-cli-text font-mono text-sm px-2.5 py-2 rounded-lg cursor-pointer hover:bg-white/5 disabled:text-cli-text-muted disabled:cursor-not-allowed"
               role="menuitem"
               onclick={() => {
                 menuOpen = false;
@@ -258,6 +259,7 @@
           {/if}
           <button
             type="button"
+            class="w-full text-left bg-transparent border-none text-cli-text font-mono text-sm px-2.5 py-2 rounded-lg cursor-pointer hover:bg-white/5 disabled:text-cli-text-muted disabled:cursor-not-allowed"
             role="menuitem"
             onclick={() => {
               menuOpen = false;
@@ -272,9 +274,12 @@
   {#if uiToggles.showMessageCopyButton}
     <button
       type="button"
-      class="copy-btn"
-      class:copied={copyState === "copied"}
-      class:error={copyState === "error"}
+      class="absolute top-[6px] right-[10px] px-2.5 py-1 rounded-sm border border-cli-border bg-black/25 text-cli-text-muted font-mono text-[11px] cursor-pointer opacity-0 transition-all duration-200 hover:text-cli-text max-[520px]:opacity-100 max-[520px]:px-3 max-[520px]:py-1.5 max-[520px]:text-xs group-hover:opacity-100 focus-within:opacity-100"
+      class:opacity-100={copyState !== "idle"}
+      class:border-cli-success={copyState === "copied"}
+      class:text-cli-success={copyState === "copied"}
+      class:border-cli-error={copyState === "error"}
+      class:text-cli-error={copyState === "error"}
       onclick={(e) => {
         // Shift+click copies raw markdown source.
         (copyMessage as any).__wantRaw = (e as MouseEvent).shiftKey;
@@ -295,40 +300,40 @@
   {:else if isTool}
     <Tool {message} />
   {:else if isWait}
-    <div class="message-line wait row">
-      <span class="prefix" style:color={`oklch(var(${prefixConfig.colorVar}))`}>{prefixConfig.prefix}</span>
-      <div class="wait-line row">
+    <div class="flex items-center gap-sm">
+      <span class="flex-shrink-0 font-semibold {prefixConfig.colorClass}">{prefixConfig.prefix}</span>
+      <div class="flex items-center gap-sm">
         <ShimmerDot color="--color-cli-prefix-tool" />
-        <span class="text dim">{message.text}</span>
+        <span class="text-cli-text-dim italic min-w-0 break-words">{message.text}</span>
       </div>
     </div>
   {:else if isCompaction}
-    <div class="message-line compaction row">
-      <span class="compaction-icon">↕</span>
-      <span class="text dim">Context compacted</span>
+    <div class="flex items-center justify-center gap-sm">
+      <span class="text-cli-text-muted text-xs">↕</span>
+      <span class="text-cli-text-dim italic min-w-0 break-words">Context compacted</span>
     </div>
   {:else if isTerminal}
-    <div class="message-line terminal row">
-      <span class="prefix" style:color={`oklch(var(${prefixConfig.colorVar}))`}>{prefixConfig.prefix}</span>
-      <div class="terminal-lines stack">
+    <div class="flex items-start gap-sm">
+      <span class="flex-shrink-0 font-semibold {prefixConfig.colorClass}">{prefixConfig.prefix}</span>
+      <div class="flex flex-col gap-[0.1rem]">
         {#each terminalLines as line}
-          <div class="terminal-line row">
-            <span class="text">{line}</span>
+          <div class="flex gap-sm">
+            <span class="text-cli-text min-w-0 break-words">{line}</span>
           </div>
         {/each}
       </div>
     </div>
   {:else}
-    <div class="message-line row">
-      <span class="prefix" style:color={`oklch(var(${prefixConfig.colorVar}))`}>{prefixConfig.prefix}</span>
-      <div class="text markdown">{@html renderedHtml}</div>
+    <div class="flex items-start gap-sm">
+      <span class="flex-shrink-0 font-semibold {prefixConfig.colorClass}">{prefixConfig.prefix}</span>
+      <div class="text-cli-text min-w-0 break-words markdown">{@html renderedHtml}</div>
     </div>
   {/if}
   {#if showTokenCost}
-    <div class="token-cost" aria-live="polite">
+    <div class="ml-[calc(var(--spacing-md)+12px)] mt-xs text-[0.8em] text-cli-text-muted flex gap-xs items-center" aria-live="polite">
       <span>{formatTokenCount(message.tokenUsage?.totalTokens ?? 0)} tokens</span>
       {#if typeof message.tokenUsage?.estimatedCost === "number"}
-        <span class="token-cost-sep">·</span>
+        <span class="opacity-60">·</span>
         <span>${message.tokenUsage.estimatedCost.toFixed(4)}</span>
       {/if}
     </div>
@@ -336,142 +341,6 @@
 </div>
 
 <style>
-  .message-block {
-    position: relative;
-    padding: var(--space-xs) var(--space-md);
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    line-height: 1.6;
-  }
-
-  .message-actions {
-    position: absolute;
-    top: var(--space-xs);
-    right: var(--space-md);
-    display: flex;
-    gap: var(--space-xs);
-    align-items: center;
-    z-index: 2;
-  }
-
-  .menu-btn {
-    background: transparent;
-    border: none;
-    color: oklch(var(--color-cli-text-muted));
-    cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 6px;
-    font-size: var(--text-base);
-    line-height: 1;
-  }
-
-  .menu-btn:hover {
-    color: oklch(var(--color-cli-text));
-    background: oklch(var(--color-cli-bg-elevated));
-  }
-
-  .menu {
-    position: absolute;
-    top: 22px;
-    right: 0;
-    min-width: 160px;
-    background: oklch(var(--color-cli-bg-elevated));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 6px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  }
-
-  .menu button {
-    width: 100%;
-    text-align: left;
-    background: transparent;
-    border: none;
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    padding: 8px 10px;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-
-  .menu button:hover {
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .menu button:disabled {
-    color: oklch(var(--color-cli-text-muted));
-    cursor: not-allowed;
-  }
-
-  /* Keep the actions visible on mobile where hover doesn't exist. */
-  @media (max-width: 640px) {
-    .message-actions {
-      right: var(--space-sm);
-    }
-  }
-
-  .message-block.user-bg {
-    background: oklch(var(--color-cli-bg-user));
-    border-left: 0;
-    box-shadow: none;
-    padding-left: var(--space-md);
-  }
-
-  .token-cost {
-    margin-left: calc(var(--space-md) + 12px);
-    margin-top: var(--space-xs);
-    font-size: 0.8em;
-    color: oklch(var(--color-cli-text-muted));
-    display: flex;
-    gap: var(--space-xs);
-    align-items: center;
-  }
-
-  .token-cost-sep {
-    opacity: 0.6;
-  }
-
-  .message-line {
-    --row-gap: var(--space-sm);
-    align-items: flex-start;
-  }
-
-  .message-line.terminal {
-    align-items: flex-start;
-  }
-
-  .message-line.wait {
-    align-items: center;
-  }
-
-  .terminal-lines {
-    --stack-gap: 0.1rem;
-  }
-
-  .terminal-line {
-    --row-gap: var(--space-sm);
-  }
-
-  .wait-line {
-    --row-gap: var(--space-sm);
-  }
-
-  .message-line.compaction {
-    --row-gap: var(--space-sm);
-    justify-content: center;
-  }
-
-  .compaction-icon {
-    color: oklch(var(--color-cli-text-muted));
-    font-size: var(--text-xs);
-  }
-
-  .prefix {
-    flex-shrink: 0;
-    font-weight: 600;
-  }
-
   /* Status animation */
   :global(.message-block.user-bg.sending .prefix) {
     animation: status-pulse 1.5s ease-in-out infinite;
@@ -482,17 +351,6 @@
     50% { opacity: 0.5; transform: scale(0.92); }
   }
 
-  .text {
-    color: oklch(var(--color-cli-text));
-    word-break: break-word;
-    min-width: 0;
-  }
-
-  .text.dim {
-    color: oklch(var(--color-cli-text-dim));
-    font-style: italic;
-  }
-
   /* Markdown rendering */
   .markdown :global(p) {
     margin: 0;
@@ -500,7 +358,7 @@
 
   .markdown :global(pre) {
     margin: 0;
-    padding: var(--space-sm);
+    padding: var(--spacing-sm);
     background: rgba(0, 0, 0, 0.35);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-sm);
@@ -515,58 +373,16 @@
     max-width: min(520px, 100%);
     height: auto;
     display: block;
-    margin-top: var(--space-xs);
+    margin-top: var(--spacing-xs);
     border-radius: var(--radius-sm);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .markdown :global(a) {
-    color: oklch(var(--color-cli-link));
+    color: var(--color-cli-prefix-user);
+    text-decoration: underline;
   }
-
-  .copy-btn {
-    position: absolute;
-    top: 6px;
-    right: 10px;
-    padding: 4px 10px;
-    border-radius: var(--radius-sm);
-    border: 1px solid oklch(var(--color-cli-border));
-    background: rgba(0, 0, 0, 0.25);
-    color: oklch(var(--color-cli-text-muted));
-    font-family: var(--font-mono);
-    font-size: 11px;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  .markdown :global(a:hover) {
+    opacity: 0.8;
   }
-
-  .message-block:hover .copy-btn,
-  .message-block:focus-within .copy-btn {
-    opacity: 1;
-  }
-
-  .copy-btn:hover {
-    color: oklch(var(--color-cli-text));
-  }
-
-  .copy-btn.copied {
-    opacity: 1;
-    border-color: oklch(var(--color-cli-success));
-    color: oklch(var(--color-cli-success));
-  }
-
-  .copy-btn.error {
-    opacity: 1;
-    border-color: oklch(var(--color-cli-error));
-    color: oklch(var(--color-cli-error));
-  }
-
-  @media (max-width: 520px) {
-    .copy-btn {
-      opacity: 1;
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-  }
-
 </style>

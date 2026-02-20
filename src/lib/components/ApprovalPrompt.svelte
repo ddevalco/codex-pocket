@@ -26,10 +26,10 @@
     other: "Perform action",
   };
 
-  const statusLabels: Record<string, { text: string; colorVar: string }> = {
-    approved: { text: "Approved", colorVar: "--color-cli-success" },
-    declined: { text: "Declined", colorVar: "--color-cli-error" },
-    cancelled: { text: "Cancelled", colorVar: "--color-cli-text-muted" },
+  const statusLabels: Record<string, { text: string; colorClass: string }> = {
+    approved: { text: "Approved", colorClass: "text-cli-success" },
+    declined: { text: "Declined", colorClass: "text-cli-error" },
+    cancelled: { text: "Cancelled", colorClass: "text-cli-text-muted" },
   };
 
   function handleOptionClick(index: number) {
@@ -71,44 +71,46 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="approval-card" class:resolved={approval.status !== "pending"}>
-  <div class="card-header">
-    <span class="header-label">Approval Required</span>
-    <span class="header-type">{actionLabels[approval.type]}</span>
+<div class="my-xs mx-md border border-cli-border rounded-md bg-cli-bg-elevated font-mono text-sm overflow-hidden" class:opacity-60={approval.status !== "pending"}>
+  <div class="flex items-center justify-between py-sm px-md border-b border-cli-border">
+    <span class="text-cli-prefix-tool text-xs font-semibold uppercase tracking-wider">Approval Required</span>
+    <span class="text-cli-text-muted text-xs">{actionLabels[approval.type]}</span>
   </div>
 
-  <div class="card-body">
+  <div class="py-sm px-md flex flex-col gap-xs">
     {#if approval.command}
-      <div class="command-block">
-        <span class="prompt">$</span>
-        <span class="command-text">{approval.command}</span>
+      <div class="flex gap-sm py-xs px-sm bg-cli-bg rounded-sm">
+        <span class="text-cli-prefix-reasoning font-semibold flex-shrink-0">$</span>
+        <span class="text-cli-text break-all">{approval.command}</span>
       </div>
     {/if}
 
     {#if approval.filePath}
-      <div class="file-path">{approval.filePath}</div>
+      <div class="text-cli-prefix-user text-xs">{approval.filePath}</div>
     {/if}
 
     {#if approval.description && approval.description !== approval.command}
-      <div class="description">{approval.description}</div>
+      <div class="text-cli-text-dim text-xs">{approval.description}</div>
     {/if}
   </div>
 
-  <div class="card-actions">
+  <div class="flex gap-xs py-sm px-md border-t border-cli-border flex-wrap">
     {#if approval.status === "pending"}
       {#each options as option, i}
         <button
           type="button"
-          class="option-btn"
-          class:focused={i === selectedIndex}
+          class="flex items-center gap-xs p-xs px-sm bg-transparent border border-cli-border rounded-sm text-cli-text font-mono text-xs cursor-pointer transition-all duration-200 hover:border-cli-text-muted hover:bg-cli-bg-hover"
+          class:border-cli-prefix-agent={i === selectedIndex}
+          class:bg-cli-prefix-agent={i === selectedIndex}
+          class:bg-opacity-10={i === selectedIndex}
           onclick={() => handleOptionClick(i)}
         >
-          <span class="option-key">{option.key}</span>
-          <span class="option-label">{option.label}</span>
+          <span class="text-cli-text-muted text-xs min-w-[1.5ch] text-center">{option.key}</span>
+          <span class="text-cli-text" class:text-cli-prefix-agent={i === selectedIndex}>{option.label}</span>
         </button>
       {/each}
     {:else}
-      <div class="status-badge" style:color={`oklch(var(${statusLabels[approval.status].colorVar}))`}>
+      <div class="text-xs font-semibold {statusLabels[approval.status].colorClass}">
         {statusLabels[approval.status].text}
       </div>
     {/if}
@@ -116,127 +118,4 @@
 </div>
 
 <style>
-  .approval-card {
-    margin: var(--space-xs) var(--space-md);
-    border: 1px solid oklch(var(--color-cli-border));
-    border-radius: var(--radius-md);
-    background: oklch(var(--color-cli-bg-elevated));
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    overflow: hidden;
-  }
-
-  .approval-card.resolved {
-    opacity: 0.6;
-  }
-
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid oklch(var(--color-cli-border));
-  }
-
-  .header-label {
-    color: oklch(var(--color-cli-prefix-tool));
-    font-size: var(--text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  .header-type {
-    color: oklch(var(--color-cli-text-muted));
-    font-size: var(--text-xs);
-  }
-
-  .card-body {
-    padding: var(--space-sm) var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .command-block {
-    display: flex;
-    gap: var(--space-sm);
-    padding: var(--space-xs) var(--space-sm);
-    background: oklch(var(--color-cli-bg));
-    border-radius: var(--radius-sm);
-  }
-
-  .prompt {
-    color: oklch(var(--color-cli-prefix-reasoning));
-    font-weight: 600;
-    flex-shrink: 0;
-  }
-
-  .command-text {
-    color: oklch(var(--color-cli-text));
-    word-break: break-all;
-  }
-
-  .file-path {
-    color: oklch(var(--color-cli-prefix-user));
-    font-size: var(--text-xs);
-  }
-
-  .description {
-    color: oklch(var(--color-cli-text-dim));
-    font-size: var(--text-xs);
-  }
-
-  .card-actions {
-    display: flex;
-    gap: var(--space-xs);
-    padding: var(--space-sm) var(--space-md);
-    border-top: 1px solid oklch(var(--color-cli-border));
-    flex-wrap: wrap;
-  }
-
-  .option-btn {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-xs) var(--space-sm);
-    background: transparent;
-    border: 1px solid oklch(var(--color-cli-border));
-    border-radius: var(--radius-sm);
-    color: oklch(var(--color-cli-text));
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-
-  .option-btn:hover {
-    border-color: oklch(var(--color-cli-text-muted));
-    background: oklch(var(--color-cli-bg-hover));
-  }
-
-  .option-btn.focused {
-    border-color: oklch(var(--color-cli-prefix-agent));
-    background: color-mix(in srgb, oklch(var(--color-cli-prefix-agent)) 10%, transparent);
-  }
-
-  .option-btn.focused .option-label {
-    color: oklch(var(--color-cli-prefix-agent));
-  }
-
-  .option-key {
-    color: oklch(var(--color-cli-text-muted));
-    font-size: var(--text-xs);
-    min-width: 1.5ch;
-    text-align: center;
-  }
-
-  .option-label {
-    color: oklch(var(--color-cli-text));
-  }
-
-  .status-badge {
-    font-size: var(--text-xs);
-    font-weight: 600;
-  }
 </style>
