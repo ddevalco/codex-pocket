@@ -122,8 +122,8 @@
     --color-cli-bg-elevated: oklch(18% 0 0);
     --color-cli-bg-user: oklch(75% 0.18 145 / 0.18);
     --color-cli-text: oklch(92% 0.005 240);
-    --color-cli-text-dim: oklch(65% 0.01 240);
-    --color-cli-text-muted: oklch(50% 0.01 240);
+    --color-cli-text-dim: oklch(80% 0.01 240);
+    --color-cli-text-muted: oklch(70% 0.01 240);
     
     /* Role prefix colors - brighter for dark */
     --color-cli-prefix-user: oklch(75% 0.15 250);
@@ -192,8 +192,8 @@
   --color-cli-bg-elevated: oklch(18% 0 0);
   --color-cli-bg-user: oklch(75% 0.18 145 / 0.18);
   --color-cli-text: oklch(92% 0.005 240);
-  --color-cli-text-dim: oklch(65% 0.01 240);
-  --color-cli-text-muted: oklch(50% 0.01 240);
+  --color-cli-text-dim: oklch(80% 0.01 240);
+  --color-cli-text-muted: oklch(70% 0.01 240);
   --color-cli-prefix-user: oklch(75% 0.15 250);
   --color-cli-prefix-agent: oklch(75% 0.18 145);
   --color-cli-prefix-tool: oklch(80% 0.12 70);
