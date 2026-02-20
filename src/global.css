@@ -13,8 +13,8 @@ body {
   padding: 0;
   height: 100%;
   font-family: var(--font-mono);
-  color: var(--cli-text);
-  background: var(--cli-bg);
+  color: var(--color-cli-text);
+  background: var(--color-cli-bg);
   transition:
     background var(--transition-fast),
     color var(--transition-fast);

@@ -10,6 +10,7 @@
   import { auth } from "../lib/auth.svelte";
   import { uiToggles } from "../lib/uiToggles.svelte";
   import { canSendPrompt, getCapabilityTooltip } from "../lib/thread-capabilities";
+  import { Archive, ChevronDown, ChevronRight, Pencil } from "lucide-svelte";
   import AppHeader from "../lib/components/AppHeader.svelte";
   import ProjectPicker from "../lib/components/ProjectPicker.svelte";
   import ShimmerDot from "../lib/components/ShimmerDot.svelte";
@@ -763,7 +764,7 @@
       disabled={!canManageThread}
       title={canManageThread ? "Rename thread" : disabledReason}
     >
-      ✏️
+      <Pencil size={16} aria-hidden="true" />
     </button>
     <button
       class="thread-action-btn archive-btn"
@@ -771,7 +772,7 @@
       disabled={!canManageThread}
       title={canManageThread ? "Archive thread" : disabledReason}
     >
-      📦
+      <Archive size={16} aria-hidden="true" />
     </button>
   </li>
 {/snippet}
@@ -787,7 +788,13 @@
           aria-expanded={!isGroupCollapsed(group.label)}
           title={isGroupCollapsed(group.label) ? "Expand group" : "Collapse group"}
         >
-          <span class="thread-group-caret" aria-hidden="true">{isGroupCollapsed(group.label) ? "▸" : "▾"}</span>
+          <span class="thread-group-caret" aria-hidden="true">
+            {#if isGroupCollapsed(group.label)}
+              <ChevronRight size={14} aria-hidden="true" />
+            {:else}
+              <ChevronDown size={14} aria-hidden="true" />
+            {/if}
+          </span>
           <span class="thread-group-title">{group.label}</span>
           <span class="thread-group-count">{group.threads.length}</span>
         </button>

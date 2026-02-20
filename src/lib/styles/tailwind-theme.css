@@ -2,7 +2,7 @@
 /* This file defines design tokens for Tailwind utilities */
 /* Existing CSS variables in tokens.css remain for backward compatibility */
 
-@theme inline {
+@theme {
   /* ==================== */
   /* SPACING SCALE        */
   /* ==================== */
@@ -31,7 +31,7 @@
   --font-size-lg: 1.125rem;
 }
 
-@theme inline {
+@theme {
   /* ==================== */
   /* LIGHT MODE COLORS    */
   /* ==================== */
@@ -118,7 +118,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     /* CLI Terminal Colors */
-    --color-cli-bg: oklch(15% 0 0);
+    --color-cli-bg: oklch(12% 0.01 240);
     --color-cli-bg-elevated: oklch(18% 0 0);
     --color-cli-bg-user: oklch(75% 0.18 145 / 0.18);
     --color-cli-text: oklch(92% 0.005 240);
@@ -188,7 +188,7 @@
 /* ==================== */
 /* Manual data-theme="dark" selector matches media query tokens */
 :root[data-theme="dark"] {
-  --color-cli-bg: oklch(15% 0 0);
+  --color-cli-bg: oklch(12% 0.01 240);
   --color-cli-bg-elevated: oklch(18% 0 0);
   --color-cli-bg-user: oklch(75% 0.18 145 / 0.18);
   --color-cli-text: oklch(92% 0.005 240);
