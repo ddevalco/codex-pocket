@@ -768,3 +768,10 @@ Migrate terminal/message components from CSS variables to Tailwind utility class
   - **Status**: Optional refactoring, no functional impact.
   - **Priority**: Low (P3/P4).
   - **Files**: [services/local-orbit/src/index.ts](services/local-orbit/src/index.ts), [services/local-orbit/src/providers/adapters/codex-adapter.ts](services/local-orbit/src/providers/adapters/codex-adapter.ts)
+
+## Future Features / Ideas
+
+- **OpenCode Integration**
+  - **Status**: Planned (not started)
+  - **Priority**: TBD (to be determined)
+  - **Description**: Placeholder for OpenCode integration feature (details to be defined)
