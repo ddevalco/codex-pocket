@@ -12,6 +12,137 @@ Issues are canonical for work items:
 
 ## Recently Done
 
+### 2026-02-20: Provider Configuration UI ✅
+
+**Context:** User requested Settings UI for managing providers without manual config.json editing.
+
+#### Issue #259 (P1): Provider Configuration UI in Settings ✅ IMPLEMENTED
+
+**Problem:**
+
+- All provider configuration required manual `~/.coderelay/config.json` editing
+- No visual health status monitoring
+- Difficult to setup Claude providers (web API and local CLI)
+- No validation feedback for configuration errors
+- Poor UX for managing four different providers
+
+**Requirements:**
+
+- Settings section for all providers
+- Enable/disable toggles
+- API key input fields (masked for security)
+- Status monitoring with real-time updates
+- Provider-specific configuration fields
+- Save persistence with restart notification
+
+**Implementation:** (commit 84bc9d4)
+
+**Backend API:**
+
+- ✅ `GET /api/config/providers`: Read current provider config with API keys masked
+- ✅ `PATCH /api/config/providers`: Update config with validation
+- ✅ Helper functions: `readProviderConfig`, `writeProviderConfig`, `maskProviderConfig`
+- ✅ Atomic writes using temp file + rename pattern
+- ✅ Validation rules:
+  - Claude web API: Requires non-empty API key when enabled
+  - All timeouts/maxTokens: Must be positive integers
+  - Executable paths: Format validation
+  - Models: Non-empty strings
+- ✅ Clear error messages for validation failures
+- ✅ Audit trail in admin logs
+
+**Frontend UI:**
+
+- ✅ New Providers section in Settings page
+- ✅ Grid layout (responsive for desktop/mobile)
+- ✅ Four provider cards:
+  - **Codex**: Display-only (always enabled)
+  - **Copilot ACP**: Toggle + executable path override
+  - **Claude (Web API)**: Toggle + API key + model + advanced settings
+  - **Claude MCP (Local CLI)**: Toggle + executable path + model + advanced settings
+- ✅ Real-time health status polling (30-second intervals)
+- ✅ StatusChip components with color-coded status
+- ✅ Advanced settings collapse/expand with `<details>` elements
+- ✅ Form state management with `$derived isDirty` check
+- ✅ Save button (enabled only when changes detected)
+- ✅ Restart banner after successful save
+
+**Provider-Specific Features:**
+
+| Provider | Config Fields | Always On |
+|----------|---------------|-----------|
+| **Codex** | None (display-only) | ✅ |
+| **Copilot ACP** | Executable path override | Default on |
+| **Claude (Web)** | API key, model, base URL, timeout | Opt-in |
+| **Claude MCP** | Executable path, model, maxTokens, timeout, debug | Opt-in |
+
+**Security:**
+
+- API keys masked with "••••" in GET response
+- Password input type for API key fields
+- No plain text secrets in DOM
+- Authorization required for all config endpoints
+
+**UX Flow:**
+
+1. User navigates to Settings → Providers section
+2. Sees all four providers with current health status
+3. Enables desired provider with toggle
+4. Configures provider-specific settings
+5. Clicks "Save Changes" (validation happens)
+6. Configuration persists to `config.json`
+7. Restart banner appears with "Restart Now" button
+8. Service restart applies new configuration
+
+**Impact:**
+
+- ✅ Eliminated need for manual `config.json` editing
+- ✅ Visual health monitoring for all providers
+- ✅ Easy Claude provider setup (both web and local)
+- ✅ Clear configuration validation
+- ✅ Improved provider management UX
+
+**Technical Details:**
+
+- Type-safe API client in `src/lib/api/config.ts`
+- Svelte 5 $state/$derived/$effect for reactive state
+- Reused existing components (SectionCard, StatusChip)
+- Grid layout with `auto-fit minmax(300px, 1fr)`
+- Health polling cleans up on component unmount
+
+---
+
+**Complete Provider Architecture (At End of Day):**
+
+| Provider | Type | Status | Configuration |
+|----------|------|--------|---------------|
+| **Codex** | Local (Anchor) | ✅ Working | None needed |
+| **Copilot ACP** | Local (CLI) | ✅ Capability detection | Executable path |
+| **Claude** | Web (API) | ✅ Optional | API key, model, timeout |
+| **Claude MCP** | Local (CLI) | ✅ Optional | Executable path, model, tokens |
+
+**Total Issues Resolved Today:**
+
+- Issue #257: Dark mode contrast ✅
+- Issue #255: Copilot capability detection ✅
+- Issue #256: Claude MCP adapter ✅
+- Issue #258: Hybrid architecture backlog ✅
+- Issue #259: Provider Configuration UI ✅
+
+**Commits:**
+
+- 82ad9bf: Dark mode contrast fix
+- 90b44c9: Copilot capability detection
+- 83cf0ea: Claude MCP adapter
+- 8a97d9e: BACKLOG update (installation fixes)
+- 84bc9d4: Provider Configuration UI
+
+**Lines of Code:**
+
+- Backend: ~150 lines (API endpoints + helpers)
+- Frontend: ~200 lines (UI components + state management)
+- Total: ~350 lines of production code
+
 ### 2026-02-19: Installer Bug Fixes
 
 **Issue:** Installation process had multiple critical bugs:
