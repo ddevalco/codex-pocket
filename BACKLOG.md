@@ -31,6 +31,97 @@ Issues are canonical for work items:
 
 **Impact:** Installer now works correctly from both GitHub and local sources. App installs and runs without manual dependency fixes.
 
+### 2026-02-19: Fresh Install Critical Issues - All Resolved ✅
+
+**Context:** User reported multiple critical issues after fresh installation that prevented app usage.
+
+#### Issue #252 (P0 CRITICAL): UI Blank/Broken ✅ FIXED
+
+**Problem:**
+
+- `/app` showed blank/black screen
+- `/settings` unclickable/non-functional
+- Runtime error: `ReferenceError: $state is not defined`
+
+**Root Cause:**
+
+- `src/lib/uiToggles.ts` was plain TypeScript file
+- Svelte 5 runes ($state, $effect) not compiled by Svelte compiler
+- Runes appeared raw in production bundle causing runtime crash
+
+**Resolution:** (commit 62f7f08)
+
+- ✅ Renamed to `uiToggles.svelte.ts` (Svelte module)
+- ✅ Updated 7 import paths across codebase
+- ✅ Verified no uncompiled runes in production bundle
+- ✅ UI now loads and functions correctly
+
+**Lesson:** Always use `.svelte.ts` extension for TypeScript modules using Svelte runes.
+
+---
+
+#### Issue #253 (P1 HIGH): ACP Provider Unhealthy ✅ FIXED
+
+**Problem:**
+
+- ACP provider status: "unhealthy"
+- Message: "ACP client not initialized"
+- Despite having Copilot CLI installed at `/opt/homebrew/bin/copilot`
+
+**Root Cause:**
+
+- launchd services have restricted PATH (`/usr/bin:/bin:/usr/sbin:/sbin` only)
+- Homebrew binaries in `/opt/homebrew/bin` not accessible
+- Adapter couldn't find Copilot CLI executable
+
+**Resolution:** (commit 9cf97ac)
+
+- ✅ Added `EnvironmentVariables` section to launchd plist
+- ✅ Includes proper PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`
+- ✅ Documented PATH verification in TROUBLESHOOTING.md
+- ✅ ACP provider now initializes correctly when Copilot installed
+
+---
+
+#### Issue #254 (P2 MEDIUM): VS Code Type Errors ✅ FIXED
+
+**Problem:**
+
+- Editor showing false-positive TypeScript errors:
+  - `marked.d.ts` not a module
+  - `purify.es.d.mts` not a module
+  - Property 'env' does not exist on ImportMeta
+- Build succeeded despite errors (editor-only issue)
+
+**Root Cause:**
+
+- VS Code using bundled TypeScript instead of workspace version
+- Older TS versions mishandle `.d.mts` files and Vite env types
+
+**Resolution:** (commit 7a009b0)
+
+- ✅ Added `.vscode/settings.json` with workspace TS configuration
+- ✅ Added `.vscode/extensions.json` with recommended extensions
+- ✅ Documented editor setup in DEVELOPMENT.md
+- ✅ Phantom errors eliminated for developers
+
+---
+
+**Installer Improvements:**
+
+- All fixes included in updated installer
+- Proper dependency installation (local-orbit)
+- Correct environment variables (VITE_CODERELAY_LOCAL)
+- Local repository source support
+- PATH configuration for launchd services
+
+**Impact:** Fresh installations now work correctly with full functionality:
+
+- ✅ UI loads and renders
+- ✅ All routes functional (/app, /settings, /admin)
+- ✅ ACP provider initializes when Copilot installed
+- ✅ Clean developer experience
+
 ### 2026-02-19: Rebrand to CodeRelay
 
 - Phase 5: Rebrand to CodeRelay - COMPLETE (2026-02-19)
