@@ -632,14 +632,14 @@ Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATION
 
 ### Issue #223: OKLCH Color Migration - Terminal Components
 
-**Epic:** #221 | **Story Points:** 13 | **Status:** Phase 1A ✅, Phase 1B 🔄
+**Epic:** #221 | **Story Points:** 13 | **Status:** Phase 1A ✅, Phase 1B ✅
 
 Migrate terminal/message components from CSS variables to Tailwind utility classes.
 
 **Progress:**
 
 - ✅ Phase 1A: 6 leaf components (PR #244 merged)
-- 🔄 Phase 1B: 11 critical components (in batches)
+- ✅ Phase 1B: 11 critical components (in batches)
   - Batch 1: Tool.svelte
   - Batch 2: MessageBlock + ApprovalPrompt + UserInputPrompt
   - Batch 3: PromptInput
@@ -648,11 +648,11 @@ Migrate terminal/message components from CSS variables to Tailwind utility class
 
 **Acceptance Criteria:**
 
-- [ ] All `var(--cli-*)` CSS variable references removed
-- [ ] All components use Tailwind utility classes
-- [ ] No visual regressions in light/dark mode
-- [ ] Build and type-check pass
-- [ ] Dynamic color assignment works correctly
+- [x] All `var(--cli-*)` CSS variable references removed
+- [x] All components use Tailwind utility classes
+- [x] No visual regressions in light/dark mode
+- [x] Build and type-check pass
+- [x] Dynamic color assignment works correctly
 
 **Dependencies:**
 

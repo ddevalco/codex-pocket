@@ -8,6 +8,7 @@ This project started as a local-only fork inspired by **Zane** by Z. Siddiqi. Se
 
 ### Changed
 
+- **OKLCH Color Migration (Phase 1B)**: Migrated 11 terminal and message components to Tailwind OKLCH system (including `Tool`, `MessageBlock`, `ApprovalPrompt`, `UserInputPrompt`, `PromptInput`, `Thread`, `Settings`).
 - **BREAKING**: Rebranded from "Codex Pocket" to "CodeRelay"
   - All localStorage keys migrated automatically (`__zane_threads_store__` → `__coderelay_threads_store__`)
   - Environment variable: `CODEX_POCKET_HOME` → `CODERELAY_HOME`
