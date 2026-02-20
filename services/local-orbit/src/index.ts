@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
 import { createRegistry } from "./providers/registry.js";
-import { CodexAdapter, CopilotAcpAdapter, ClaudeAdapter } from "./providers/adapters/index.js";
+import { CodexAdapter, CopilotAcpAdapter, ClaudeAdapter, ClaudeMcpAdapter } from "./providers/adapters/index.js";
 import { AgentStore } from "./agents/agent-store.js";
 import type { PromptInput, PromptAttachment, NormalizedEvent, AcpApprovalPayload } from "./providers/provider-types.js";
 import { normalizeAttachment, isValidAttachment } from "./providers/provider-types.js";
@@ -207,6 +207,17 @@ registry.register(
   {
     enabled: claudeCfg.enabled === true, // Disabled by default (explicit opt-in)
     extra: claudeCfg,
+  },
+);
+
+// Register Claude MCP adapter (local CLI)
+const claudeMcpCfg = providersConfig["claude-mcp"] || {};
+registry.register(
+  "claude-mcp",
+  (cfg) => new ClaudeMcpAdapter(cfg.extra),
+  {
+    enabled: claudeMcpCfg.enabled === true, // Disabled by default (explicit opt-in)
+    extra: claudeMcpCfg,
   },
 );
 
