@@ -128,11 +128,11 @@
       if (!res.ok) throw new Error(`status ${res.status}`);
       status = (await res.json()) as Status;
       try {
-        const rd = (status.db as any)?.uploadRetentionDays;
+        const rd = status.db?.uploadRetentionDays;
         if (typeof rd === "number" && Number.isFinite(rd)) {
           uploadRetentionDays = rd;
         }
-        const ph = (status.db as any)?.uploadPruneIntervalHours;
+        const ph = status.db?.uploadPruneIntervalHours;
         if (typeof ph === "number" && Number.isFinite(ph)) {
           uploadPruneIntervalHours = Math.max(1, Math.floor(ph));
         }

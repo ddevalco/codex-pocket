@@ -27,6 +27,7 @@
   type CopyState = "idle" | "copied" | "error";
   let copyState = $state<CopyState>("idle");
   let menuOpen = $state(false);
+  let copyRawRequested = false;
 
   // Safety guarantee: ensure at least one copy action remains enabled.
   $effect(() => {
@@ -95,8 +96,8 @@
       const raw = message.text ?? "";
       // Default to copying "rendered text" so markdown UI doesn't pollute what you paste elsewhere.
       // Hold Shift while clicking copy to copy the raw markdown source instead.
-      const wantRaw = (copyMessage as any).__wantRaw === true;
-      (copyMessage as any).__wantRaw = false;
+      const wantRaw = copyRawRequested;
+      copyRawRequested = false;
 
       let text = raw;
       if (!wantRaw) {
@@ -134,7 +135,7 @@
   }
 
   function copyRawMarkdown() {
-    (copyMessage as any).__wantRaw = true;
+    copyRawRequested = true;
     copyMessage();
   }
 
@@ -187,7 +188,7 @@
     {onCopyFromHere}
     onToggleMenu={() => menuOpen = !menuOpen}
     onShiftCopy={(e) => {
-      (copyMessage as any).__wantRaw = e.shiftKey;
+      copyRawRequested = e.shiftKey;
       copyMessage();
     }}
   />
@@ -251,7 +252,7 @@
       class:text-cli-error={copyState === "error"}
       onclick={(e) => {
         // Shift+click copies raw markdown source.
-        (copyMessage as any).__wantRaw = (e as MouseEvent).shiftKey;
+        copyRawRequested = (e as MouseEvent).shiftKey;
         copyMessage();
       }}
     />
@@ -290,7 +291,7 @@
     {onCopyFromHere}
     onToggleMenu={() => menuOpen = !menuOpen}
     onShiftCopy={(e) => {
-      (copyMessage as any).__wantRaw = e.shiftKey;
+      copyRawRequested = e.shiftKey;
       copyMessage();
     }}
   />
