@@ -188,6 +188,21 @@
       onToggleMenu={() => menuOpen = !menuOpen}
       onShiftCopy={(e) => {
         (copyMessage as any).__wantRaw = e.shiftKey;
+  <MessageActions
+    {message}
+    {copyState}
+    {menuOpen}
+    onCopyMessage={copyMessage}
+    onCopyRawMarkdown={copyRawMarkdown}
+    {onCopyQuoted}
+    {onCopyFromHere}
+    onToggleMenu={() => menuOpen = !menuOpen}
+    onShiftCopy={(e) => {
+      (copyMessage as any).__wantRaw = e.shiftKey;
+      copyMessage();
+    }}
+  />
+
   {#if uiToggles.showMessageCopyButton || uiToggles.showMessageCopyMarkdown || uiToggles.showMessageCopyQuoted}
     <div class="absolute top-xs right-md z-10 flex items-center gap-xs max-sm:right-sm" data-message-menu={message.id}>
       <button
