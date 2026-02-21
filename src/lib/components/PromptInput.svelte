@@ -629,11 +629,11 @@
 
 <style>
   .composer-container {
-    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 -1px 4px oklch(0 0 0 / 0.04);
   }
 
   .composer-container:focus-within {
-    box-shadow: var(--shadow-focus), 0 -1px 4px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-focus), 0 -1px 4px oklch(0 0 0 / 0.04);
   }
 
   .composer-textarea {

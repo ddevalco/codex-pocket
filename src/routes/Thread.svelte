@@ -270,11 +270,11 @@
     :root { color-scheme: light dark; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 860px; margin: 32px auto; padding: 0 16px; line-height: 1.55; }
     h1 { margin: 0 0 4px; font-size: 1.5rem; }
-    .meta { margin: 0 0 24px; color: #6b7280; font-size: .9rem; }
-    section { border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-    h2 { margin: 0 0 8px; font-size: 1rem; text-transform: uppercase; letter-spacing: .04em; color: #4b5563; }
+    .meta { margin: 0 0 24px; color: oklch(0.55 0.03 260); font-size: .9rem; }
+    section { border: 1px solid oklch(0.87 0.01 260); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    h2 { margin: 0 0 8px; font-size: 1rem; text-transform: uppercase; letter-spacing: .04em; color: oklch(0.45 0.03 260); }
     p, pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
-    pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: rgba(0,0,0,.05); padding: 10px; border-radius: 6px; }
+    pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: oklch(0 0 0 / 0.05); padding: 10px; border-radius: 6px; }
   </style>
 </head>
 <body>

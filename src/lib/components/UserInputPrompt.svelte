@@ -106,7 +106,7 @@
               class:border-cli-border={isFocused}
               class:bg-cli-bg-hover={isFocused}
               class:border-cli-prefix-agent={isSelected}
-              style:background-color={isSelected ? "color-mix(in oklch, var(--color-cli-prefix-agent), transparent 92%)" : ""}
+              style:background-color={isSelected ? "color-mix(in oklch, var(--cli-prefix-agent), transparent 92%)" : ""}
               onclick={() => {
                 focusedQuestion = qi;
                 focusedOption = oi;

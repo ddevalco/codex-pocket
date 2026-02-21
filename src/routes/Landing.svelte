@@ -242,7 +242,7 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(5, 7, 10, 0.6);
+    background: oklch(0.0273 0.0066 248.44 / 0.6);
     z-index: 40;
   }
 
@@ -256,7 +256,7 @@
     border: 1px solid var(--cli-border);
     border-radius: var(--radius-md);
     z-index: 50;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 30px 80px oklch(0 0 0 / 0.35);
   }
 
   .modal-header {

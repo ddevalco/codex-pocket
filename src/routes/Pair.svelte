@@ -86,9 +86,9 @@
     width: 100%;
     max-width: 520px;
     padding: var(--space-lg);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid oklch(1 0 0 / 0.08);
     border-radius: 14px;
-    background: rgba(0, 0, 0, 0.35);
+    background: oklch(0 0 0 / 0.35);
   }
   .error .title {
     font-weight: 700;

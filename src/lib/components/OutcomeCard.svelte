@@ -234,7 +234,7 @@
   
   .continue-button {
     background: var(--color-cli-prefix-agent);
-    color: white;
+    color: var(--color-text-inverse);
     border: none;
     padding: var(--space-3) var(--space-md);
     border-radius: var(--radius-md);
