@@ -18,6 +18,11 @@
   import ProjectPicker from "../lib/components/ProjectPicker.svelte";
   import ShimmerDot from "../lib/components/ShimmerDot.svelte";
 
+  type ShareNavigator = Navigator & {
+    share?: (data?: ShareData) => Promise<void>;
+    canShare?: (data?: ShareData) => boolean;
+  };
+
   const OLD_FILTER_STORAGE_KEY = "codex_pocket_thread_filters";
   const FILTER_STORAGE_KEY = "coderelay_thread_filters";
 
@@ -484,13 +489,13 @@
     }
 
     // Update UI immediately; local-orbit will also inject titles from Codex's local title store.
-    (thread as any).title = title;
-    (thread as any).name = title;
+    thread.title = title;
+    thread.name = title;
   }
 
   function threadToMarkdown(threadId: string): string {
     const info = threads.list.find((t) => t.id === threadId);
-    const title = ((info as any)?.title || (info as any)?.name || "").trim() || threadId.slice(0, 8);
+    const title = (info?.title || info?.name || "").trim() || threadId.slice(0, 8);
     const out: string[] = [];
     out.push(`# ${title}`);
     out.push("");
@@ -535,7 +540,7 @@
 
   function threadToHtml(threadId: string): string {
     const info = threads.list.find((t) => t.id === threadId);
-    const title = ((info as any)?.title || (info as any)?.name || "").trim() || threadId.slice(0, 8);
+    const title = (info?.title || info?.name || "").trim() || threadId.slice(0, 8);
     const msgs = messages.getThreadMessages(threadId);
     const body = msgs
       .map((m) => {
@@ -582,7 +587,7 @@
 
   function threadToJson(threadId: string): string {
     const info = threads.list.find((t) => t.id === threadId);
-    const title = ((info as any)?.title || (info as any)?.name || "").trim() || threadId.slice(0, 8);
+    const title = (info?.title || info?.name || "").trim() || threadId.slice(0, 8);
     const msgs = messages.getThreadMessages(threadId);
     const exported = {
       version: 1,
@@ -593,8 +598,8 @@
         role: m.role,
         kind: m.kind ?? null,
         text: m.text ?? "",
-        approval: m.role === "approval" ? (m as any).approval ?? null : null,
-        metadata: (m as any).metadata ?? null,
+        approval: m.role === "approval" ? m.approval ?? null : null,
+        metadata: m.metadata ?? null,
       })),
     };
     return JSON.stringify(exported, null, 2) + "\n";
@@ -615,7 +620,7 @@
 
   async function shareFileOrFallback(title: string, file: File, fallbackText: string) {
     try {
-      const nav = navigator as any;
+      const nav = navigator as ShareNavigator;
       if (nav?.share) {
         if (nav.canShare?.({ files: [file] })) {
           await nav.share({ title, files: [file] });
@@ -645,7 +650,7 @@
 
   async function exportThread(threadId: string, format: "md" | "json" | "html" | "pdf", force = false) {
     const info = threads.list.find((t) => t.id === threadId);
-    const titleRaw = ((info as any)?.title || (info as any)?.name || (info as any)?.preview || "").trim() || threadId.slice(0, 8);
+    const titleRaw = (info?.title || info?.name || info?.preview || "").trim() || threadId.slice(0, 8);
     const title = safeFilename(titleRaw) || threadId.slice(0, 8);
 
     // Exports from the thread list may happen before the thread has been opened.

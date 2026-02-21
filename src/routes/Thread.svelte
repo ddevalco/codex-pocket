@@ -21,6 +21,11 @@
     import OutcomeCard from "../lib/components/OutcomeCard.svelte";
     import { createMockHelperOutcome } from "../lib/test-helpers";
 
+    type ShareNavigator = Navigator & {
+        share?: (data?: ShareData) => Promise<void>;
+        canShare?: (data?: ShareData) => boolean;
+    };
+
     const themeIcons = { system: "◐", light: "○", dark: "●" } as const;
 
     let moreMenuOpen = $state(false);
@@ -304,7 +309,7 @@
         const title = threadTitle || id.slice(0, 8);
         try {
             // Prefer native share sheet when available (iOS).
-            const nav = navigator as any;
+            const nav = navigator as ShareNavigator;
             if (nav?.share) {
                 // Prefer sharing a real file when supported (better UX on iOS).
                 // If not supported, fall back to text share.
@@ -333,7 +338,7 @@
         if (!json) return;
         const title = threadTitle || id.slice(0, 8);
         try {
-            const nav = navigator as any;
+            const nav = navigator as ShareNavigator;
             if (nav?.share) {
                 try {
                     const f = new File([json], `${title}.json`, { type: "application/json" });
@@ -360,7 +365,7 @@
         if (!html) return;
         const title = threadTitle || id.slice(0, 8);
         try {
-            const nav = navigator as any;
+            const nav = navigator as ShareNavigator;
             if (nav?.share) {
                 try {
                     const f = new File([html], `${title}.html`, { type: "text/html" });
@@ -430,8 +435,8 @@
                 role: m.role,
                 kind: m.kind ?? null,
                 text: m.text ?? "",
-                approval: m.role === "approval" ? (m as any).approval ?? null : null,
-                metadata: (m as any).metadata ?? null,
+                approval: m.role === "approval" ? m.approval ?? null : null,
+                metadata: m.metadata ?? null,
             })),
         };
         return JSON.stringify(exported, null, 2) + "\n";
@@ -1534,4 +1539,3 @@
     padding-bottom: var(--space-xs, 0.25rem);
   }
 </style>
-
