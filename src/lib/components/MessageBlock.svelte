@@ -268,6 +268,11 @@
 <style>
   .user-bubble {
     word-break: break-word;
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+  }
+
+  .user-bubble:hover {
+    box-shadow: var(--shadow-sm);
   }
 
   :global(.message-block.user-bg.sending .prefix) {
