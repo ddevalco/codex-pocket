@@ -2,6 +2,7 @@
   import { marked } from "marked";
   import DOMPurify from "dompurify";
   import type { Message } from "../types";
+  import Button from "./ui/Button.svelte";
 
   interface Props {
     message: Message;
@@ -72,14 +73,7 @@
     {#if !latest}
       <span class="status-badge muted">Plan</span>
     {:else if status === "pending"}
-      <button
-        type="button"
-        class="approve-btn"
-        {disabled}
-        onclick={handleApprove}
-      >
-        Approve
-      </button>
+      <Button size="sm" {disabled} onclick={handleApprove}>Approve</Button>
       <span class="footer-hint">or reply with changes</span>
     {:else}
       <span class="status-badge">Approved</span>
@@ -234,28 +228,6 @@
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-  }
-
-  .approve-btn {
-    padding: var(--space-xs) var(--space-md);
-    background: var(--color-cli-prefix-agent);
-    border: none;
-    border-radius: var(--radius-sm);
-    color: var(--color-cli-bg);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity var(--transition-fast);
-  }
-
-  .approve-btn:hover:not(:disabled) {
-    opacity: 0.85;
-  }
-
-  .approve-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
   }
 
   .footer-hint {
