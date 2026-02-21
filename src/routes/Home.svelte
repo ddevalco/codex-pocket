@@ -10,7 +10,10 @@
   import { auth } from "../lib/auth.svelte";
   import { uiToggles } from "../lib/uiToggles.svelte";
   import { canSendPrompt, getCapabilityTooltip } from "../lib/thread-capabilities";
-  import { Archive, ChevronDown, ChevronRight, Pencil } from "lucide-svelte";
+  import Archive from "lucide-svelte/icons/archive";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import Pencil from "lucide-svelte/icons/pencil";
   import AppHeader from "../lib/components/AppHeader.svelte";
   import ProjectPicker from "../lib/components/ProjectPicker.svelte";
   import ShimmerDot from "../lib/components/ShimmerDot.svelte";
