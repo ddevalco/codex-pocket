@@ -12,9 +12,42 @@ Issues are canonical for work items:
 
 ## Recently Done
 
+### 2026-02-20: Copilot Code Review Remediation
+
+**Issues:** #276, #277, #278 | **Epic:** #262 | **Branch:** `codex/review-remediation` | **PR:** #279 | **Status:** IN REVIEW
+
+**Context:** Remediated all 16 actionable findings from Copilot code reviews across 10 merged PRs. Findings categorized into 3 issues under the review remediation epic.
+
+#### Issue #276: Security Findings (3 fixes)
+
+- **OpenCode serverUrl validation** — Added `validateServerUrl()` to reject non-HTTP protocols and malformed URLs
+- **Copilot ACP empty sessionId** — Generate unique `anon-{timestamp}-{random}` ID when empty sessionId received
+- **OpenCode streaming capability** — Corrected to `streaming: false` (HTTP polling, not SSE)
+
+#### Issue #277: CSS/OKLCH Findings (9 fixes)
+
+- **48 srgb→oklch conversions** across Admin.svelte, StatusChip.svelte, DangerZone.svelte, Reasoning.svelte, UserInputPrompt.svelte
+- **Dark mode selector** — `:root` → `:root:not([data-theme="light"])` in tailwind-theme.css
+- **Tool.svelte** — Hardcoded hex → Tailwind semantic classes; removed unused `class:open`
+- **MessageBlock.svelte** — Added missing `group` class to parent div
+- **Var naming** — `var(--cli-*)` → `var(--color-cli-*)` in Admin.svelte, DangerZone.svelte
+
+#### Issue #278: Code Quality Findings (4 fixes)
+
+- **Quote style** — Normalized `'object'` → `"object"` in normalized-session.ts, normalized-event.ts
+- **Logging** — Added `console.warn` for unrecognized session status in opencode-adapter.ts
+- **Type safety** — Added `typeof ... === "function"` guard for `trackSession` call in index.ts
+- **Finding #17** (lucide-svelte bundle) — Skipped as low-impact without major refactor
+
+**Validation:** Build passes, typecheck 0 errors, all Phase 4 guards pass.
+
+**Files Changed:** 13 files (5 backend, 8 frontend)
+
+---
+
 ### 2026-02-20: Multi-Provider Thread Fix + OpenCode Support
 
-**Issues:** #272, #273, #274 | **Branch:** `codex/multi-provider-thread-fix` | **Status:** IN PROGRESS
+**Issues:** #272, #273, #274 | **Branch:** `codex/multi-provider-thread-fix` | **Status:** COMPLETE (PR #275 merged)
 
 **Context:** User reported Copilot ACP and Claude threads not appearing in CodeRelay. Root cause: `augmentThreadList()` was hardcoded to only merge Copilot ACP sessions. Additionally, user requested OpenCode as a new provider.
 

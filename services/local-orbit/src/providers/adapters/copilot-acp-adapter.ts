@@ -215,7 +215,9 @@ export class CopilotAcpAdapter implements ProviderAdapter {
 
         return new Promise<unknown>((resolve) => {
           const key = String(rpcId);
-          const sessionId = typeof params.sessionId === "string" ? params.sessionId : "";
+          const sessionId = typeof params.sessionId === "string" && params.sessionId
+            ? params.sessionId
+            : `anon-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           const threadId = `copilot-acp:${sessionId}`;
 
           const timeoutHandle = setTimeout(() => {

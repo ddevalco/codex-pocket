@@ -2199,8 +2199,8 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
     const result = await adapter.sendPrompt(sessionId, promptInput);
     
     // Track session locally for CLIs without list_sessions (Fixes #273)
-    if (adapter.trackSession) {
-      adapter.trackSession(sessionId, {
+    if (typeof (adapter as any).trackSession === "function") {
+      (adapter as any).trackSession(sessionId, {
         preview: text.slice(0, 100),
         status: "active",
       });

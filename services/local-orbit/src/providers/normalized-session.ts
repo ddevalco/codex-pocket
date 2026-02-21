@@ -14,7 +14,7 @@ import type { NormalizedSession, SessionStatus, ProviderId } from "./provider-ty
  */
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
     !Array.isArray(value) &&
     Object.getPrototypeOf(value) === Object.prototype
