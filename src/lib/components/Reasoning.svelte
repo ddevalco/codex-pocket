@@ -128,7 +128,9 @@
   }
 
   .reasoning-content.streaming {
-    border-left-color: var(--color-cli-accent, oklch(0.7 0.15 250));
+    border-left-color: var(--color-cli-prefix-reasoning, oklch(0.55 0.20 285));
+  }
+
   /* P5.1: Shimmer border on reasoning block while streaming */
   .reasoning-block {
     position: relative;

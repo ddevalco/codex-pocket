@@ -55,11 +55,11 @@
     const nextKey = orientation === "vertical" ? "ArrowDown" : "ArrowRight";
     const prevKey = orientation === "vertical" ? "ArrowUp" : "ArrowLeft";
 
-    if (key === nextKey || key === "ArrowDown" || key === "j") {
+    if (key === nextKey) {
       e.preventDefault();
       focusedIndex = Math.min(focusedIndex + 1, options.length - 1);
       focusOption(focusedIndex);
-    } else if (key === prevKey || key === "ArrowUp" || key === "k") {
+    } else if (key === prevKey) {
       e.preventDefault();
       focusedIndex = Math.max(focusedIndex - 1, 0);
       focusOption(focusedIndex);
