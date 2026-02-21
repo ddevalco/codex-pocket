@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "bunx --bun vite",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
     "type-check": "svelte-check --tsconfig ./tsconfig.json",
     "build": "VITE_CODERELAY_LOCAL=1 VITE_CODERELAY_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo unknown) VITE_CODERELAY_BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ) bunx --bun vite build",
     "preview": "bunx --bun vite preview --port 4173",
