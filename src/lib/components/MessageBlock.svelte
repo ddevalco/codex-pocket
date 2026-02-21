@@ -3,9 +3,16 @@
   import DOMPurify from "dompurify";
   import type { Message } from "../types";
   import { uiToggles } from "../uiToggles.svelte";
-  import ShimmerDot from "./ShimmerDot.svelte";
   import Reasoning from "./Reasoning.svelte";
   import Tool from "./Tool.svelte";
+  import {
+    MessageActions,
+    TokenCost,
+    MarkdownRenderer,
+    WaitMessage,
+    CompactionMessage,
+    TerminalMessage,
+  } from "./message/index";
 
   interface Props {
     message: Message;
@@ -44,6 +51,7 @@
     return () => document.removeEventListener("click", onDocClick, true);
   });
 
+  /* ── Message type classification ── */
   const isReasoning = $derived(message.role === "assistant" && message.kind === "reasoning");
   const isTool = $derived(
     message.role === "tool" &&
@@ -60,14 +68,7 @@
       typeof message.tokenUsage?.totalTokens === "number"
   );
 
-  function formatTokenCount(totalTokens: number): string {
-    if (totalTokens >= 1000) {
-      const compact = (totalTokens / 1000).toFixed(1);
-      return `${compact.replace(/\.0$/, "")}K`;
-    }
-    return totalTokens.toLocaleString();
-  }
-
+  /* ── Copy logic ── */
   async function copyMessage() {
     const fallbackCopy = (text: string) => {
       // Works on http:// origins where navigator.clipboard is unavailable.
@@ -89,7 +90,7 @@
 
     try {
       const raw = message.text ?? "";
-      // Default to copying "rendered text" so markdown UI doesn’t pollute what you paste elsewhere.
+      // Default to copying "rendered text" so markdown UI doesn't pollute what you paste elsewhere.
       // Hold Shift while clicking copy to copy the raw markdown source instead.
       const wantRaw = (copyMessage as any).__wantRaw === true;
       (copyMessage as any).__wantRaw = false;
@@ -134,6 +135,7 @@
     copyMessage();
   }
 
+  /* ── Prefix / background config by role + status ── */
   const prefixConfig = $derived.by(() => {
     if (message.status === "sending") {
       return { prefix: "◌", colorClass: "text-cli-text-muted", bgClass: "bg-cli-bg-user border-l-0 shadow-none pl-md sending" };
@@ -151,56 +153,6 @@
       return { prefix: "•", colorClass: "text-cli-prefix-tool", bgClass: "" };
     }
     return { prefix: "•", colorClass: "text-cli-text-dim", bgClass: "" };
-  });
-
-  const terminalLines = $derived.by(() => {
-    if (!isTerminal) return [];
-    const lines = message.text.split("\n");
-    if (lines[lines.length - 1] === "") lines.pop();
-    return lines;
-  });
-
-  const renderedHtml = $derived.by(() => {
-    if (isReasoning || isTool || isTerminal || isWait || isCompaction) return "";
-
-    // For normal messages, render markdown (sanitized). This enables inline images for uploads.
-    const raw = message.text ?? "";
-    try {
-      const html = marked.parse(raw, {
-        async: false,
-        breaks: true,
-      }) as string;
-
-      return DOMPurify.sanitize(html, {
-        // Keep the sanitizer fairly strict, but allow images + links.
-        // Upload URLs are capability tokens (e.g. /u/<token>) so they can render without auth headers.
-        ALLOWED_TAGS: [
-          "a",
-          "p",
-          "br",
-          "strong",
-          "em",
-          "code",
-          "pre",
-          "blockquote",
-          "ul",
-          "ol",
-          "li",
-          "hr",
-          "h1",
-          "h2",
-          "h3",
-          "h4",
-          "h5",
-          "h6",
-          "img",
-        ],
-        ALLOWED_ATTR: ["href", "title", "src", "alt"],
-      });
-    } catch {
-      // If markdown parsing fails for any reason, fall back to plain text.
-      return DOMPurify.sanitize(raw);
-    }
   });
 </script>
 
@@ -223,6 +175,21 @@
     }
   }}
 >
+  <MessageActions
+    {message}
+    {copyState}
+    {menuOpen}
+    onCopyMessage={copyMessage}
+    onCopyRawMarkdown={copyRawMarkdown}
+    {onCopyQuoted}
+    {onCopyFromHere}
+    onToggleMenu={() => menuOpen = !menuOpen}
+    onShiftCopy={(e) => {
+      (copyMessage as any).__wantRaw = e.shiftKey;
+      copyMessage();
+    }}
+  />
+
   {#if uiToggles.showMessageCopyButton || uiToggles.showMessageCopyMarkdown || uiToggles.showMessageCopyQuoted}
     <div class="absolute top-xs right-md z-10 flex items-center gap-xs max-sm:right-sm" data-message-menu={message.id}>
       <button
@@ -300,43 +267,32 @@
   {:else if isTool}
     <Tool {message} />
   {:else if isWait}
-    <div class="flex items-center gap-sm">
-      <span class="flex-shrink-0 font-semibold {prefixConfig.colorClass}">{prefixConfig.prefix}</span>
-      <div class="flex items-center gap-sm">
-        <ShimmerDot color="--color-cli-prefix-tool" />
-        <span class="text-cli-text-dim italic min-w-0 break-words">{message.text}</span>
-      </div>
-    </div>
+    <WaitMessage
+      text={message.text}
+      prefix={prefixConfig.prefix}
+      colorClass={prefixConfig.colorClass}
+    />
   {:else if isCompaction}
-    <div class="flex items-center justify-center gap-sm">
-      <span class="text-cli-text-muted text-xs">↕</span>
-      <span class="text-cli-text-dim italic min-w-0 break-words">Context compacted</span>
-    </div>
+    <CompactionMessage />
   {:else if isTerminal}
-    <div class="flex items-start gap-sm">
-      <span class="flex-shrink-0 font-semibold {prefixConfig.colorClass}">{prefixConfig.prefix}</span>
-      <div class="flex flex-col gap-[0.1rem]">
-        {#each terminalLines as line}
-          <div class="flex gap-sm">
-            <span class="text-cli-text min-w-0 break-words">{line}</span>
-          </div>
-        {/each}
-      </div>
-    </div>
+    <TerminalMessage
+      text={message.text}
+      prefix={prefixConfig.prefix}
+      colorClass={prefixConfig.colorClass}
+    />
   {:else}
-    <div class="flex items-start gap-sm">
-      <span class="flex-shrink-0 font-semibold {prefixConfig.colorClass}">{prefixConfig.prefix}</span>
-      <div class="text-cli-text min-w-0 break-words markdown">{@html renderedHtml}</div>
-    </div>
+    <MarkdownRenderer
+      text={message.text}
+      prefix={prefixConfig.prefix}
+      colorClass={prefixConfig.colorClass}
+    />
   {/if}
+
   {#if showTokenCost}
-    <div class="ml-[calc(var(--spacing-md)+12px)] mt-xs text-[0.8em] text-cli-text-muted flex gap-xs items-center" aria-live="polite">
-      <span>{formatTokenCount(message.tokenUsage?.totalTokens ?? 0)} tokens</span>
-      {#if typeof message.tokenUsage?.estimatedCost === "number"}
-        <span class="opacity-60">·</span>
-        <span>${message.tokenUsage.estimatedCost.toFixed(4)}</span>
-      {/if}
-    </div>
+    <TokenCost
+      totalTokens={message.tokenUsage?.totalTokens ?? 0}
+      estimatedCost={message.tokenUsage?.estimatedCost}
+    />
   {/if}
 </div>
 
@@ -349,40 +305,5 @@
   @keyframes status-pulse {
     0%, 100% { opacity: 1.0; transform: scale(1); }
     50% { opacity: 0.5; transform: scale(0.92); }
-  }
-
-  /* Markdown rendering */
-  .markdown :global(p) {
-    margin: 0;
-  }
-
-  .markdown :global(pre) {
-    margin: 0;
-    padding: var(--spacing-sm);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-sm);
-    overflow: auto;
-  }
-
-  .markdown :global(code) {
-    font-family: var(--font-mono);
-  }
-
-  .markdown :global(img) {
-    max-width: min(520px, 100%);
-    height: auto;
-    display: block;
-    margin-top: var(--spacing-xs);
-    border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .markdown :global(a) {
-    color: var(--color-cli-prefix-user);
-    text-decoration: underline;
-  }
-  .markdown :global(a:hover) {
-    opacity: 0.8;
   }
 </style>
