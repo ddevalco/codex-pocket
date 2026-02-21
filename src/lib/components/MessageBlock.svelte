@@ -227,7 +227,7 @@
     <div class="absolute top-xs right-md z-10 flex items-center gap-xs max-sm:right-sm" data-message-menu={message.id}>
       <button
         type="button"
-        class="bg-transparent border-none text-cli-text-muted cursor-pointer px-1.5 py-0.5 rounded-[6px] text-base leading-none hover:text-cli-text hover:bg-cli-bg-elevated"
+        class="bg-transparent border-none text-cli-text-muted cursor-pointer px-1.5 py-0.5 rounded-md text-base leading-none hover:text-cli-text hover:bg-cli-bg-elevated"
         onclick={(e) => {
           e.stopPropagation();
           menuOpen = !menuOpen;
@@ -238,7 +238,7 @@
         ⋯
       </button>
       {#if menuOpen}
-        <div class="absolute top-[22px] right-0 min-w-[160px] bg-cli-bg-elevated border border-white/10 rounded-[10px] p-1.5 shadow-popover z-20" role="menu" aria-label="Message actions">
+        <div class="absolute top-[22px] right-0 min-w-[160px] bg-cli-bg-elevated border border-white/10 rounded-xl p-1.5 shadow-popover z-20" role="menu" aria-label="Message actions">
           {#if uiToggles.showMessageCopyButton}
             <button type="button" class="w-full text-left bg-transparent border-none text-cli-text font-mono text-sm px-2.5 py-2 rounded-lg cursor-pointer hover:bg-white/5" role="menuitem" onclick={() => { menuOpen = false; copyMessage(); }}>Copy</button>
           {/if}
@@ -274,7 +274,7 @@
   {#if uiToggles.showMessageCopyButton}
     <button
       type="button"
-      class="absolute top-[6px] right-[10px] px-2.5 py-1 rounded-sm border border-cli-border bg-black/25 text-cli-text-muted font-mono text-[11px] cursor-pointer opacity-0 transition-all duration-200 hover:text-cli-text max-[520px]:opacity-100 max-[520px]:px-3 max-[520px]:py-1.5 max-[520px]:text-xs group-hover:opacity-100 focus-within:opacity-100"
+      class="absolute top-[6px] right-[10px] px-2.5 py-1 rounded-sm border border-cli-border bg-black/25 text-cli-text-muted font-mono text-2xs cursor-pointer opacity-0 transition-all duration-200 hover:text-cli-text max-[520px]:opacity-100 max-[520px]:px-3 max-[520px]:py-1.5 max-[520px]:text-xs group-hover:opacity-100 focus-within:opacity-100"
       class:opacity-100={copyState !== "idle"}
       class:border-cli-success={copyState === "copied"}
       class:text-cli-success={copyState === "copied"}
