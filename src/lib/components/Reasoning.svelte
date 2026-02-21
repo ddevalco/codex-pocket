@@ -79,7 +79,7 @@
   });
 </script>
 
-<div class="font-mono text-sm">
+<div class="reasoning-block font-mono text-sm" class:reasoning-streaming={isStreaming}>
   <button class="flex w-full cursor-pointer items-center gap-sm border-none bg-transparent py-xs text-left font-inherit text-inherit text-cli-text-dim transition-colors hover:text-cli-text" onclick={toggle} type="button">
     <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
@@ -121,6 +121,30 @@
 </div>
 
 <style>
+  /* P5.1: Shimmer border on reasoning block while streaming */
+  .reasoning-block {
+    position: relative;
+    border-radius: var(--radius-md, 6px);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .reasoning-streaming {
+    border-left: 2px solid var(--cli-prefix-agent);
+    padding-left: var(--space-sm, 0.5rem);
+    animation: reasoning-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes reasoning-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 transparent;
+      border-left-color: var(--cli-prefix-agent);
+    }
+    50% {
+      box-shadow: -2px 0 8px -2px color-mix(in oklch, var(--cli-prefix-agent), transparent 70%);
+      border-left-color: color-mix(in oklch, var(--cli-prefix-agent), white 30%);
+    }
+  }
+
   .markdown :global(p) {
     margin: 0;
   }

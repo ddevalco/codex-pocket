@@ -246,4 +246,5 @@
   .continue-button:hover {
     opacity: 0.9;
   }
+
 </style>

@@ -12,6 +12,21 @@ Issues are canonical for work items:
 
 ## Recently Done
 
+### 2026-02-21: Farfield UI/UX Refresh — P1 through P5
+
+**Epic:** #221 | **Status:** IN REVIEW (PRs #280, #281, #282, #283, #284, #285)
+
+Implemented all five phases of the Farfield-Inspired UI/UX Refresh:
+
+- **P1 Design Tokens (PR #280):** Spacing, radius, typography, animation token system in `tokens.css` + Tailwind v4 theme extension
+- **P2 Component Library (PR #281):** Reusable `Button`, `Card`, `RadioGroup` components with barrel export
+- **P2.1 Message Block Refactor (PR #282):** Extracted 6 sub-components from monolithic MessageBlock.svelte
+- **P3 Composer Improvements (PR #283):** State-aware button, auto-resize textarea, chromeless styling
+- **P4 Conversation UI (PR #284):** User bubbles, tool grouping, reasoning collapse, timeline layout
+- **P5 Polish & Micro-interactions (PR #285):** Thinking shimmer, gradient scroll masks, hover state polish
+
+**Validation:** All 6 PRs pass svelte-check (0 errors), vite build, bun test (229 pass), bundle size, regression guards.
+
 ### 2026-02-20: Copilot Code Review Remediation
 
 **Issues:** #276, #277, #278 | **Epic:** #262 | **Branch:** `codex/review-remediation` | **PR:** #279 | **Status:** IN REVIEW
@@ -839,6 +854,58 @@ Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATION
 - [ ] OpenCode Phase 2: Streaming events, attachment support, approval workflows
 
 ## Epic #221: Farfield-Inspired UI/UX Refresh
+
+### P1: Design Tokens & Typography (PR #280)
+
+**Issues:** #224, #225, #226 | **Branch:** `codex/p1-design-tokens` | **Status:** IN REVIEW
+
+- Created `src/lib/styles/tokens.css` with spacing, radius, typography, and animation tokens
+- Extended Tailwind v4 theme in `tailwind-theme.css` with `--space-*`, `--radius-*`, `--font-size-*`, `--font-weight-*` tokens
+- Migrated hardcoded values in 6 components to use design tokens
+
+### P2: Component Library (PR #281)
+
+**Issues:** #228, #229, #230 | **Branch:** `codex/p2-component-library` | **Status:** IN REVIEW
+
+- Created `Button.svelte` (3 variants, 3 sizes, loading/disabled states)
+- Created `Card.svelte` (surface container with header/body slots)
+- Created `RadioGroup.svelte` (accessible radio group with keyboard nav)
+- Barrel export at `src/lib/components/ui/index.ts`
+- Migrated `OutcomeCard.svelte` continue button to use `Button` component
+
+### P2.1: Message Block Refactor (PR #282)
+
+**Issues:** #227 | **Branch:** `codex/p2.1-message-refactor` | **Status:** IN REVIEW
+
+- Extracted `MessageActions`, `TokenCost`, `MarkdownRenderer`, `WaitMessage`, `CompactionMessage`, `TerminalMessage` from MessageBlock.svelte
+- Each sub-component is a focused, testable unit
+- MessageBlock.svelte reduced from monolithic to composition-based architecture
+
+### P3: Composer Improvements (PR #283)
+
+**Issues:** #231, #232, #233 | **Branch:** `codex/p3-composer-improvements` | **Status:** IN REVIEW
+
+- State-aware send button (idle/sending/disabled visual states)
+- Auto-resize textarea with smooth height transitions
+- Chromeless composer styling with reduced visual weight
+
+### P4: Conversation UI (PR #284)
+
+**Issues:** #234, #235, #236, #237 | **Branch:** `codex/p4-conversation-ui` | **Status:** IN REVIEW
+
+- P4.1: Right-aligned user message bubbles with rounded-2xl and bg-cli-bg-user
+- P4.2: Consecutive tool blocks grouped with tight spacing and uppercase label
+- P4.3: Only latest reasoning block defaults open; prior ones collapsed
+- P4.4: Vertical timeline layout with gutter line and dot markers
+
+### P5: Polish & Micro-Interactions (TODO)
+
+**Issues:** #238, #239, #240, #241 | **Status:** NOT STARTED
+
+- P5.1: Thinking shimmer animation (#238)
+- P5.2: Gradient scroll masks (#239)
+- P5.3: Hover state polish (#240)
+- P5.4: Plan mode / visualization (#241)
 
 ### Issue #223: OKLCH Color Migration - Terminal Components
 
