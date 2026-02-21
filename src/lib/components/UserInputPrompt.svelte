@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { UserInputRequest } from "../types";
+  import Button from "./ui/Button.svelte";
 
   interface Props {
     request: UserInputRequest;
@@ -139,14 +140,7 @@
 
   <div class="py-sm px-md border-t border-cli-border flex items-center">
     {#if request.status === "pending"}
-      <button
-        type="button"
-        class="py-xs px-md bg-cli-prefix-agent border-none rounded-sm text-cli-bg font-mono text-xs font-medium cursor-pointer transition-opacity duration-200 hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed"
-        disabled={!canSubmit}
-        onclick={handleSubmit}
-      >
-        Submit
-      </button>
+      <Button size="sm" disabled={!canSubmit} onclick={handleSubmit}>Submit</Button>
     {:else}
       <span class="text-cli-success text-xs font-semibold">Answered</span>
     {/if}

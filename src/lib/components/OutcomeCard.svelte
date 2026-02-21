@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { HelperAgentOutcome } from '../types';
+  import Button from './ui/Button.svelte';
   
   interface Props {
     outcome: HelperAgentOutcome;
@@ -92,12 +93,9 @@
   
   {#if outcome.suggestedNextStep}
     <div class="outcome-actions">
-      <button
-        class="continue-button"
-        onclick={handleContinue}
-      >
+      <Button onclick={handleContinue}>
         Continue with: {outcome.suggestedNextStep}
-      </button>
+      </Button>
     </div>
   {/if}
 </div>
