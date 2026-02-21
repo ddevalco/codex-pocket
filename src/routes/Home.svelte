@@ -1119,48 +1119,48 @@
   }
 
   .provider-section {
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-xl);
     border: 1px solid var(--cli-border);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     background: var(--cli-bg);
-    padding: 1rem;
+    padding: var(--space-md);
   }
 
   .provider-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
     border-bottom: 1px solid var(--cli-border);
   }
 
   .provider-title {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-sm);
     align-items: center;
   }
 
   .provider-badge {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
     font-size: 0.95rem;
     color: var(--cli-prefix-agent);
   }
 
   .new-thread-btn {
-    padding: 0.5rem 1rem;
+    padding: var(--space-sm) var(--space-md);
     background: var(--cli-prefix-agent);
     color: var(--cli-bg);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   }
 
   .empty-state {
-    padding: 2rem;
+    padding: var(--space-xl);
     text-align: center;
     color: var(--cli-text-muted);
   }
@@ -1212,7 +1212,7 @@
   }
 
   .error-icon {
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   }
 
   .threads-section {
@@ -1341,7 +1341,7 @@
   }
 
   .legend-item {
-    --row-gap: 6px;
+    --row-gap: var(--space-xs);
     align-items: center;
     text-transform: lowercase;
     user-select: none;
@@ -1357,7 +1357,7 @@
     height: 26px;
     align-items: center;
     justify-content: center;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     border: 1px solid var(--cli-border);
     background: transparent;
     color: var(--cli-text-muted);
@@ -1409,7 +1409,7 @@
   .legend-close-btn {
     width: 28px;
     height: 28px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     border: 1px solid var(--cli-border);
     background: transparent;
     color: var(--cli-text-muted);
@@ -1577,7 +1577,7 @@
 
   .thread-icon {
     color: var(--cli-prefix-agent);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
   }
 
   .thread-preview {
@@ -1596,7 +1596,7 @@
 
   .thread-context {
     min-width: 0;
-    --row-gap: 6px;
+    --row-gap: var(--space-xs);
     align-items: center;
   }
 
@@ -1606,12 +1606,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 1px 8px;
-    border-radius: 999px;
+    padding: 1px var(--space-sm);
+    border-radius: var(--radius-full);
     border: 1px solid color-mix(in oklab, var(--cli-prefix-agent) 35%, transparent);
     background: color-mix(in oklab, var(--cli-prefix-agent) 10%, transparent);
     color: var(--cli-text);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     line-height: 1.35;
   }
 
@@ -1621,12 +1621,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 1px 8px;
-    border-radius: 999px;
+    padding: 1px var(--space-sm);
+    border-radius: var(--radius-full);
     border: 1px solid color-mix(in oklab, var(--cli-prefix-web) 40%, transparent);
     background: color-mix(in oklab, var(--cli-prefix-web) 14%, transparent);
     color: var(--cli-text);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     line-height: 1.35;
   }
 
@@ -1729,7 +1729,7 @@
     /* Keep date visible but compact. */
     .thread-meta {
       display: block;
-      font-size: 11px;
+      font-size: var(--text-2xs);
       line-height: 1.1;
     }
 
@@ -1758,7 +1758,7 @@
     justify-content: flex-start;
     padding: var(--space-sm) var(--space-md);
     margin-bottom: var(--space-sm);
-    gap: 16px;
+    gap: var(--space-md);
     flex-wrap: wrap;
   }
 
@@ -1766,30 +1766,30 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-sm);
   }
 
   .filter-label {
     color: var(--cli-text-dim);
-    font-size: 12px;
+    font-size: var(--text-xs);
     white-space: nowrap;
   }
 
   .filter-options {
     display: flex;
     flex-direction: row;
-    gap: 6px;
+    gap: var(--space-xs);
     flex-wrap: wrap;
   }
 
   .filter-chip {
-    padding: 3px 10px;
+    padding: 3px var(--space-sm);
     background: transparent;
     border: 1px solid var(--cli-border);
-    border-radius: 99px;
+    border-radius: var(--radius-full);
     color: var(--cli-text-muted);
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: var(--text-xs);
     cursor: pointer;
     transition: all 0.2s;
   }
