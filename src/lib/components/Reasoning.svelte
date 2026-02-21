@@ -128,8 +128,8 @@
   .markdown :global(pre) {
     margin: 0;
     padding: var(--spacing-sm);
-    background: color-mix(in srgb, black, transparent 65%);
-    border: 1px solid color-mix(in srgb, white, transparent 92%);
+    background: color-mix(in oklch, black, transparent 65%);
+    border: 1px solid color-mix(in oklch, white, transparent 92%);
     border-radius: var(--radius-sm);
     overflow: auto;
   }

@@ -116,7 +116,7 @@
 /* DARK MODE COLORS     */
 /* ==================== */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     /* CLI Terminal Colors */
     --color-cli-bg: oklch(12% 0.01 240);
     --color-cli-bg-elevated: oklch(18% 0 0);

@@ -225,7 +225,7 @@
   const hasContent = $derived(toolInfo.content && toolInfo.content.trim().length > 0);
 </script>
 
-<div class="group overflow-hidden rounded-md border border-cli-border font-mono text-sm" class:open={isOpen}>
+<div class="group overflow-hidden rounded-md border border-cli-border font-mono text-sm">
   <div class="relative flex w-full items-center gap-sm border-none bg-cli-bg-elevated px-md py-sm text-left font-inherit text-inherit text-cli-text transition-[background] duration-150 hover:bg-cli-bg-hover">
     <button class="flex min-w-0 flex-1 cursor-pointer items-center gap-sm border-none bg-transparent p-0 text-left font-inherit text-inherit" onclick={toggle} type="button">
     <span class="flex shrink-0 items-center justify-center gap-0 {toolConfig.colorClass}">
@@ -322,7 +322,7 @@
     {#if hasContent && uiToggles.showToolOutputCopy}
       <button
         type="button"
-        class="absolute right-[10px] top-2 z-[1] cursor-pointer rounded-sm border border-cli-border bg-black/25 px-[10px] py-1 font-mono text-[11px] text-cli-text-muted opacity-0 shadow-none transition-all duration-150 hover:text-cli-text group-hover:opacity-100 group-focus-within:opacity-100 max-[520px]:px-[12px] max-[520px]:py-[6px] max-[520px]:text-[12px] max-[520px]:opacity-100 {copyState === 'copied' ? 'border-[#2c8a5a] text-[#9be3bf] !opacity-100' : ''} {copyState === 'error' ? 'border-cli-error text-cli-error !opacity-100' : ''}"
+        class="absolute right-[10px] top-2 z-[1] cursor-pointer rounded-sm border border-cli-border bg-black/25 px-[10px] py-1 font-mono text-[11px] text-cli-text-muted opacity-0 shadow-none transition-all duration-150 hover:text-cli-text group-hover:opacity-100 group-focus-within:opacity-100 max-[520px]:px-[12px] max-[520px]:py-[6px] max-[520px]:text-[12px] max-[520px]:opacity-100 {copyState === 'copied' ? 'border-cli-success text-cli-success !opacity-100' : ''} {copyState === 'error' ? 'border-cli-error text-cli-error !opacity-100' : ''}"
         onclick={(e) => {
           e.stopPropagation();
           copyToolOutput();

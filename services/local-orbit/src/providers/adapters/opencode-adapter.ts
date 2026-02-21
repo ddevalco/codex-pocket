@@ -58,7 +58,7 @@ export class OpenCodeAdapter implements ProviderAdapter {
     listSessions: true,
     openSession: true,
     sendPrompt: true,
-    streaming: true,
+    streaming: false, // Phase 1 does not implement streaming (normalizeEvent is a no-op)
     attachments: false,
     approvals: false,
     multiTurn: true,
@@ -76,6 +76,28 @@ export class OpenCodeAdapter implements ProviderAdapter {
       autoStart: false,
       ...config,
     };
+    this.validateServerUrl(this.config.serverUrl);
+  }
+
+  private validateServerUrl(url: string): void {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new Error(`[opencode] Invalid serverUrl: ${url}`);
+    }
+
+    const allowedHosts = ["127.0.0.1", "localhost", "::1", "[::1]"];
+    if (!allowedHosts.includes(parsed.hostname)) {
+      throw new Error(
+        `[opencode] serverUrl must be localhost (got ${parsed.hostname}). ` +
+        "Remote OpenCode servers are not supported for security reasons.",
+      );
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error(`[opencode] serverUrl must use http or https (got ${parsed.protocol})`);
+    }
   }
 
   /**
@@ -340,6 +362,7 @@ export class OpenCodeAdapter implements ProviderAdapter {
     if (value.includes("complete") || value.includes("done") || value.includes("success")) return "completed";
     if (value.includes("error") || value.includes("fail")) return "error";
     if (value.includes("cancel") || value.includes("interrupt") || value.includes("abort")) return "interrupted";
+    console.warn(`[opencode] Unrecognized session status "${status}", defaulting to "idle"`);
     return "idle";
   }
 

@@ -17,7 +17,7 @@
 <style>
   .danger-zone {
     --stack-gap: var(--space-sm);
-    border: 1px solid color-mix(in srgb, var(--cli-error) 40%, var(--cli-border));
+    border: 1px solid color-mix(in oklch, var(--color-cli-error) 40%, var(--color-cli-border));
     border-radius: var(--radius-sm);
     padding: var(--space-sm);
     background: var(--cli-error-bg);

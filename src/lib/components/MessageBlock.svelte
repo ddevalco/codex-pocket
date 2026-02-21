@@ -205,7 +205,7 @@
 </script>
 
 <div
-  class="relative px-md py-xs font-mono text-sm leading-relaxed message-block {prefixConfig.bgClass}"
+  class="group relative px-md py-xs font-mono text-sm leading-relaxed message-block {prefixConfig.bgClass}"
   role="button"
   aria-label="Copy message"
   tabindex="0"

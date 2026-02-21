@@ -1159,9 +1159,9 @@
   .admin {
     min-height: 100vh;
     background:
-      radial-gradient(1200px 520px at 8% -18%, color-mix(in srgb, var(--cli-prefix-agent) 14%, transparent), transparent 70%),
-      radial-gradient(800px 420px at 92% -30%, color-mix(in srgb, var(--cli-prefix-web) 11%, transparent), transparent 74%),
-      var(--cli-bg);
+      radial-gradient(1200px 520px at 8% -18%, color-mix(in oklch, var(--color-cli-prefix-agent) 14%, transparent), transparent 70%),
+      radial-gradient(800px 420px at 92% -30%, color-mix(in oklch, var(--color-cli-prefix-web) 11%, transparent), transparent 74%),
+      var(--color-cli-bg);
   }
 
   .content {
@@ -1224,7 +1224,7 @@
   .section-subtitle {
     margin-top: 4px;
     font-size: 12px;
-    color: var(--cli-text-dim);
+    color: var(--color-cli-text-dim);
   }
   .section-body {
     padding: var(--space-lg);
@@ -1246,8 +1246,8 @@
 
   .admin :global(.section) {
     border-radius: 12px;
-    border-color: color-mix(in srgb, var(--cli-border) 85%, transparent);
-    background: color-mix(in srgb, var(--cli-bg-elevated) 84%, var(--cli-bg));
+    border-color: color-mix(in oklch, var(--color-cli-border) 85%, transparent);
+    background: color-mix(in oklch, var(--color-cli-bg-elevated) 84%, var(--color-cli-bg));
     box-shadow: 0 16px 34px -30px rgba(0, 0, 0, 0.9);
   }
 
@@ -1255,8 +1255,8 @@
     padding: var(--space-md) var(--space-md) var(--space-sm);
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--cli-bg-elevated) 75%, var(--cli-bg)),
-      color-mix(in srgb, var(--cli-bg) 88%, transparent)
+      color-mix(in oklch, var(--color-cli-bg-elevated) 75%, var(--color-cli-bg)),
+      color-mix(in oklch, var(--color-cli-bg) 88%, transparent)
     );
   }
 
@@ -1280,7 +1280,7 @@
   }
 
   .k {
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-size: 0.65rem;
@@ -1289,14 +1289,14 @@
 
   .v {
     min-width: 0;
-    color: var(--cli-text);
+    color: var(--color-cli-text);
   }
 
   .v code {
     word-break: break-all;
     padding: 0.08rem 0.35rem;
     border-radius: 6px;
-    background: color-mix(in srgb, var(--cli-bg-hover) 65%, transparent);
+    background: color-mix(in oklch, var(--color-cli-bg-hover) 65%, transparent);
   }
 
   .buttons {
@@ -1313,7 +1313,7 @@
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.04);
-    color: var(--cli-text);
+    color: var(--color-cli-text);
     font-size: 13px;
   }
   .btn:hover {
@@ -1339,13 +1339,13 @@
 
   button {
     padding: 0.5rem 0.9rem;
-    border: 1px solid color-mix(in srgb, var(--cli-border) 70%, transparent);
+    border: 1px solid color-mix(in oklch, var(--color-cli-border) 70%, transparent);
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--cli-bg-elevated) 95%, #fff 5%),
-      color-mix(in srgb, var(--cli-bg-elevated) 80%, var(--cli-bg))
+      color-mix(in oklch, var(--color-cli-bg-elevated) 95%, #fff 5%),
+      color-mix(in oklch, var(--color-cli-bg-elevated) 80%, var(--color-cli-bg))
     );
-    color: var(--cli-text);
+    color: var(--color-cli-text);
     font-family: var(--font-sans);
     font-size: 0.78rem;
     font-weight: 600;
@@ -1356,11 +1356,11 @@
 
   button:hover:enabled {
     transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--cli-prefix-agent) 45%, var(--cli-border));
+    border-color: color-mix(in oklch, var(--color-cli-prefix-agent) 45%, var(--color-cli-border));
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--cli-bg-hover) 70%, #fff 8%),
-      color-mix(in srgb, var(--cli-bg-elevated) 88%, var(--cli-bg))
+      color-mix(in oklch, var(--color-cli-bg-hover) 70%, #fff 8%),
+      color-mix(in oklch, var(--color-cli-bg-elevated) 88%, var(--color-cli-bg))
     );
   }
 
@@ -1370,18 +1370,18 @@
   }
 
   button.primary {
-    border-color: color-mix(in srgb, var(--cli-prefix-agent) 46%, var(--cli-border));
-    background: color-mix(in srgb, var(--cli-prefix-agent) 20%, var(--cli-bg-elevated));
+    border-color: color-mix(in oklch, var(--color-cli-prefix-agent) 46%, var(--color-cli-border));
+    background: color-mix(in oklch, var(--color-cli-prefix-agent) 20%, var(--color-cli-bg-elevated));
   }
 
   .advanced {
-    border: 1px solid color-mix(in srgb, var(--cli-border) 78%, transparent);
+    border: 1px solid color-mix(in oklch, var(--color-cli-border) 78%, transparent);
     border-radius: 12px;
     overflow: hidden;
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--cli-bg-elevated) 92%, var(--cli-bg)),
-      color-mix(in srgb, var(--cli-bg-elevated) 82%, #000 4%)
+      color-mix(in oklch, var(--color-cli-bg-elevated) 92%, var(--color-cli-bg)),
+      color-mix(in oklch, var(--color-cli-bg-elevated) 82%, #000 4%)
     );
     box-shadow: 0 14px 32px -30px rgba(0, 0, 0, 0.85);
   }
@@ -1394,7 +1394,7 @@
     justify-content: space-between;
     font-family: var(--font-mono);
     font-size: 0.72rem;
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.09em;
     list-style: none;
@@ -1403,14 +1403,14 @@
 
   .advanced > summary:focus-visible {
     outline: none;
-    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
-    border-bottom-color: var(--cli-border);
+    box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--color-cli-prefix-agent) 55%, var(--color-cli-border));
+    border-bottom-color: var(--color-cli-border);
   }
 
   .advanced[open] > summary {
-    border-bottom-color: var(--cli-border);
-    background: color-mix(in srgb, var(--cli-bg-hover) 45%, var(--cli-bg-elevated));
-    color: var(--cli-text);
+    border-bottom-color: var(--color-cli-border);
+    background: color-mix(in oklch, var(--color-cli-bg-hover) 45%, var(--color-cli-bg-elevated));
+    color: var(--color-cli-text);
   }
 
   .advanced > summary::after {
@@ -1433,7 +1433,7 @@
   input:focus-visible,
   select:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cli-prefix-agent) 55%, var(--cli-border));
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-cli-prefix-agent) 55%, var(--color-cli-border));
   }
 
   .row :global(.danger-zone) {
@@ -1448,7 +1448,7 @@
     width: 260px;
     height: 260px;
     image-rendering: pixelated;
-    border: 1px solid var(--cli-border);
+    border: 1px solid var(--color-cli-border);
     border-radius: 10px;
     background: #fff;
     padding: 8px;
@@ -1465,7 +1465,7 @@
     font-size: 11px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
-    color: var(--cli-text-dim);
+    color: var(--color-cli-text-dim);
   }
   .pill.ok {
     border-color: rgba(70, 200, 120, 0.35);
@@ -1484,13 +1484,13 @@
   }
   .pill.muted {
     border-color: rgba(255, 255, 255, 0.1);
-    color: var(--cli-text-dim);
+    color: var(--color-cli-text-dim);
   }
 
   .danger {
-    border-color: color-mix(in srgb, var(--cli-error) 55%, var(--cli-border));
-    color: color-mix(in srgb, var(--cli-error) 75%, var(--cli-text));
-    background: color-mix(in srgb, var(--cli-error) 18%, var(--cli-bg-elevated));
+    border-color: color-mix(in oklch, var(--color-cli-error) 55%, var(--color-cli-border));
+    color: color-mix(in oklch, var(--color-cli-error) 75%, var(--color-cli-text));
+    background: color-mix(in oklch, var(--color-cli-error) 18%, var(--color-cli-bg-elevated));
   }
 
   .logs {
@@ -1500,10 +1500,10 @@
     padding: var(--space-md);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    background: color-mix(in srgb, var(--cli-bg) 84%, #000 16%);
+    background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
     padding: var(--space-md);
     border-radius: 10px;
-    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     line-height: 1.45;
     font-size: 0.76rem;
   }
@@ -1511,9 +1511,9 @@
   .field input {
     width: 100%;
     padding: var(--space-sm);
-    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
-    color: var(--cli-text);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in oklch, var(--color-cli-bg) 72%, var(--color-cli-bg-elevated));
+    color: var(--color-cli-text);
+    border: 1px solid color-mix(in oklch, var(--color-cli-border) 86%, transparent);
     border-radius: 8px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
@@ -1522,9 +1522,9 @@
   .field select {
     width: 100%;
     padding: var(--space-sm);
-    background: color-mix(in srgb, var(--cli-bg) 72%, var(--cli-bg-elevated));
-    color: var(--cli-text);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 86%, transparent);
+    background: color-mix(in oklch, var(--color-cli-bg) 72%, var(--color-cli-bg-elevated));
+    color: var(--color-cli-text);
+    border: 1px solid color-mix(in oklch, var(--color-cli-border) 86%, transparent);
     border-radius: 8px;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
@@ -1532,13 +1532,13 @@
 
   .field input:focus {
     outline: none;
-    border-color: var(--cli-text-muted);
+    border-color: var(--color-cli-text-muted);
     box-shadow: var(--shadow-focus);
   }
 
   .field select:focus {
     outline: none;
-    border-color: var(--cli-text-muted);
+    border-color: var(--color-cli-text-muted);
     box-shadow: var(--shadow-focus);
   }
   .qr {
@@ -1550,16 +1550,16 @@
   }
 
   .hint-ok {
-    color: color-mix(in srgb, var(--cli-success) 72%, var(--cli-text));
+    color: color-mix(in oklch, var(--color-cli-success) 72%, var(--color-cli-text));
   }
 
   .auth-bad {
-    color: var(--cli-error);
+    color: var(--color-cli-error);
     font-weight: 600;
   }
 
   .auth-ok {
-    color: var(--cli-success);
+    color: var(--color-cli-success);
     font-weight: 600;
   }
 
@@ -1578,20 +1578,20 @@
 
   .dot {
     font-size: 10px;
-    color: var(--cli-success);
+    color: var(--color-cli-success);
   }
   .dot.bad {
-    color: var(--cli-error);
+    color: var(--color-cli-error);
   }
 
   .check-detail {
     margin: 0;
     padding: var(--space-sm);
     background: rgba(0, 0, 0, 0.25);
-    border: 1px solid var(--cli-border);
+    border: 1px solid var(--color-cli-border);
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--cli-bg) 84%, #000 16%);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
+    border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     border-radius: 8px;
     max-height: 200px;
     overflow: auto;
@@ -1602,10 +1602,10 @@
     margin: 0;
     padding: var(--space-sm);
     background: rgba(0, 0, 0, 0.25);
-    border: 1px solid var(--cli-border);
+    border: 1px solid var(--color-cli-border);
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--cli-bg) 84%, #000 16%);
-    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
+    border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     border-radius: 8px;
     max-height: 260px;
     overflow: auto;
@@ -1614,14 +1614,14 @@
   }
 
   .hint {
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
     line-height: 1.55;
   }
 
   .token-sessions {
     margin-top: var(--space-sm);
     padding-top: var(--space-sm);
-    border-top: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    border-top: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
   }
 
   .token-session-list {
@@ -1629,10 +1629,10 @@
   }
 
   .token-session-item {
-    border: 1px solid color-mix(in srgb, var(--cli-border) 82%, transparent);
+    border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     border-radius: 8px;
     padding: var(--space-sm);
-    background: color-mix(in srgb, var(--cli-bg) 76%, var(--cli-bg-elevated));
+    background: color-mix(in oklch, var(--color-cli-bg) 76%, var(--color-cli-bg-elevated));
   }
 
   .token-session-head {
@@ -1667,6 +1667,6 @@
     white-space: nowrap;
     border: 0;
   }
-  .dim { color: var(--cli-text-dim); }
+  .dim { color: var(--color-cli-text-dim); }
   .mono { font-family: var(--font-mono); }
 </style>
