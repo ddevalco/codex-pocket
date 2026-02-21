@@ -44,7 +44,7 @@
       if (!parsed || typeof parsed !== "object") return DEFAULT_FILTERS;
 
       return {
-        provider: ["all", "codex", "copilot-acp", "claude"].includes(parsed.provider)
+        provider: ["all", "codex", "copilot-acp", "claude", "opencode"].includes(parsed.provider)
           ? parsed.provider
           : DEFAULT_FILTERS.provider,
         status: ["all", "active", "archived"].includes(parsed.status)
@@ -225,8 +225,9 @@
     if (filters.provider !== "all") {
       list = list.filter((t) => {
         if (filters.provider === "copilot-acp") return t.provider === "copilot-acp";
-        if (filters.provider === "claude") return t.provider === "claude";
+        if (filters.provider === "claude") return t.provider === "claude" || t.provider === "claude-mcp";
         if (filters.provider === "codex") return t.provider === "codex";
+        if (filters.provider === "opencode") return t.provider === "opencode";
         return true;
       });
     }
@@ -275,14 +276,17 @@
     let codex = 0;
     let copilot = 0;
     let claude = 0;
+    let opencode = 0;
     let active = 0;
     let archived = 0;
 
     for (const t of list) {
       if (t.provider === "copilot-acp") {
         copilot++;
-      } else if (t.provider === "claude") {
+      } else if (t.provider === "claude" || t.provider === "claude-mcp") {
         claude++;
+      } else if (t.provider === "opencode") {
+        opencode++;
       } else {
         codex++;
       }
@@ -299,6 +303,7 @@
       codex,
       copilot,
       claude,
+      opencode,
       active,
       archived,
     };
@@ -923,6 +928,12 @@
               aria-pressed={filters.provider === "claude"}
               onclick={() => (filters.provider = "claude")}
             >Claude ({threadCounts.claude})</button>
+            <button
+              class="filter-chip"
+              class:selected={filters.provider === "opencode"}
+              aria-pressed={filters.provider === "opencode"}
+              onclick={() => (filters.provider = "opencode")}
+            >OpenCode ({threadCounts.opencode})</button>
           </div>
         </div>
         <div class="filter-group row">

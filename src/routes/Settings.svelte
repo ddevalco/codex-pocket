@@ -181,15 +181,16 @@ import { agents } from "../lib/agents.svelte";
   let helperProfileSaveNote = $state<string>("");
   let uiToggleNote = $state<string>("");
 
-  type ProviderKey = "codex" | "copilot-acp" | "claude" | "claude-mcp";
+  type ProviderKey = "codex" | "copilot-acp" | "claude" | "claude-mcp" | "opencode";
   type ProviderHealth = { status?: string; message?: string };
 
-  const providerKeys: ProviderKey[] = ["codex", "copilot-acp", "claude", "claude-mcp"];
+  const providerKeys: ProviderKey[] = ["codex", "copilot-acp", "claude", "claude-mcp", "opencode"];
   const defaultProviderConfig: Record<ProviderKey, ProviderConfig> = {
     codex: { enabled: true },
     "copilot-acp": { enabled: false },
     claude: { enabled: false },
     "claude-mcp": { enabled: false },
+    opencode: { enabled: false },
   };
 
   function normalizeProviderConfig(
@@ -938,7 +939,57 @@ import { agents } from "../lib/agents.svelte";
                 {providerHealth["claude-mcp"]?.message || "Not configured"}
               </div>
             </div>
-          </div>
+            <div class="provider-card flex flex-col gap-2 rounded-md border border-cli-border bg-cli-bg-elevated p-4">
+              <div class="provider-header flex flex-wrap items-center gap-2">
+                <h4 class="m-0 font-sans text-sm text-cli-text">OpenCode</h4>
+                <StatusChip tone={mapStatus(providerHealth.opencode?.status)}>
+                  {formatStatusLabel(providerHealth.opencode?.status)}
+                </StatusChip>
+                <label class="provider-toggle inline-flex items-center gap-1.5 text-xs text-cli-text-dim">
+                  <input type="checkbox" bind:checked={providerConfig.opencode.enabled} />
+                  <span>Enabled</span>
+                </label>
+              </div>
+              {#if providerConfig.opencode.enabled}
+                <div class="field flex flex-col gap-1">
+                  <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-opencode-base-url">base URL</label>
+                  <input
+                    id="provider-opencode-base-url"
+                    type="text"
+                    bind:value={providerConfig.opencode.baseUrl}
+                    placeholder="http://localhost:3000"
+                    class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
+                  />
+                </div>
+                <div class="field flex flex-col gap-1">
+                  <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-opencode-model">model (optional)</label>
+                  <input
+                    id="provider-opencode-model"
+                    type="text"
+                    bind:value={providerConfig.opencode.model}
+                    placeholder="Auto-detected"
+                    class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
+                  />
+                </div>
+                <details class="advanced-section flex flex-col gap-2">
+                  <summary class="cursor-pointer text-xs text-cli-text-dim">Advanced settings</summary>
+                  <div class="field flex flex-col gap-1">
+                    <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-opencode-timeout">timeout (ms)</label>
+                    <input
+                      id="provider-opencode-timeout"
+                      type="number"
+                      bind:value={providerConfig.opencode.timeout}
+                      placeholder="60000"
+                      class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
+                    />
+                  </div>
+                </details>
+              {/if}
+              <div class="provider-status text-xs text-cli-text-muted">
+                {providerHealth.opencode?.message || "Not configured"}
+              </div>
+            </div>
+            </div>
 
           <div class="save-actions mt-4 flex flex-wrap items-center justify-end gap-2">
             <button

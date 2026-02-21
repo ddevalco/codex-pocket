@@ -5,7 +5,7 @@ export type ConnectionStatus =
   | "reconnecting"
   | "error";
 
-export type ProviderFilter = "all" | "codex" | "copilot-acp" | "claude";
+export type ProviderFilter = "all" | "codex" | "copilot-acp" | "claude" | "opencode";
 export type StatusFilter = "all" | "active" | "archived";
 
 export interface ThreadFilterState {
@@ -29,7 +29,7 @@ export interface ThreadInfo {
   lastActivity?: number;
   lastActiveAt?: number;
   modelProvider?: string;
-  provider: "codex" | "copilot-acp" | "claude";
+  provider: "codex" | "copilot-acp" | "claude" | "claude-mcp" | "opencode";
   status?: string;
   archived: boolean;
   capabilities?: ProviderCapabilities & Partial<ThreadCapabilities>;
@@ -272,7 +272,7 @@ export interface CustomAgent {
   instructions?: string;
   model?: string;
   lastSyncedAt?: number;
-  provider?: 'codex' | 'copilot-acp' | 'claude';
+  provider?: 'codex' | 'copilot-acp' | 'claude' | 'claude-mcp' | 'opencode';
   capabilities?: {
     tools?: boolean;
     files?: boolean;

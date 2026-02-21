@@ -9,7 +9,7 @@
     "Device.css": 786,
     "Device.js": 496,
     "Home.css": 12987,
-    "Home.js": 44211,
+    "Home.js": 44624,
     "Landing.css": 4445,
     "Landing.js": 5951,
     "Metrics.css": 3069,
@@ -23,9 +23,9 @@
     "Review.css": 3281,
     "Review.js": 11669,
     "Settings.css": 1373,
-    "Settings.js": 54520,
+    "Settings.js": 57216,
     "Thread.css": 9999,
-    "Thread.js": 91010,
+    "Thread.js": 91175,
     "abap.js": 15852,
     "actionscript.js": 14049,
     "ada.js": 48082,
@@ -289,6 +289,6 @@
     "zenscript.js": 3912,
     "zig.js": 5340
   },
-  "generatedAt": "2026-02-21T15:12:16.375864Z",
-  "total": 10172144
+  "generatedAt": "2026-02-21T15:22:45.659999Z",
+  "total": 10175418
 }
