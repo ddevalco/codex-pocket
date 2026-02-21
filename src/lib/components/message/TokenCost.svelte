@@ -15,7 +15,7 @@
   }
 </script>
 
-<div class="ml-[calc(var(--spacing-md)+12px)] mt-xs text-[0.8em] text-cli-text-muted flex gap-xs items-center" aria-live="polite">
+<div class="ml-[calc(var(--space-md)+12px)] mt-xs text-[0.8em] text-cli-text-muted flex gap-xs items-center" aria-live="polite">
   <span>{formatTokenCount(totalTokens)} tokens</span>
   {#if typeof estimatedCost === "number"}
     <span class="opacity-60">·</span>

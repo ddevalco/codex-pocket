@@ -33,6 +33,9 @@
 
 <div class="flex items-start gap-sm">
   <span class="prefix flex-shrink-0 font-semibold {colorClass}">{prefix}</span>
+  {#if prefix}
+    <span class="flex-shrink-0 font-semibold {colorClass}">{prefix}</span>
+  {/if}
   <div class="text-cli-text min-w-0 break-words markdown">{@html renderedHtml}</div>
 </div>
 
@@ -43,7 +46,7 @@
 
   .markdown :global(pre) {
     margin: 0;
-    padding: var(--spacing-sm);
+    padding: var(--space-sm);
     background: rgba(0, 0, 0, 0.35);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-sm);
@@ -58,7 +61,7 @@
     max-width: min(520px, 100%);
     height: auto;
     display: block;
-    margin-top: var(--spacing-xs);
+    margin-top: var(--space-xs);
     border-radius: var(--radius-sm);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }

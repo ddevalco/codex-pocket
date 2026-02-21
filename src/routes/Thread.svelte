@@ -785,6 +785,53 @@
         return null;
     });
 
+    /** P4.3: ID of the last reasoning message so only it defaults to open */
+    const lastReasoningId = $derived.by(() => {
+        const msgs = messages.current;
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            if (msgs[i].role === "assistant" && msgs[i].kind === "reasoning") return msgs[i].id;
+        }
+        return null;
+    });
+
+    /**
+     * P4.2: Pre-compute which tool messages start a new group and which are
+     * continuations. A "tool" here means role === "tool" with a displayable kind
+     * (not terminal, wait, or compaction). Consecutive qualifying messages share
+     * a group. Returns a Map<messageId, { isFirst: boolean; isLast: boolean; groupSize: number }>.
+     */
+    const toolGroupMeta = $derived.by(() => {
+        const meta = new Map<string, { isFirst: boolean; isLast: boolean; groupSize: number }>();
+        const msgs = messages.current;
+
+        const isToolBlock = (m: { role: string; kind?: string }) =>
+            m.role === "tool" &&
+            m.kind !== "terminal" &&
+            m.kind !== "wait" &&
+            m.kind !== "compaction";
+
+        let groupStart = -1;
+        for (let i = 0; i <= msgs.length; i++) {
+            const isTool = i < msgs.length && isToolBlock(msgs[i]);
+            if (isTool && groupStart === -1) {
+                groupStart = i;
+            } else if (!isTool && groupStart !== -1) {
+                const groupSize = i - groupStart;
+                if (groupSize >= 2) {
+                    for (let j = groupStart; j < i; j++) {
+                        meta.set(msgs[j].id, {
+                            isFirst: j === groupStart,
+                            isLast: j === i - 1,
+                            groupSize,
+                        });
+                    }
+                }
+                groupStart = -1;
+            }
+        }
+        return meta;
+    });
+
     // Auto-sync mode to "plan" when the thread has an active plan
     $effect(() => {
         if (!lastPlanId) return;
@@ -1183,7 +1230,7 @@
         </div>
     {/if}
 
-    <div class="transcript flex-1 overflow-y-auto overflow-x-hidden py-3" bind:this={container}>
+    <div class="transcript timeline-container flex-1 overflow-y-auto overflow-x-hidden py-3" bind:this={container}>
         {#if pendingAcpApproval}
             {@const toolLabel = pendingAcpApproval.toolTitle ?? pendingAcpApproval.toolKind ?? "Tool action"}
             {@const toolMeta = pendingAcpApproval.toolTitle && pendingAcpApproval.toolKind ? pendingAcpApproval.toolKind : null}
@@ -1244,8 +1291,11 @@
                 {/if}
             {/each}
         {:else}
-            {#each messages.current as message (message.id)}
+            {#each messages.current as message, _i (message.id)}
+                {@const tgMeta = toolGroupMeta.get(message.id)}
+                {@const isGroupedTool = !!tgMeta}
                 {#if message.role === "approval" && message.approval}
+                    <div class="timeline-item">
                     <ApprovalPrompt
                         approval={message.approval}
                         onApprove={(forSession) => messages.approve(
@@ -1259,7 +1309,9 @@
                         )}
                         onCancel={() => messages.cancel(message.approval!.id)}
                     />
+                    </div>
                 {:else if message.kind === "user-input-request" && message.userInputRequest}
+                    <div class="timeline-item">
                     <UserInputPrompt
                         request={message.userInputRequest}
                         onSubmit={(answers) => messages.respondToUserInput(
@@ -1268,21 +1320,41 @@
                             model.trim() ? threads.resolveCollaborationMode(mode, model.trim(), reasoningEffort, developerInstructions) : undefined,
                         )}
                     />
+                    </div>
                 {:else if message.kind === "plan"}
+                    <div class="timeline-item">
                     <PlanCard
                         {message}
                         disabled={isInProgress || !socket.isHealthy}
                         latest={message.id === lastPlanId}
                         onApprove={() => handlePlanApprove(message.id)}
                     />
+                    </div>
                 {:else if message.kind === "helper-agent-outcome" && message.helperOutcome}
+                    <div class="timeline-item">
                     <OutcomeCard
                         outcome={message.helperOutcome}
                         onContinue={handleOutcomeContinue}
                         onFileClick={handleFileClick}
                     />
+                    </div>
                 {:else}
-                    <MessageBlock {message} onCopyQuoted={copyQuoted} onCopyFromHere={(id) => copyFromHere(id, 20)} />
+                    <div
+                        class="timeline-item"
+                        class:tool-group-item={isGroupedTool}
+                        class:tool-group-first={isGroupedTool && tgMeta?.isFirst}
+                        class:tool-group-last={isGroupedTool && tgMeta?.isLast}
+                    >
+                        {#if isGroupedTool && tgMeta?.isFirst}
+                            <div class="tool-group-label">{tgMeta.groupSize} tool calls</div>
+                        {/if}
+                        <MessageBlock
+                            {message}
+                            onCopyQuoted={copyQuoted}
+                            onCopyFromHere={(id) => copyFromHere(id, 20)}
+                            isLatestReasoning={message.id === lastReasoningId}
+                        />
+                    </div>
                 {/if}
             {/each}
 
@@ -1360,4 +1432,106 @@
         onModeChange={(v) => { modeUserOverride = true; mode = v; }}
     />
 </div>
+
+<style>
+  /* ── P5.2: Gradient scroll masks ── */
+  .transcript {
+    --scroll-mask-size: 2rem;
+    mask-image:
+      linear-gradient(to bottom, transparent, black var(--scroll-mask-size)),
+      linear-gradient(to bottom, black calc(100% - var(--scroll-mask-size)), transparent);
+    mask-composite: intersect;
+    -webkit-mask-image:
+      linear-gradient(to bottom, transparent, black var(--scroll-mask-size)),
+      linear-gradient(to bottom, black calc(100% - var(--scroll-mask-size)), transparent);
+    -webkit-mask-composite: source-in;
+  }
+
+  /* ── P5.3: Hover state polish ── */
+  .transcript :global(.message-block) {
+    transition: background-color var(--transition-fast);
+  }
+
+  .transcript :global(.timeline-item) {
+    transition: background-color var(--transition-fast);
+  }
+
+  .transcript :global(.timeline-item:hover) {
+    background-color: color-mix(in oklch, var(--cli-bg-hover), transparent 60%);
+  }
+
+  /* ── P4.4: Timeline layout ── */
+  .timeline-container {
+    --timeline-gutter: 1.5rem;
+    --timeline-line-width: 1px;
+    --timeline-dot-size: 6px;
+    position: relative;
+  }
+
+  .timeline-container :global(.timeline-item) {
+    position: relative;
+    padding-left: var(--timeline-gutter);
+  }
+
+  /* Vertical line */
+  .timeline-container :global(.timeline-item)::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--timeline-gutter) / 2 - var(--timeline-line-width) / 2);
+    top: 0;
+    bottom: 0;
+    width: var(--timeline-line-width);
+    background: var(--color-cli-border);
+    opacity: 0.5;
+  }
+
+  /* Dot marker */
+  .timeline-container :global(.timeline-item)::after {
+    content: "";
+    position: absolute;
+    left: calc(var(--timeline-gutter) / 2 - var(--timeline-dot-size) / 2);
+    top: var(--space-md, 1rem);
+    width: var(--timeline-dot-size);
+    height: var(--timeline-dot-size);
+    border-radius: var(--radius-full, 9999px);
+    background: var(--color-cli-border);
+  }
+
+  /* Hide the line extending above the first item and below the last */
+  .timeline-container :global(.timeline-item:first-child)::before {
+    top: var(--space-md, 1rem);
+  }
+  .timeline-container :global(.timeline-item:last-child)::before {
+    bottom: calc(100% - var(--space-md, 1rem) - var(--timeline-dot-size) / 2);
+  }
+
+  /* ── P4.2: Tool block grouping ── */
+  .timeline-container :global(.tool-group-item) {
+    padding-top: var(--space-xs, 0.25rem);
+    padding-bottom: var(--space-xs, 0.25rem);
+  }
+
+  .timeline-container :global(.tool-group-first) {
+    padding-top: var(--space-sm, 0.5rem);
+  }
+
+  .timeline-container :global(.tool-group-last) {
+    padding-bottom: var(--space-sm, 0.5rem);
+  }
+
+  /* Suppress dot markers on middle tool-group items for a cleaner look */
+  .timeline-container :global(.tool-group-item:not(.tool-group-first))::after {
+    display: none;
+  }
+
+  .timeline-container :global(.tool-group-label) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: var(--font-size-xs, 0.75rem);
+    font-weight: var(--font-weight-semibold, 600);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-cli-text-muted);
+    padding-bottom: var(--space-xs, 0.25rem);
+  }
+</style>
 

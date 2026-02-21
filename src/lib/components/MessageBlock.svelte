@@ -18,9 +18,11 @@
     message: Message;
     onCopyQuoted?: (message: Message) => void;
     onCopyFromHere?: (messageId: string) => void;
+    /** Whether this reasoning block is the last one in the thread */
+    isLatestReasoning?: boolean;
   }
 
-  const { message, onCopyQuoted, onCopyFromHere }: Props = $props();
+  const { message, onCopyQuoted, onCopyFromHere, isLatestReasoning = false }: Props = $props();
 
   type CopyState = "idle" | "copied" | "error";
   let copyState = $state<CopyState>("idle");
@@ -52,6 +54,7 @@
   });
 
   /* ── Message type classification ── */
+  const isUser = $derived(message.role === "user");
   const isReasoning = $derived(message.role === "assistant" && message.kind === "reasoning");
   const isTool = $derived(
     message.role === "tool" &&
@@ -156,25 +159,24 @@
   });
 </script>
 
+{#if isUser}
 <div
-  class="group relative px-md py-xs font-mono text-sm leading-relaxed message-block {prefixConfig.bgClass}"
+  class="group relative flex justify-end px-md py-xs"
   role="button"
   aria-label="Copy message"
   tabindex="0"
   oncontextmenu={(e) => {
-    // Mobile long-press often triggers contextmenu; treat it as "copy".
-    // Prevent the browser from selecting text or opening a native menu.
     e.preventDefault();
     copyMessage();
   }}
   onkeydown={(e) => {
-    // Accessibility: allow keyboard users to copy.
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       copyMessage();
     }
   }}
 >
+  <div class="user-bubble relative max-w-[85%] rounded-2xl px-md py-sm font-mono text-sm leading-relaxed message-block {prefixConfig.bgClass}">
   <MessageActions
     {message}
     {copyState}
@@ -252,18 +254,49 @@
         (copyMessage as any).__wantRaw = (e as MouseEvent).shiftKey;
         copyMessage();
       }}
-      title={
-        copyState === "copied"
-          ? "Copied"
-          : "Copy message (Shift+Click to copy raw markdown)"
-      }
-      aria-label="Copy message"
-    >
-      {copyState === "copied" ? "copied" : "copy"}
-    </button>
+    />
   {/if}
+    <MarkdownRenderer
+      text={message.text}
+      prefix=""
+      colorClass=""
+    />
+  </div>
+</div>
+{:else}
+<div
+  class="group relative px-md py-xs font-mono text-sm leading-relaxed message-block {prefixConfig.bgClass}"
+  role="button"
+  aria-label="Copy message"
+  tabindex="0"
+  oncontextmenu={(e) => {
+    e.preventDefault();
+    copyMessage();
+  }}
+  onkeydown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      copyMessage();
+    }
+  }}
+>
+  <MessageActions
+    {message}
+    {copyState}
+    {menuOpen}
+    onCopyMessage={copyMessage}
+    onCopyRawMarkdown={copyRawMarkdown}
+    {onCopyQuoted}
+    {onCopyFromHere}
+    onToggleMenu={() => menuOpen = !menuOpen}
+    onShiftCopy={(e) => {
+      (copyMessage as any).__wantRaw = e.shiftKey;
+      copyMessage();
+    }}
+  />
+
   {#if isReasoning}
-    <Reasoning content={message.text} defaultOpen={false} />
+    <Reasoning content={message.text} defaultOpen={isLatestReasoning} />
   {:else if isTool}
     <Tool {message} />
   {:else if isWait}
@@ -295,9 +328,18 @@
     />
   {/if}
 </div>
+{/if}
 
 <style>
-  /* Status animation */
+  .user-bubble {
+    word-break: break-word;
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+  }
+
+  .user-bubble:hover {
+    box-shadow: var(--shadow-sm);
+  }
+
   :global(.message-block.user-bg.sending .prefix) {
     animation: status-pulse 1.5s ease-in-out infinite;
   }
