@@ -29,6 +29,21 @@
       onApplyPreset?: (preset: AgentPreset) => void;
 	  }
 
+  /* P3.1: Composer button states */
+  type ComposerState = "idle" | "sending" | "generating" | "stopped";
+  const composerState = $derived.by((): ComposerState => {
+    if (disabled && onStop) return "generating";
+    if (loading) return "sending";
+    return "idle";
+  });
+  const composerButtonLabel = $derived.by(() => {
+    switch (composerState) {
+      case "generating": return "Stop generating";
+      case "sending": return "Sending...";
+      default: return canSubmit ? "Send message" : "Type a message to send";
+    }
+  });
+
 	  type ImageAttachment = {
 	    kind: "image";
 	    filename: string;
@@ -289,7 +304,7 @@
 <svelte:window onclick={handleClickOutside} />
 
 <form class="prompt-input p-md" onsubmit={handleSubmit}>
-  <div class="input-container stack border border-cli-border rounded-md bg-cli-bg transition-all duration-200 focus-within:border-cli-text-muted focus-within:shadow-focus">
+  <div class="composer-container stack rounded-lg bg-cli-bg-elevated border border-transparent transition-all duration-200 focus-within:border-cli-text-muted focus-within:shadow-focus">
     {#if quickReplies.length && uiToggles.showComposerQuickReplies}
       <div class="quick-replies row gap-xs pt-sm px-md pb-0 overflow-x-auto flex-nowrap" role="group" aria-label="Quick reply shortcuts">
         {#each quickReplies as reply, i (`${reply.label}:${reply.text}:${i}`)}
@@ -312,8 +327,8 @@
         rows="1"
         disabled={disabled || loading}
         title={resolvedDisabledReason}
-        class="flex-1 p-md font-mono leading-[1.6] text-cli-text bg-transparent border-none resize-none min-h-16 max-h-48 focus:outline-none placeholder:text-cli-text-muted disabled:opacity-50 disabled:cursor-not-allowed"
-        style="field-sizing: content;"
+        class="composer-textarea flex-1 p-md font-mono leading-[1.6] text-cli-text bg-transparent border-none resize-none focus:outline-none placeholder:text-cli-text-muted disabled:opacity-50 disabled:cursor-not-allowed"
+        style="field-sizing: content; min-height: 36px; max-height: 200px;"
       ></textarea>
     {#if pendingAttachments.length}
       <div class="attachment-chips flex flex-wrap gap-xs px-md pb-sm pt-0" role="list" aria-label="Selected attachments">
@@ -553,29 +568,44 @@
         {/if}
       </div>
 
-      {#if disabled && onStop}
-        <button type="button" class="stop-btn row items-center justify-center w-8 h-8 p-0 bg-cli-error border-0 rounded-sm cursor-pointer transition-opacity duration-200 hover:opacity-85" onclick={onStop} title="Stop">
+      <!-- P3.1: State-aware composer button -->
+      {#if composerState === "generating"}
+        <button
+          type="button"
+          class="composer-action-btn composer-action-stop row items-center justify-center w-8 h-8 p-0 bg-cli-error border-0 rounded-full cursor-pointer hover:opacity-85"
+          onclick={onStop}
+          title={composerButtonLabel}
+          aria-label={composerButtonLabel}
+        >
           <svg class="h-4 w-4 text-cli-bg" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="6" y="6" width="12" height="12" rx="1"/>
+            <rect x="6" y="6" width="12" height="12" rx="2"/>
           </svg>
         </button>
+      {:else if composerState === "sending"}
+        <div
+          class="composer-action-btn composer-action-busy row items-center justify-center w-8 h-8 p-0 bg-cli-prefix-agent/60 border-0 rounded-full"
+          role="status"
+          title={composerButtonLabel}
+          aria-label={composerButtonLabel}
+        >
+          <svg class="animate-spin h-4 w-4 text-cli-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+        </div>
       {:else}
         <button
           type="submit"
-          class="submit-btn row items-center justify-center w-8 h-8 p-0 bg-cli-prefix-agent border-0 rounded-sm cursor-pointer transition-opacity duration-200 hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed"
+          class="composer-action-btn composer-action-send row items-center justify-center w-8 h-8 p-0 border-0 rounded-full cursor-pointer hover:opacity-85 disabled:opacity-30 disabled:cursor-not-allowed"
+          class:bg-cli-prefix-agent={canSubmit}
+          class:bg-cli-text-muted={!canSubmit}
           disabled={!canSubmit}
-          title={resolvedDisabledReason || "Send"}
+          title={composerButtonLabel}
+          aria-label={composerButtonLabel}
         >
-          {#if disabled || loading}
-            <svg class="animate-spin h-4 w-4 text-cli-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-            </svg>
-          {:else}
-            <svg class="h-4 w-4 text-cli-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m6 17 5-5-5-5"/>
-              <path d="m13 17 5-5-5-5"/>
-            </svg>
-          {/if}
+          <svg class="h-4 w-4 text-cli-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14"/>
+            <path d="m12 5 7 7-7 7"/>
+          </svg>
         </button>
       {/if}
     </div>
@@ -592,6 +622,28 @@
 </form>
 
 <style>
+  .composer-container {
+    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .composer-container:focus-within {
+    box-shadow: var(--shadow-focus), 0 -1px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .composer-textarea {
+    scrollbar-width: thin;
+    scrollbar-color: var(--cli-border) transparent;
+  }
+
+  .composer-action-btn {
+    transition: background-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
+    flex-shrink: 0;
+  }
+
+  .composer-action-btn:active:not(:disabled) {
+    transform: scale(0.92);
+  }
+
   .dropdown-menu {
     animation: fadeIn 0.1s ease;
   }
