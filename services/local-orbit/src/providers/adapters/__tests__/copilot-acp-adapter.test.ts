@@ -768,7 +768,7 @@ describe("CopilotAcpAdapter - Approval handling", () => {
       const result = (inst as any).normalizeSession({ title: "test" });
       expect(result.sessionId).toBeDefined();
       expect(result.sessionId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+        /^session-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
       );
     });
 
