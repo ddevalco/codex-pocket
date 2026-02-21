@@ -44,8 +44,8 @@
   .markdown :global(pre) {
     margin: 0;
     padding: var(--space-sm);
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: oklch(0 0 0 / 0.35);
+    border: 1px solid oklch(1 0 0 / 0.08);
     border-radius: var(--radius-sm);
     overflow: auto;
   }
@@ -60,7 +60,7 @@
     display: block;
     margin-top: var(--space-xs);
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid oklch(1 0 0 / 0.08);
   }
 
   .markdown :global(a) {

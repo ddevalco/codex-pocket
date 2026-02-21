@@ -1204,14 +1204,14 @@
     }
   }
   .section {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: oklch(1 0 0 / 0.02);
+    border: 1px solid oklch(1 0 0 / 0.08);
     border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 10px 30px oklch(0 0 0 / 0.25);
   }
   .section-header {
     padding: var(--space-md) var(--space-lg);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid oklch(1 0 0 / 0.06);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1248,7 +1248,7 @@
     border-radius: 12px;
     border-color: color-mix(in oklch, var(--color-cli-border) 85%, transparent);
     background: color-mix(in oklch, var(--color-cli-bg-elevated) 84%, var(--color-cli-bg));
-    box-shadow: 0 16px 34px -30px rgba(0, 0, 0, 0.9);
+    box-shadow: 0 16px 34px -30px oklch(0 0 0 / 0.9);
   }
 
   .admin :global(.section-header) {
@@ -1311,23 +1311,23 @@
   .btn {
     padding: 8px 12px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid oklch(1 0 0 / 0.12);
+    background: oklch(1 0 0 / 0.04);
     color: var(--color-cli-text);
     font-size: 13px;
   }
   .btn:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.08);
+    border-color: oklch(1 0 0 / 0.2);
+    background: oklch(1 0 0 / 0.08);
   }
   .btn.primary {
-    background: rgba(64, 134, 255, 0.18);
-    border-color: rgba(64, 134, 255, 0.4);
+    background: oklch(0.62 0.17 260 / 0.18);
+    border-color: oklch(0.62 0.17 260 / 0.4);
     color: oklch(0.87 0.06 250);
   }
   .btn.danger {
-    background: rgba(178, 60, 60, 0.2);
-    border-color: rgba(200, 80, 80, 0.6);
+    background: oklch(0.5 0.15 25 / 0.2);
+    border-color: oklch(0.56 0.18 25 / 0.6);
     color: oklch(0.88 0.05 15);
     margin-top: var(--space-sm);
   }
@@ -1350,7 +1350,7 @@
     font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 0.01em;
-    box-shadow: 0 8px 16px -13px rgba(0, 0, 0, 0.9);
+    box-shadow: 0 8px 16px -13px oklch(0 0 0 / 0.9);
     cursor: pointer;
   }
 
@@ -1383,7 +1383,7 @@
       color-mix(in oklch, var(--color-cli-bg-elevated) 92%, var(--color-cli-bg)),
       color-mix(in oklch, var(--color-cli-bg-elevated) 82%, #000 4%)
     );
-    box-shadow: 0 14px 32px -30px rgba(0, 0, 0, 0.85);
+    box-shadow: 0 14px 32px -30px oklch(0 0 0 / 0.85);
   }
 
   .advanced > summary {
@@ -1463,8 +1463,8 @@
     padding: 4px 10px;
     border-radius: 999px;
     font-size: 11px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid oklch(1 0 0 / 0.1);
+    background: oklch(1 0 0 / 0.04);
     color: var(--color-cli-text-dim);
   }
   .pill.ok {
@@ -1483,7 +1483,7 @@
     background: oklch(0.55 0.18 25 / 0.1);
   }
   .pill.muted {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: oklch(1 0 0 / 0.1);
     color: var(--color-cli-text-dim);
   }
 
@@ -1496,10 +1496,6 @@
   .logs {
     max-height: 400px;
     overflow: auto;
-    background: rgba(0, 0, 0, 0.25);
-    padding: var(--space-md);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
     background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
     padding: var(--space-md);
     border-radius: 10px;
@@ -1587,9 +1583,6 @@
   .check-detail {
     margin: 0;
     padding: var(--space-sm);
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid var(--color-cli-border);
-    border-radius: var(--radius-sm);
     background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
     border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     border-radius: 8px;
@@ -1601,9 +1594,6 @@
   .cli-output {
     margin: 0;
     padding: var(--space-sm);
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid var(--color-cli-border);
-    border-radius: var(--radius-sm);
     background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
     border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     border-radius: 8px;

@@ -663,11 +663,11 @@
     }
 
     .approval-label {
-        color: var(--cli-warning, #d4a72c);
+        color: var(--cli-warning);
     }
 
     .input-label {
-        color: var(--cli-info, #5b9bd5);
+        color: var(--cli-info);
     }
 
     .decision-label,
@@ -678,7 +678,7 @@
     }
 
     .decision-text {
-        color: var(--cli-success, #6a9955);
+        color: var(--cli-success);
     }
 
     .answer-text {

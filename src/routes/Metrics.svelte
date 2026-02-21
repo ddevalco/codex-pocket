@@ -187,24 +187,24 @@
   
   .filter-chip {
     padding: var(--space-sm) var(--space-md);
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
+    border: 1px solid var(--cli-border);
+    background: var(--cli-bg-elevated);
     border-radius: var(--radius-full);
     cursor: pointer;
     font-size: var(--text-sm);
     font-weight: var(--font-weight-medium);
     transition: all 0.2s;
-    color: var(--text-primary);
+    color: var(--cli-text);
   }
   
   .filter-chip:hover {
-    background: var(--bg-tertiary);
+    background: var(--cli-bg-hover);
   }
   
   .filter-chip.active {
-    background: var(--accent-color);
-    color: white;
-    border-color: var(--accent-color);
+    background: var(--cli-prefix-agent);
+    color: var(--color-text-inverse);
+    border-color: var(--cli-prefix-agent);
   }
   
   .stats-grid {

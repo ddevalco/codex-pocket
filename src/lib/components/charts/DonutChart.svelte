@@ -27,6 +27,7 @@
         percentage: Math.round(percentage * 100),
         startAngle,
         endAngle: currentAngle,
+        /* Dynamic color generation - intentionally using hsl for computed hues */
         color: point.color || `hsl(${i * 137.5}, 70%, 60%)`
       };
     });

@@ -569,11 +569,11 @@
     :root { color-scheme: light dark; }
     body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 860px; margin: 32px auto; padding: 0 16px; line-height: 1.55; }
     h1 { margin: 0 0 4px; font-size: 1.5rem; }
-    .meta { margin: 0 0 24px; color: #6b7280; font-size: .9rem; }
-    section { border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-    h2 { margin: 0 0 8px; font-size: 1rem; text-transform: uppercase; letter-spacing: .04em; color: #4b5563; }
+    .meta { margin: 0 0 24px; color: oklch(0.55 0.03 260); font-size: .9rem; }
+    section { border: 1px solid oklch(0.87 0.01 260); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    h2 { margin: 0 0 8px; font-size: 1rem; text-transform: uppercase; letter-spacing: .04em; color: oklch(0.45 0.03 260); }
     p, pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
-    pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: rgba(0,0,0,.05); padding: 10px; border-radius: 6px; }
+    pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: oklch(0 0 0 / 0.05); padding: 10px; border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -1244,7 +1244,7 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(5, 7, 10, 0.6);
+    background: oklch(0.02 0.01 260 / 0.6);
     z-index: 40;
   }
 
@@ -1258,7 +1258,7 @@
     border: 1px solid var(--cli-border);
     border-radius: var(--radius-md);
     z-index: 50;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 30px 80px oklch(0 0 0 / 0.35);
   }
 
   .modal-header {
@@ -1396,7 +1396,7 @@
   .legend-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
+    background: oklch(0 0 0 / 0.35);
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -1409,7 +1409,7 @@
     background: var(--cli-bg);
     border: 1px solid var(--cli-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 12px 40px oklch(0 0 0 / 0.35);
     padding: var(--space-md);
   }
 
@@ -1664,13 +1664,13 @@
     line-height: 1;
   }
   .thread-indicator-idle {
-    color: #2fd47a;
+    color: oklch(0.74 0.16 148);
   }
   .thread-indicator-working {
-    color: #f2c94c;
+    color: oklch(0.82 0.14 85);
   }
   .thread-indicator-blocked {
-    color: #eb5757;
+    color: oklch(0.63 0.2 25);
   }
 
   .export-btn {
