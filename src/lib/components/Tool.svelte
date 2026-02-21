@@ -322,7 +322,7 @@
     {#if hasContent && uiToggles.showToolOutputCopy}
       <button
         type="button"
-        class="absolute right-sm top-2 z-[1] cursor-pointer rounded-sm border border-cli-border bg-black/25 px-sm py-1 font-mono text-2xs text-cli-text-muted opacity-0 shadow-none transition-all duration-150 hover:text-cli-text group-hover:opacity-100 group-focus-within:opacity-100 max-[520px]:px-md max-[520px]:py-xs max-[520px]:text-xs max-[520px]:opacity-100 {copyState === 'copied' ? 'border-cli-success text-cli-success !opacity-100' : ''} {copyState === 'error' ? 'border-cli-error text-cli-error !opacity-100' : ''}"
+        class="absolute right-[0.625rem] top-2 z-[1] cursor-pointer rounded-sm border border-cli-border bg-black/25 px-sm py-1 font-mono text-2xs text-cli-text-muted opacity-0 shadow-none transition-all duration-150 hover:text-cli-text group-hover:opacity-100 group-focus-within:opacity-100 max-[520px]:px-[0.75rem] max-[520px]:py-[0.375rem] max-[520px]:text-xs max-[520px]:opacity-100 {copyState === 'copied' ? 'border-cli-success text-cli-success !opacity-100' : ''} {copyState === 'error' ? 'border-cli-error text-cli-error !opacity-100' : ''}"
         onclick={(e) => {
           e.stopPropagation();
           copyToolOutput();

@@ -41,7 +41,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="plan-card" class:resolved>
-  <button class="card-header" type="button" onclick={() => isOpen = !isOpen}>
+  <button class="card-header" type="button" aria-label="Toggle plan details" aria-expanded={isOpen} onclick={() => isOpen = !isOpen}>
     <span class="header-left row">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>

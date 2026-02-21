@@ -125,8 +125,8 @@
   .outcome-header {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-sm);
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
   }
   
   .status-icon {
@@ -236,7 +236,7 @@
     background: var(--color-cli-prefix-agent);
     color: white;
     border: none;
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-3) var(--space-md);
     border-radius: var(--radius-md);
     cursor: pointer;
     font-size: var(--text-sm);

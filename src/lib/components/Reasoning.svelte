@@ -114,20 +114,30 @@
   </button>
 
   {#if isOpen}
-    <div class="mt-sm pl-[calc(1rem+var(--spacing-sm))]" style:animation="slideIn 0.2s ease">
+    <div class="reasoning-content mt-sm" class:streaming={isStreaming} style:animation="slideIn var(--transition-fast, 0.2s) ease">
       <div class="markdown m-0 break-words leading-relaxed text-cli-text-dim">{@html renderedHtml}</div>
     </div>
   {/if}
 </div>
 
 <style>
+  .reasoning-content {
+    padding-left: calc(1rem + var(--space-sm));
+    border-left: 2px solid transparent;
+    transition: border-left-color var(--transition-fast, 0.2s) ease;
+  }
+
+  .reasoning-content.streaming {
+    border-left-color: var(--color-cli-accent, oklch(0.7 0.15 250));
+  }
+
   .markdown :global(p) {
     margin: 0;
   }
 
   .markdown :global(pre) {
     margin: 0;
-    padding: var(--spacing-sm);
+    padding: var(--space-sm);
     background: color-mix(in oklch, black, transparent 65%);
     border: 1px solid color-mix(in oklch, white, transparent 92%);
     border-radius: var(--radius-sm);

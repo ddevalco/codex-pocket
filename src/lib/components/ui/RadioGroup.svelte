@@ -10,6 +10,7 @@
     options: RadioOption[];
     value?: string;
     disabled?: boolean;
+    orientation?: "vertical" | "horizontal";
     onchange?: (value: string) => void;
     class?: string;
   }
@@ -18,28 +19,50 @@
     options,
     value = "",
     disabled = false,
+    orientation = "vertical",
     onchange,
     class: className = "",
   }: Props = $props();
 
   let focusedIndex = $state(0);
+  let hasFocus = $state(false);
+  let groupEl: HTMLDivElement | undefined = $state(undefined);
+
+  // Sync focusedIndex when value changes externally
+  $effect(() => {
+    const idx = options.findIndex((o) => o.value === value);
+    if (idx >= 0) {
+      focusedIndex = idx;
+    }
+  });
 
   function select(optionValue: string) {
     if (disabled) return;
     onchange?.(optionValue);
   }
 
+  function focusOption(index: number) {
+    if (!groupEl) return;
+    const buttons = groupEl.querySelectorAll<HTMLButtonElement>('button[role="radio"]');
+    buttons[index]?.focus();
+  }
+
   function handleKeydown(e: KeyboardEvent) {
-    if (disabled) return;
+    if (disabled || options.length === 0) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
     const key = e.key;
-    if (key === "ArrowDown" || key === "j") {
+    const nextKey = orientation === "vertical" ? "ArrowDown" : "ArrowRight";
+    const prevKey = orientation === "vertical" ? "ArrowUp" : "ArrowLeft";
+
+    if (key === nextKey || key === "ArrowDown" || key === "j") {
       e.preventDefault();
       focusedIndex = Math.min(focusedIndex + 1, options.length - 1);
-    } else if (key === "ArrowUp" || key === "k") {
+      focusOption(focusedIndex);
+    } else if (key === prevKey || key === "ArrowUp" || key === "k") {
       e.preventDefault();
       focusedIndex = Math.max(focusedIndex - 1, 0);
+      focusOption(focusedIndex);
     } else if (key === "Enter" || key === " ") {
       e.preventDefault();
       if (options[focusedIndex]) {
@@ -58,13 +81,18 @@
 
 <div
   class="radio-group {className}"
+  class:horizontal={orientation === "horizontal"}
   role="radiogroup"
-  tabindex="0"
+  aria-orientation={orientation}
+  tabindex="-1"
   onkeydown={handleKeydown}
+  onfocusin={() => (hasFocus = true)}
+  onfocusout={() => (hasFocus = false)}
+  bind:this={groupEl}
 >
   {#each options as option, i}
     {@const isSelected = value === option.value}
-    {@const isFocused = !disabled && focusedIndex === i}
+    {@const isFocused = !disabled && hasFocus && focusedIndex === i}
     <button
       type="button"
       class="radio-option"
@@ -72,6 +100,7 @@
       class:focused={isFocused}
       role="radio"
       aria-checked={isSelected}
+      tabindex={focusedIndex === i ? 0 : -1}
       {disabled}
       onclick={() => {
         focusedIndex = i;
@@ -101,6 +130,11 @@
     gap: 2px;
   }
 
+  .radio-group.horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
   .radio-option {
     display: flex;
     align-items: flex-start;
@@ -116,6 +150,10 @@
     cursor: pointer;
     transition: all var(--transition-fast);
     width: 100%;
+  }
+
+  .horizontal .radio-option {
+    width: auto;
   }
 
   .radio-option:hover:not(:disabled) {

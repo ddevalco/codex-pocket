@@ -1341,7 +1341,7 @@
   }
 
   .legend-item {
-    --row-gap: var(--space-xs);
+    --row-gap: var(--space-1\.5);
     align-items: center;
     text-transform: lowercase;
     user-select: none;
@@ -1596,7 +1596,7 @@
 
   .thread-context {
     min-width: 0;
-    --row-gap: var(--space-xs);
+    --row-gap: var(--space-1\.5);
     align-items: center;
   }
 
@@ -1778,7 +1778,7 @@
   .filter-options {
     display: flex;
     flex-direction: row;
-    gap: var(--space-xs);
+    gap: var(--space-1\.5);
     flex-wrap: wrap;
   }
 
