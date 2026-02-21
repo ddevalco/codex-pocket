@@ -295,7 +295,7 @@
         {#each quickReplies as reply, i (`${reply.label}:${reply.text}:${i}`)}
           <button
             type="button"
-            class="quick-reply-btn border border-cli-border bg-cli-bg-elevated text-cli-text-dim rounded-sm py-[4px] px-[10px] font-sans text-xs whitespace-nowrap cursor-pointer transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text hover:border-cli-prefix-agent disabled:opacity-50 disabled:cursor-not-allowed"
+            class="quick-reply-btn border border-cli-border bg-cli-bg-elevated text-cli-text-dim rounded-sm py-xs px-sm font-sans text-xs whitespace-nowrap cursor-pointer transition-all duration-200 hover:bg-cli-bg-hover hover:text-cli-text hover:border-cli-prefix-agent disabled:opacity-50 disabled:cursor-not-allowed"
             onclick={() => sendQuickReply(reply.text)}
             disabled={disabled || loading}
             title={reply.text}
@@ -320,7 +320,7 @@
         {#each pendingAttachments as item, i (`${item.localPath}:${item.filename}:${i}`)}
           <div class="attachment-chip inline-flex items-center gap-1.5 py-[2px] px-2 rounded-full border border-cli-border bg-cli-bg-elevated text-cli-text-dim text-xs font-sans max-w-full" role="listitem">
             {#if uiToggles.showComposerThumbnails}
-              <img class="attachment-thumb w-5 h-5 rounded-[4px] object-cover border border-cli-border bg-cli-bg flex-none" src={item.viewUrl} alt={item.filename} loading="lazy" />
+              <img class="attachment-thumb w-5 h-5 rounded-sm object-cover border border-cli-border bg-cli-bg flex-none" src={item.viewUrl} alt={item.filename} loading="lazy" />
             {/if}
             <span class="attachment-name overflow-hidden text-ellipsis whitespace-nowrap max-w-[260px]">{item.filename}</span>
             <button
