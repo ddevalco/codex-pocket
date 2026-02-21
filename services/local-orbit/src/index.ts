@@ -2150,8 +2150,8 @@ async function routeGenericSendPrompt(msg: any, ws: any): Promise<void> {
     }
 
     // Track session if adapter supports it
-    if (typeof (adapter as any).trackSession === "function") {
-      (adapter as any).trackSession(sessionId);
+    if (hasTrackSession(adapter)) {
+      adapter.trackSession(sessionId);
     }
 
     const successResp = {
@@ -2219,8 +2219,22 @@ function extractPromptText(msg: any): string {
   return "";
 }
 
+/**
+ * Type guard: checks whether an adapter has a `trackSession` method.
+ * CopilotAcpAdapter exposes this, but it is not part of the base
+ * ProviderAdapter interface, so we narrow dynamically.
+ */
+function hasTrackSession(
+  adapter: unknown,
+): adapter is { trackSession: (sessionId: string, update?: Record<string, unknown>) => void } {
+  return (
+    adapter != null &&
+    typeof (adapter as Record<string, unknown>).trackSession === "function"
+  );
+}
+
 function acpCanSendPrompt(): boolean {
-  const adapter = registry.get("copilot-acp") as any;
+  const adapter = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
   return Boolean(adapter?.capabilities?.sendPrompt);
 }
 
@@ -2308,13 +2322,21 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
 
   const startTime = Date.now();
   try {
-    const adapter = registry.get("copilot-acp") as any;
+    const adapter = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
+    if (!adapter) {
+      send(ws, {
+        jsonrpc: "2.0",
+        id: requestId,
+        error: { code: -32001, message: "copilot-acp adapter not registered" },
+      });
+      return;
+    }
     const sessionId = acpSessionIdFromThreadId(threadId);
     const result = await adapter.sendPrompt(sessionId, promptInput);
     
     // Track session locally for CLIs without list_sessions (Fixes #273)
-    if (typeof (adapter as any).trackSession === "function") {
-      (adapter as any).trackSession(sessionId, {
+    if (hasTrackSession(adapter)) {
+      adapter.trackSession(sessionId, {
         preview: text.slice(0, 100),
         status: "active",
       });

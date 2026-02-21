@@ -301,7 +301,7 @@ export class OpenCodeAdapter implements ProviderAdapter {
     sessionId: string,
     _callback: (event: NormalizedEvent) => void,
   ): Promise<EventSubscription> {
-    const id = `opencode-${sessionId}-${Date.now()}`;
+    const id = `opencode-${sessionId}-${crypto.randomUUID()}`;
 
     return {
       id,
@@ -329,7 +329,7 @@ export class OpenCodeAdapter implements ProviderAdapter {
 
   private normalizeSession(raw: Record<string, unknown>): NormalizedSession {
     const now = new Date().toISOString();
-    const sessionId = this.pickString(raw, ["id", "sessionId", "session_id"]) ?? `opencode-${Date.now()}`;
+    const sessionId = this.pickString(raw, ["id", "sessionId", "session_id"]) ?? `opencode-${crypto.randomUUID()}`;
     const createdAt = this.pickString(raw, ["createdAt", "created_at", "created"]) ?? now;
     const updatedAt = this.pickString(raw, ["updatedAt", "updated_at", "updated", "lastUpdatedAt"]) ?? createdAt;
     const title = this.pickString(raw, ["title", "name"]) ?? "Untitled Session";
