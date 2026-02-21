@@ -104,31 +104,31 @@
 
 <style>
   .outcome-card {
-    border: 1px solid oklch(var(--color-border));
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin: 1rem 0;
-    background: oklch(var(--color-cli-bg-elevated));
-    color: oklch(var(--color-cli-text));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    margin: var(--space-md) 0;
+    background: var(--color-cli-bg-elevated);
+    color: var(--color-cli-text);
   }
   
   .status-success {
-    border-left: 4px solid oklch(var(--color-cli-success));
+    border-left: 4px solid var(--color-cli-success);
   }
   
   .status-failure {
-    border-left: 4px solid oklch(var(--color-cli-error));
+    border-left: 4px solid var(--color-cli-error);
   }
   
   .status-partial {
-    border-left: 4px solid oklch(var(--color-cli-warning));
+    border-left: 4px solid var(--color-cli-warning);
   }
   
   .outcome-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
   }
   
   .status-icon {
@@ -139,54 +139,54 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: oklch(var(--color-cli-bg-hover));
+    background: var(--color-cli-bg-hover);
   }
   
   /* Use direct style instead of computed class context just in case */
   :global(.status-success) .status-icon {
-    color: oklch(var(--color-cli-success));
+    color: var(--color-cli-success);
   }
   
   :global(.status-failure) .status-icon {
-    color: oklch(var(--color-cli-error));
+    color: var(--color-cli-error);
   }
   
   :global(.status-partial) .status-icon {
-    color: oklch(var(--color-cli-warning));
+    color: var(--color-cli-warning);
   }
   
   .outcome-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--space-xs);
   }
   
   .agent-name {
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
   }
   
   .status-label {
-    font-size: 0.875rem;
-    color: oklch(var(--color-cli-text-muted));
+    font-size: var(--text-sm);
+    color: var(--color-cli-text-muted);
     text-transform: capitalize;
   }
   
   .outcome-summary {
-    color: oklch(var(--color-cli-text));
-    margin-bottom: 1rem;
+    color: var(--color-cli-text);
+    margin-bottom: var(--space-md);
     line-height: 1.5;
   }
   
   .touched-files {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-md);
   }
   
   .touched-files h4 {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: oklch(var(--color-cli-text-muted));
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: var(--space-sm);
+    color: var(--color-cli-text-muted);
   }
   
   .touched-files ul {
@@ -196,17 +196,17 @@
   }
   
   .touched-files li {
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-xs);
   }
   
   .file-link {
     background: none;
     border: none;
-    color: oklch(var(--color-cli-prefix-agent));
+    color: var(--color-cli-prefix-agent);
     cursor: pointer;
     text-align: left;
-    padding: 0.25rem;
-    font-size: 0.875rem;
+    padding: var(--space-xs);
+    font-size: var(--text-sm);
     font-family: 'SF Mono', 'Monaco', monospace;
   }
   
@@ -217,11 +217,11 @@
   .expand-files {
     background: none;
     border: none;
-    color: oklch(var(--color-cli-prefix-agent));
+    color: var(--color-cli-prefix-agent);
     cursor: pointer;
-    font-size: 0.875rem;
-    padding: 0.25rem;
-    margin-top: 0.25rem;
+    font-size: var(--text-sm);
+    padding: var(--space-xs);
+    margin-top: var(--space-xs);
   }
   
   .expand-files:hover {
@@ -230,19 +230,19 @@
   
   .outcome-actions {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
   }
   
   .continue-button {
-    background: oklch(var(--color-cli-prefix-agent));
+    background: var(--color-cli-prefix-agent);
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
   }
   
   .continue-button:hover {
