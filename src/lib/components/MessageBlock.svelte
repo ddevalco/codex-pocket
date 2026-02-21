@@ -177,17 +177,6 @@
   }}
 >
   <div class="user-bubble relative max-w-[85%] rounded-2xl bg-cli-bg-user px-md py-sm font-mono text-sm leading-relaxed message-block {prefixConfig.bgClass}">
-    <MessageActions
-      {message}
-      {copyState}
-      {menuOpen}
-      onCopyMessage={copyMessage}
-      onCopyRawMarkdown={copyRawMarkdown}
-      {onCopyQuoted}
-      {onCopyFromHere}
-      onToggleMenu={() => menuOpen = !menuOpen}
-      onShiftCopy={(e) => {
-        (copyMessage as any).__wantRaw = e.shiftKey;
   <MessageActions
     {message}
     {copyState}
@@ -266,6 +255,7 @@
         copyMessage();
       }}
     />
+  {/if}
     <MarkdownRenderer
       text={message.text}
       prefix=""
