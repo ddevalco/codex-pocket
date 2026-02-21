@@ -1477,7 +1477,7 @@
     top: 0;
     bottom: 0;
     width: var(--timeline-line-width);
-    background: var(--cli-border);
+    background: var(--color-cli-border);
     opacity: 0.5;
   }
 
@@ -1490,7 +1490,7 @@
     width: var(--timeline-dot-size);
     height: var(--timeline-dot-size);
     border-radius: var(--radius-full, 9999px);
-    background: var(--cli-border);
+    background: var(--color-cli-border);
   }
 
   /* Hide the line extending above the first item and below the last */
@@ -1498,7 +1498,7 @@
     top: var(--space-md, 1rem);
   }
   .timeline-container :global(.timeline-item:last-child)::before {
-    bottom: calc(100% - var(--space-md, 1rem) - var(--timeline-dot-size));
+    bottom: calc(100% - var(--space-md, 1rem) - var(--timeline-dot-size) / 2);
   }
 
   /* ── P4.2: Tool block grouping ── */
@@ -1526,7 +1526,7 @@
     font-weight: var(--font-weight-semibold, 600);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--cli-text-muted);
+    color: var(--color-cli-text-muted);
     padding-bottom: var(--space-xs, 0.25rem);
   }
 </style>

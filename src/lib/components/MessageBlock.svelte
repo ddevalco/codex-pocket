@@ -176,7 +176,7 @@
     }
   }}
 >
-  <div class="user-bubble relative max-w-[85%] rounded-2xl bg-cli-bg-user px-md py-sm font-mono text-sm leading-relaxed message-block {prefixConfig.bgClass}">
+  <div class="user-bubble relative max-w-[85%] rounded-2xl px-md py-sm font-mono text-sm leading-relaxed message-block {prefixConfig.bgClass}">
   <MessageActions
     {message}
     {copyState}
