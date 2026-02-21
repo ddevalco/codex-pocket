@@ -19,6 +19,7 @@
     import Reasoning from "../lib/components/Reasoning.svelte";
     import PromptInput from "../lib/components/PromptInput.svelte";
     import OutcomeCard from "../lib/components/OutcomeCard.svelte";
+    import PlanProgress from "../lib/components/PlanProgress.svelte";
     import { createMockHelperOutcome } from "../lib/test-helpers";
 
     const themeIcons = { system: "◐", light: "○", dark: "●" } as const;
@@ -46,6 +47,7 @@
     let trackedPlanId: string | null = null;
     let container: HTMLDivElement | undefined;
     let turnStartTime = $state<number | undefined>(undefined);
+    let planPanelCollapsed = $state(false);
     let promptInput: ReturnType<typeof PromptInput> | undefined;
 
     const threadId = $derived(route.params.id);
@@ -831,10 +833,11 @@
     // Auto-sync mode to "plan" when the thread has an active plan
     $effect(() => {
         if (!lastPlanId) return;
-        // New plan arrived — reset user override
+        // New plan arrived — reset user override and expand plan panel
         if (lastPlanId !== trackedPlanId) {
             trackedPlanId = lastPlanId;
             modeUserOverride = false;
+            planPanelCollapsed = false;
         }
         if (modeUserOverride) return;
         const msgs = messages.current;
@@ -1224,6 +1227,16 @@
                 <div class="search-no-results mt-2 font-mono text-xs text-cli-text-muted">No results for "{searchQuery}"</div>
             {/if}
         </div>
+    {/if}
+
+    <!-- Plan progress panel — visible when plan steps exist -->
+    {#if plan && plan.length > 0}
+        <PlanProgress
+            steps={plan}
+            explanation={planExplanation}
+            collapsed={planPanelCollapsed}
+            onToggle={() => planPanelCollapsed = !planPanelCollapsed}
+        />
     {/if}
 
     <div class="transcript timeline-container flex-1 overflow-y-auto overflow-x-hidden py-3" bind:this={container}>
