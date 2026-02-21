@@ -217,7 +217,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
           const key = String(rpcId);
           const sessionId = typeof params.sessionId === "string" && params.sessionId
             ? params.sessionId
-            : `anon-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            : `anon-${crypto.randomUUID()}`;
           const threadId = `copilot-acp:${sessionId}`;
 
           const timeoutHandle = setTimeout(() => {
@@ -840,7 +840,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   private normalizeSession(raw: any): NormalizedSession {
     return {
       provider: this.providerId,
-      sessionId: raw.id || raw.sessionId || String(Math.random()),
+      sessionId: raw.id || raw.sessionId || `session-${crypto.randomUUID()}`,
       title: raw.title || raw.name || "Untitled Session",
       project: raw.project || raw.workspace,
       repo: raw.repo || raw.repository,
