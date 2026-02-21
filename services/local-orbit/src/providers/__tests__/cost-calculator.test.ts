@@ -7,6 +7,7 @@ import {
   calculateCost,
   enrichTokenUsage,
   getPricingTables,
+  validateTokenCounts,
 } from "../cost-calculator.js";
 
 describe("Cost Calculator", () => {
@@ -201,6 +202,85 @@ describe("Cost Calculator", () => {
         expect(miniCost).toBeLessThan(gpt4oCost);
         expect(gpt4oCost / miniCost).toBeGreaterThan(10); // At least 10x cheaper
       }
+    });
+  });
+
+  describe("validateTokenCounts", () => {
+    test("accepts valid positive numbers", () => {
+      expect(validateTokenCounts(100, 200)).toBe(true);
+    });
+    
+    test("accepts zero tokens", () => {
+      expect(validateTokenCounts(0, 0)).toBe(true);
+      expect(validateTokenCounts(0, 100)).toBe(true);
+      expect(validateTokenCounts(100, 0)).toBe(true);
+    });
+    
+    test("rejects negative tokens", () => {
+      expect(validateTokenCounts(-1, 100)).toBe(false);
+      expect(validateTokenCounts(100, -1)).toBe(false);
+      expect(validateTokenCounts(-1, -1)).toBe(false);
+    });
+    
+    test("rejects NaN", () => {
+      expect(validateTokenCounts(NaN, 100)).toBe(false);
+      expect(validateTokenCounts(100, NaN)).toBe(false);
+      expect(validateTokenCounts(NaN, NaN)).toBe(false);
+    });
+    
+    test("rejects Infinity", () => {
+      expect(validateTokenCounts(Infinity, 100)).toBe(false);
+      expect(validateTokenCounts(100, Infinity)).toBe(false);
+      expect(validateTokenCounts(Infinity, Infinity)).toBe(false);
+      expect(validateTokenCounts(-Infinity, 100)).toBe(false);
+      expect(validateTokenCounts(100, -Infinity)).toBe(false);
+    });
+    
+    test("accepts large but finite numbers", () => {
+      expect(validateTokenCounts(1e8, 1e8)).toBe(true);
+      expect(validateTokenCounts(999_999_999, 999_999_999)).toBe(true);
+    });
+    
+    test("rejects unreasonably large numbers (> 1 billion)", () => {
+      expect(validateTokenCounts(1e10, 100)).toBe(false);
+      expect(validateTokenCounts(100, 1e10)).toBe(false);
+      expect(validateTokenCounts(2e9, 100)).toBe(false);
+    });
+  });
+
+  describe("calculateCost with invalid inputs", () => {
+    test("returns null for negative prompt tokens", () => {
+      expect(calculateCost("codex", "gpt-4o", -100, 200)).toBeNull();
+    });
+    
+    test("returns null for negative completion tokens", () => {
+      expect(calculateCost("codex", "gpt-4o", 100, -200)).toBeNull();
+    });
+    
+    test("returns null for NaN prompt tokens", () => {
+      expect(calculateCost("codex", "gpt-4o", NaN, 200)).toBeNull();
+    });
+    
+    test("returns null for NaN completion tokens", () => {
+      expect(calculateCost("codex", "gpt-4o", 100, NaN)).toBeNull();
+    });
+    
+    test("returns null for Infinity prompt tokens", () => {
+      expect(calculateCost("codex", "gpt-4o", Infinity, 200)).toBeNull();
+    });
+    
+    test("returns null for Infinity completion tokens", () => {
+      expect(calculateCost("codex", "gpt-4o", 100, Infinity)).toBeNull();
+    });
+    
+    test("returns null for -Infinity tokens", () => {
+      expect(calculateCost("codex", "gpt-4o", -Infinity, 200)).toBeNull();
+      expect(calculateCost("codex", "gpt-4o", 100, -Infinity)).toBeNull();
+    });
+    
+    test("returns null for unreasonably large numbers", () => {
+      expect(calculateCost("codex", "gpt-4o", 1e10, 200)).toBeNull();
+      expect(calculateCost("codex", "gpt-4o", 100, 1e10)).toBeNull();
     });
   });
 });

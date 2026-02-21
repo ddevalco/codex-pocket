@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { Database } from "bun:sqlite";
 import QRCode from "qrcode";
 import { createRegistry } from "./providers/registry.js";
-import { CodexAdapter, CopilotAcpAdapter, ClaudeAdapter, ClaudeMcpAdapter } from "./providers/adapters/index.js";
+import { CodexAdapter, CopilotAcpAdapter, ClaudeAdapter, ClaudeMcpAdapter, OpenCodeAdapter } from "./providers/adapters/index.js";
 import { AgentStore } from "./agents/agent-store.js";
 import type { PromptInput, PromptAttachment, NormalizedEvent, AcpApprovalPayload } from "./providers/provider-types.js";
 import { normalizeAttachment, isValidAttachment } from "./providers/provider-types.js";
@@ -221,6 +221,17 @@ registry.register(
   },
 );
 
+// Register OpenCode adapter
+const opencodeCfg = providersConfig["opencode"] || {};
+registry.register(
+  "opencode",
+  (cfg) => new OpenCodeAdapter(cfg.extra),
+  {
+    enabled: opencodeCfg.enabled === true, // Disabled by default (explicit opt-in)
+    extra: opencodeCfg,
+  },
+);
+
 // Prefer config.json (so token rotation persists across restarts), fall back to env.
 AUTH_TOKEN = tokenFromConfigJson(loadedConfig) ?? AUTH_TOKEN;
 
@@ -338,6 +349,18 @@ const PROVIDER_CAPABILITIES: Record<string, ProviderCapabilities> = {
     CAN_FILTER_HISTORY: false,  // Not applicable in foundation phase
     SUPPORTS_APPROVALS: false,  // TBD based on implementation approach
     SUPPORTS_STREAMING: true,  // Claude API supports streaming
+  },
+  "claude-mcp": {
+    CAN_ATTACH_FILES: false,  // CLI vision support TBD
+    CAN_FILTER_HISTORY: false,  // Local-only sessions
+    SUPPORTS_APPROVALS: false,  // No approval workflow in CLI
+    SUPPORTS_STREAMING: true,  // CLI supports JSON streaming
+  },
+  opencode: {
+    CAN_ATTACH_FILES: false,  // TBD based on OpenCode API support
+    CAN_FILTER_HISTORY: false,  // TBD
+    SUPPORTS_APPROVALS: false,  // TBD
+    SUPPORTS_STREAMING: true,  // OpenCode supports streaming
   },
 };
 
@@ -1793,8 +1816,17 @@ async function injectThreadCapabilities(msg: Record<string, unknown>): Promise<v
     const providerId = typeof t.provider === "string" ? t.provider : "codex";
     const threadId = typeof t.id === "string" ? t.id : typeof t.threadId === "string" ? t.threadId : null;
     
-    // For copilot-acp threads identified by id prefix, use copilot-acp capabilities
-    const effectiveProvider = threadId?.startsWith("copilot-acp:") ? "copilot-acp" : providerId;
+    // For provider-prefixed threads (e.g. "copilot-acp:abc", "opencode:xyz"), extract provider from prefix
+    let effectiveProvider = providerId;
+    if (threadId) {
+      const colonIdx = threadId.indexOf(":");
+      if (colonIdx > 0) {
+        const prefix = threadId.slice(0, colonIdx);
+        if (PROVIDER_CAPABILITIES[prefix]) {
+          effectiveProvider = prefix;
+        }
+      }
+    }
     
     // Inject appropriate capabilities
     t.capabilities = getProviderCapabilities(effectiveProvider);
@@ -1944,41 +1976,67 @@ function isThreadListResponse(msg: any, fromAnchor: boolean): boolean {
 }
 
 // Helper: Find and augment thread list in response
+// Iterates ALL registered providers with listSessions capability (Fixes #272)
 async function augmentThreadList(response: any): Promise<any> {
-  try {
-    const adapter = registry.get("copilot-acp");
-    if (!adapter) return response;
+  const providerIds = registry.list().filter((id) => id !== "codex"); // Codex threads come from Anchor
+  if (providerIds.length === 0) return response;
 
-    const result = await (adapter as any).listSessions();
-    if (!result.sessions || result.sessions.length === 0) return response;
+  // Collect sessions from all capable providers in parallel (error-isolated)
+  const results = await Promise.allSettled(
+    providerIds.map(async (providerId) => {
+      const adapter = registry.get(providerId);
+      if (!adapter) return { providerId, sessions: [] };
 
-    // Map NormalizedSession to thread format with ACP capabilities
-    const acpCapabilities = getProviderCapabilities("copilot-acp");
-    const acpThreads = result.sessions.map((session: any) => ({
-      id: `copilot-acp:${session.sessionId}`,
-      provider: "copilot-acp",
-      name: session.title,
-      title: session.title,
-      status: session.status,
-      project: session.project,
-      repo: session.repo,
-      preview: session.preview,
-      capabilities: acpCapabilities,
-      created_at: Math.floor(new Date(session.createdAt).getTime() / 1000),
-      updated_at: Math.floor(new Date(session.updatedAt).getTime() / 1000),
-    }));
+      // Check capability before calling
+      if (!adapter.capabilities.listSessions) {
+        return { providerId, sessions: [] };
+      }
 
-    // Find thread list and append
-    const list = response.result?.data || response.result?.threads || response.result || [];
-    if (Array.isArray(list)) {
-      list.push(...acpThreads);
+      const result = await adapter.listSessions();
+      return { providerId, sessions: result.sessions || [] };
+    }),
+  );
+
+  // Map sessions from all providers to thread format
+  const allProviderThreads: any[] = [];
+
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.warn("[local-orbit] Provider session listing failed:", result.reason);
+      continue;
     }
 
-    return response;
-  } catch (err) {
-    console.warn("[local-orbit] Failed to augment thread list with ACP sessions:", err);
-    return response;
+    const { providerId, sessions } = result.value;
+    if (sessions.length === 0) continue;
+
+    const capabilities = getProviderCapabilities(providerId);
+
+    for (const session of sessions) {
+      allProviderThreads.push({
+        id: `${providerId}:${session.sessionId}`,
+        provider: providerId,
+        name: session.title,
+        title: session.title,
+        status: session.status,
+        project: session.project,
+        repo: session.repo,
+        preview: session.preview,
+        capabilities,
+        created_at: Math.floor(new Date(session.createdAt).getTime() / 1000),
+        updated_at: Math.floor(new Date(session.updatedAt).getTime() / 1000),
+      });
+    }
   }
+
+  if (allProviderThreads.length === 0) return response;
+
+  // Find thread list and append
+  const list = response.result?.data || response.result?.threads || response.result || [];
+  if (Array.isArray(list)) {
+    list.push(...allProviderThreads);
+  }
+
+  return response;
 }
 
 // Helper: Check if operation is write to ACP session
@@ -2006,9 +2064,10 @@ function acpSessionIdFromThreadId(threadId: string): string {
 // Capability Normalization Helper (Phase 4.1: P4-01-A)
 // Maps provider id/session source to canonical capability payload
 function getProviderCapabilities(providerId: string): ProviderCapabilities {
-  // Normalize provider ID (strip session prefix if present)
-  const normalizedId = providerId.startsWith("copilot-acp:") 
-    ? "copilot-acp" 
+  // Normalize provider ID: strip session suffix if present (e.g., "copilot-acp:abc123" → "copilot-acp")
+  const colonIdx = providerId.indexOf(":");
+  const normalizedId = colonIdx > 0 && PROVIDER_CAPABILITIES[providerId.slice(0, colonIdx)]
+    ? providerId.slice(0, colonIdx)
     : providerId;
 
   // For copilot-acp, reflect the adapter's live computed capabilities so that
@@ -2138,6 +2197,14 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
     const adapter = registry.get("copilot-acp") as any;
     const sessionId = acpSessionIdFromThreadId(threadId);
     const result = await adapter.sendPrompt(sessionId, promptInput);
+    
+    // Track session locally for CLIs without list_sessions (Fixes #273)
+    if (adapter.trackSession) {
+      adapter.trackSession(sessionId, {
+        preview: text.slice(0, 100),
+        status: "active",
+      });
+    }
     
     const elapsed = Date.now() - startTime;
     

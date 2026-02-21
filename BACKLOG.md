@@ -76,6 +76,80 @@ Issues are canonical for work items:
 **Files Changed:** Multiple component files across Home, Admin, and shared component directories
 
 ---
+### 2026-02-20: Multi-Provider Thread Fix + OpenCode Support
+
+**Issues:** #272, #273, #274 | **Branch:** `codex/multi-provider-thread-fix` | **Status:** IN PROGRESS
+
+**Context:** User reported Copilot ACP and Claude threads not appearing in CodeRelay. Root cause: `augmentThreadList()` was hardcoded to only merge Copilot ACP sessions. Additionally, user requested OpenCode as a new provider.
+
+#### Issue #272: augmentThreadList() Multi-Provider Bug ✅ FIXED
+
+**Problem:**
+
+- `augmentThreadList()` hardcoded `registry.get("copilot-acp")`
+- Only Copilot ACP sessions were merged into thread list
+- Claude, Claude MCP, OpenCode sessions completely ignored
+
+**Resolution:**
+
+- ✅ Rewrote `augmentThreadList()` to iterate `registry.list()`
+- ✅ Filters out `"codex"` (comes from Anchor), checks `adapter.capabilities.listSessions`
+- ✅ Uses `Promise.allSettled()` for error isolation between providers
+- ✅ Maps sessions from all providers with correct capabilities
+
+#### Issue #273: Copilot ACP list_sessions Fallback ✅ FIXED
+
+**Problem:**
+
+- When Copilot CLI lacks `list_sessions` support (JSON-RPC -32601)
+- `listSessions()` returned empty array with no fallback
+- Active Copilot sessions invisible to users
+
+**Resolution:**
+
+- ✅ Added `localSessions` Map for tracking sessions when CLI lacks `list_sessions`
+- ✅ Modified `listSessions()` to return locally tracked sessions as fallback
+- ✅ Added public `trackSession()` method for external callers
+- ✅ Wired up session tracking in `routeAcpSendPrompt()` after successful sends
+
+#### Issue #274: OpenCode Provider Support ✅ IMPLEMENTED
+
+**Problem:**
+
+- No support for OpenCode AI coding agent
+- Users running `opencode serve` couldn't see their sessions in CodeRelay
+
+**Resolution:**
+
+- ✅ Created `opencode-adapter.ts` (384 lines) implementing full `ProviderAdapter` interface
+- ✅ Health probing via `GET /global/health` with graceful degradation
+- ✅ Session listing via `GET /session`, open via `GET /session/{id}`
+- ✅ Prompt send via `POST /session/{id}/message`
+- ✅ Registered in index.ts with opt-in config (`enabled: opencodeCfg.enabled === true`)
+- ✅ Added to barrel export in adapters/index.ts
+
+#### Additional Fixes
+
+- ✅ Generalized `injectThreadCapabilities` — replaced hardcoded `copilot-acp:` prefix with generic `PROVIDER_CAPABILITIES` key lookup
+- ✅ Generalized `getProviderCapabilities()` — generic prefix normalization for any `{providerId}:sessionId` format
+- ✅ Added `PROVIDER_CAPABILITIES` entries for `claude-mcp` and `opencode`
+
+**Files Changed:**
+
+- `services/local-orbit/src/index.ts` — augmentThreadList, injectThreadCapabilities, getProviderCapabilities, PROVIDER_CAPABILITIES, OpenCode registration
+- `services/local-orbit/src/providers/adapters/copilot-acp-adapter.ts` — localSessions fallback + trackSession
+- `services/local-orbit/src/providers/adapters/opencode-adapter.ts` — NEW FILE
+- `services/local-orbit/src/providers/adapters/index.ts` — OpenCode barrel export
+
+**Provider Status After Changes:**
+
+| Provider | Type | Thread Listing | Status |
+|----------|------|----------------|--------|
+| **Codex** | Local (Anchor) | Via Anchor relay | ✅ Working |
+| **Copilot ACP** | Local (CLI) | list_sessions + local fallback | ✅ Fixed |
+| **Claude** | Web (API) | Via adapter | ✅ Now visible |
+| **Claude MCP** | Local (CLI) | Via adapter | ✅ Now visible |
+| **OpenCode** | Local (HTTP) | Via HTTP API | ✅ New |
 
 ### 2026-02-20: Phase 1 Packet 2 - Security & Validation Fixes ✅
 
@@ -174,6 +248,7 @@ Issues are canonical for work items:
 - ✅ Phase 1 Packet 2 (4 critical/high issues): COMPLETE
 - ✅ Phase 2 (OKLCH Color System Fixes): COMPLETE (PR #271 needs visual QA)
 - 📊 Remaining: ~175 findings from Copilot review
+- 📊 Remaining: 178 findings from Copilot review
 - 📋 Next: Prioritize and batch remaining findings
 
 ### 2026-02-20: Provider Configuration UI ✅
@@ -785,12 +860,16 @@ Source and implementation notes: [`docs/RECOMMENDATIONS.md`](docs/RECOMMENDATION
 - ✅ #200 - Claude Integration (PR #212, #214)
 - ✅ #203 - Token Cost Display (PR #213, #215)
 - ✅ #205 - Rebrand to CodeRelay (PR #216)
+- ✅ #272 - Multi-provider thread list fix (augmentThreadList generic iteration)
+- ✅ #273 - Copilot ACP local session fallback
+- ✅ #274 - OpenCode provider support
 
 ### Remaining
 
 - [ ] P5-02: Context/Memory Offload & Save
 - [ ] P5-03: Custom Agent Import
 - [ ] P5-05: Metrics Dashboard Integration
+- [ ] OpenCode Phase 2: Streaming events, attachment support, approval workflows
 
 ## Epic #221: Farfield-Inspired UI/UX Refresh
 
