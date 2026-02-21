@@ -2061,6 +2061,120 @@ function acpSessionIdFromThreadId(threadId: string): string {
   return threadId.replace(/^copilot-acp:/, "").trim();
 }
 
+// --- Generic Provider Routing (Claude, Claude MCP, OpenCode) ---
+const GENERIC_PROVIDER_PREFIXES = ["claude:", "claude-mcp:", "opencode:"] as const;
+
+function isGenericSendPromptOperation(msg: any): boolean {
+  if (!msg || typeof msg !== "object") return false;
+  if (msg.method !== "turn/start" && msg.method !== "sendPrompt") return false;
+  const threadId = msg.params?.threadId || msg.params?.thread_id || msg.params?.id;
+  if (typeof threadId !== "string") return false;
+  return GENERIC_PROVIDER_PREFIXES.some((prefix) => threadId.startsWith(prefix));
+}
+
+function parseProviderThreadId(threadId: string): { providerId: string; sessionId: string } | null {
+  for (const prefix of GENERIC_PROVIDER_PREFIXES) {
+    if (threadId.startsWith(prefix)) {
+      return {
+        providerId: prefix.slice(0, -1), // Remove trailing ":"
+        sessionId: threadId.slice(prefix.length).trim(),
+      };
+    }
+  }
+  return null;
+}
+
+async function routeGenericSendPrompt(msg: any, ws: any): Promise<void> {
+  const threadId = msg.params?.threadId || msg.params?.thread_id || msg.params?.id;
+  const parsed = parseProviderThreadId(threadId);
+  if (!parsed) {
+    const errResp = { jsonrpc: "2.0", id: msg.id, error: { code: -32001, message: "Unknown provider prefix in threadId" } };
+    ws.send(JSON.stringify(errResp));
+    return;
+  }
+
+  const { providerId, sessionId } = parsed;
+  const adapter = registry.get(providerId);
+  if (!adapter) {
+    const errResp = { jsonrpc: "2.0", id: msg.id, error: { code: -32001, message: `Provider '${providerId}' not registered` } };
+    ws.send(JSON.stringify(errResp));
+    return;
+  }
+
+  if (!adapter.capabilities.sendPrompt) {
+    const errResp = { jsonrpc: "2.0", id: msg.id, error: { code: -32001, message: `Provider '${providerId}' does not support sendPrompt` } };
+    ws.send(JSON.stringify(errResp));
+    return;
+  }
+
+  // Extract prompt text using the same helper as ACP routing
+  const text = extractPromptText(msg);
+  if (!text) {
+    const errResp = { jsonrpc: "2.0", id: msg.id, error: { code: -32001, message: "No prompt text found in message" } };
+    ws.send(JSON.stringify(errResp));
+    return;
+  }
+
+  // Extract attachments (same pattern as ACP routing)
+  const rawAttachments: any[] = [];
+  if (Array.isArray(msg.params?.attachments)) {
+    rawAttachments.push(...msg.params.attachments);
+  }
+  if (Array.isArray(msg.params?.input?.attachments)) {
+    rawAttachments.push(...msg.params.input.attachments);
+  }
+  if (Array.isArray(msg.params?.input)) {
+    for (const item of msg.params.input) {
+      if (item?.type === "image" && item.data) {
+        rawAttachments.push({ type: "image", data: item.data, mediaType: item.mediaType || "image/png" });
+      }
+    }
+  }
+
+  const attachments = rawAttachments
+    .map((a: any) => normalizeAttachment(a))
+    .filter((a: any) => a && isValidAttachment(a));
+
+  const promptInput: any = { text };
+  if (attachments.length > 0) {
+    promptInput.attachments = attachments;
+  }
+
+  try {
+    const startTime = Date.now();
+    const result = await adapter.sendPrompt(sessionId, promptInput);
+    const elapsed = Date.now() - startTime;
+
+    if (elapsed > 15000) {
+      console.warn(`[${providerId}] sendPrompt took ${(elapsed / 1000).toFixed(1)}s`);
+    }
+
+    // Track session if adapter supports it
+    if (hasTrackSession(adapter)) {
+      adapter.trackSession(sessionId);
+    }
+
+    const successResp = {
+      jsonrpc: "2.0",
+      id: msg.id,
+      result: { ...result, provider: providerId, threadId, sessionId },
+    };
+    ws.send(JSON.stringify(successResp));
+  } catch (err: any) {
+    console.error(`[${providerId}] sendPrompt error:`, err?.message || err);
+    const isTimeout = err?.message?.includes("timeout") || err?.message?.includes("ETIMEDOUT");
+    const errResp = {
+      jsonrpc: "2.0",
+      id: msg.id,
+      error: {
+        code: isTimeout ? -32002 : -32001,
+        message: `${providerId} sendPrompt failed: ${err?.message || "Unknown error"}`,
+      },
+    };
+    ws.send(JSON.stringify(errResp));
+  }
+}
+
 // Capability Normalization Helper (Phase 4.1: P4-01-A)
 // Maps provider id/session source to canonical capability payload
 function getProviderCapabilities(providerId: string): ProviderCapabilities {
@@ -2105,8 +2219,22 @@ function extractPromptText(msg: any): string {
   return "";
 }
 
+/**
+ * Type guard: checks whether an adapter has a `trackSession` method.
+ * CopilotAcpAdapter exposes this, but it is not part of the base
+ * ProviderAdapter interface, so we narrow dynamically.
+ */
+function hasTrackSession(
+  adapter: unknown,
+): adapter is { trackSession: (sessionId: string, update?: Record<string, unknown>) => void } {
+  return (
+    adapter != null &&
+    typeof (adapter as Record<string, unknown>).trackSession === "function"
+  );
+}
+
 function acpCanSendPrompt(): boolean {
-  const adapter = registry.get("copilot-acp") as any;
+  const adapter = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
   return Boolean(adapter?.capabilities?.sendPrompt);
 }
 
@@ -2194,13 +2322,21 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
 
   const startTime = Date.now();
   try {
-    const adapter = registry.get("copilot-acp") as any;
+    const adapter = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
+    if (!adapter) {
+      send(ws, {
+        jsonrpc: "2.0",
+        id: requestId,
+        error: { code: -32001, message: "copilot-acp adapter not registered" },
+      });
+      return;
+    }
     const sessionId = acpSessionIdFromThreadId(threadId);
     const result = await adapter.sendPrompt(sessionId, promptInput);
     
     // Track session locally for CLIs without list_sessions (Fixes #273)
-    if (typeof (adapter as any).trackSession === "function") {
-      (adapter as any).trackSession(sessionId, {
+    if (hasTrackSession(adapter)) {
+      adapter.trackSession(sessionId, {
         preview: text.slice(0, 100),
         status: "active",
       });
@@ -2311,6 +2447,12 @@ async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
 
   if (fromRole === "client" && isAcpSendPromptOperation(parsed) && acpCanSendPrompt()) {
     await routeAcpSendPrompt(parsed, ws);
+    return;
+  }
+
+  // Route sendPrompt for non-ACP providers (Claude, Claude MCP, OpenCode)
+  if (fromRole === "client" && isGenericSendPromptOperation(parsed)) {
+    await routeGenericSendPrompt(parsed, ws);
     return;
   }
 

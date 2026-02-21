@@ -32,9 +32,7 @@
 </script>
 
 <div class="flex items-start gap-sm">
-  {#if prefix}
-    <span class="flex-shrink-0 font-semibold {colorClass}">{prefix}</span>
-  {/if}
+  {#if prefix}<span class="prefix flex-shrink-0 font-semibold {colorClass}">{prefix}</span>{/if}
   <div class="text-cli-text min-w-0 break-words markdown">{@html renderedHtml}</div>
 </div>
 

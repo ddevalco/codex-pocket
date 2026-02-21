@@ -301,7 +301,7 @@ export class OpenCodeAdapter implements ProviderAdapter {
     sessionId: string,
     _callback: (event: NormalizedEvent) => void,
   ): Promise<EventSubscription> {
-    const id = `opencode-${sessionId}-${Date.now()}`;
+    const id = `opencode-${sessionId}-${crypto.randomUUID()}`;
 
     return {
       id,

@@ -29,20 +29,6 @@
       onApplyPreset?: (preset: AgentPreset) => void;
 	  }
 
-  /* P3.1: Composer button states */
-  type ComposerState = "idle" | "sending" | "generating" | "stopped";
-  const composerState = $derived.by((): ComposerState => {
-    if (disabled && onStop) return "generating";
-    if (loading) return "sending";
-    return "idle";
-  });
-  const composerButtonLabel = $derived.by(() => {
-    switch (composerState) {
-      case "generating": return "Stop generating";
-      case "sending": return "Sending...";
-      default: return canSubmit ? "Send message" : "Type a message to send";
-    }
-  });
 
 	  type ImageAttachment = {
 	    kind: "image";
@@ -115,6 +101,23 @@
 
   const canAttach = $derived(canAttachFiles(thread));
   const canSubmit = $derived((input.trim().length > 0 || pendingAttachments.length > 0) && !disabled && !loading);
+
+  /* P3.1: Composer button states */
+  type ComposerState = "idle" | "sending" | "generating";
+  const composerState = $derived.by((): ComposerState => {
+    if (disabled && onStop) return "generating";
+    if (loading) return "sending";
+    return "idle";
+  });
+  const composerButtonLabel = $derived.by(() => {
+    switch (composerState) {
+      case "generating": return "Stop generating";
+      case "sending": return "Sending...";
+      default:
+        if (!canSubmit && resolvedDisabledReason) return resolvedDisabledReason;
+        return canSubmit ? "Send message" : "Type a message to send";
+    }
+  });
 
   // Restore draft when draftKey changes
   $effect(() => {
@@ -582,16 +585,19 @@
           </svg>
         </button>
       {:else if composerState === "sending"}
-        <div
+        <button
+          type="button"
+          disabled
           class="composer-action-btn composer-action-busy row items-center justify-center w-8 h-8 p-0 bg-cli-prefix-agent/60 border-0 rounded-full"
-          role="status"
           title={composerButtonLabel}
           aria-label={composerButtonLabel}
+          aria-live="polite"
         >
+          <span class="sr-only">Sending message...</span>
           <svg class="animate-spin h-4 w-4 text-cli-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
           </svg>
-        </div>
+        </button>
       {:else}
         <button
           type="submit"
@@ -657,5 +663,14 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  .hint {
+    color: var(--color-cli-text-muted);
+    line-height: 1.55;
+  }
+
+  .hint-error {
+    color: var(--color-cli-error, oklch(0.65 0.2 25));
   }
 </style>

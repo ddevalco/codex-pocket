@@ -72,7 +72,11 @@
 
     const threadProvider = $derived.by(() => {
         if (currentThread?.provider) return currentThread.provider;
-        return threadId?.startsWith("copilot-acp:") ? "copilot-acp" : "codex";
+        if (threadId?.startsWith("copilot-acp:")) return "copilot-acp";
+        if (threadId?.startsWith("claude-mcp:")) return "claude-mcp";
+        if (threadId?.startsWith("claude:")) return "claude";
+        if (threadId?.startsWith("opencode:")) return "opencode";
+        return "codex";
     });
 
     const canSendPromptInput = $derived(canSendPrompt(currentThread));

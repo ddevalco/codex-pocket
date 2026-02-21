@@ -10,7 +10,10 @@
   import { auth } from "../lib/auth.svelte";
   import { uiToggles } from "../lib/uiToggles.svelte";
   import { canSendPrompt, getCapabilityTooltip } from "../lib/thread-capabilities";
-  import { Archive, ChevronDown, ChevronRight, Pencil } from "lucide-svelte";
+  import Archive from "lucide-svelte/icons/archive";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import Pencil from "lucide-svelte/icons/pencil";
   import AppHeader from "../lib/components/AppHeader.svelte";
   import ProjectPicker from "../lib/components/ProjectPicker.svelte";
   import ShimmerDot from "../lib/components/ShimmerDot.svelte";
@@ -41,7 +44,7 @@
       if (!parsed || typeof parsed !== "object") return DEFAULT_FILTERS;
 
       return {
-        provider: ["all", "codex", "copilot-acp", "claude"].includes(parsed.provider)
+        provider: ["all", "codex", "copilot-acp", "claude", "opencode"].includes(parsed.provider)
           ? parsed.provider
           : DEFAULT_FILTERS.provider,
         status: ["all", "active", "archived"].includes(parsed.status)
@@ -222,8 +225,9 @@
     if (filters.provider !== "all") {
       list = list.filter((t) => {
         if (filters.provider === "copilot-acp") return t.provider === "copilot-acp";
-        if (filters.provider === "claude") return t.provider === "claude";
+        if (filters.provider === "claude") return t.provider === "claude" || t.provider === "claude-mcp";
         if (filters.provider === "codex") return t.provider === "codex";
+        if (filters.provider === "opencode") return t.provider === "opencode";
         return true;
       });
     }
@@ -272,14 +276,17 @@
     let codex = 0;
     let copilot = 0;
     let claude = 0;
+    let opencode = 0;
     let active = 0;
     let archived = 0;
 
     for (const t of list) {
       if (t.provider === "copilot-acp") {
         copilot++;
-      } else if (t.provider === "claude") {
+      } else if (t.provider === "claude" || t.provider === "claude-mcp") {
         claude++;
+      } else if (t.provider === "opencode") {
+        opencode++;
       } else {
         codex++;
       }
@@ -296,6 +303,7 @@
       codex,
       copilot,
       claude,
+      opencode,
       active,
       archived,
     };
@@ -768,6 +776,7 @@
       onclick={() => renameThread(thread)}
       disabled={!canManageThread}
       title={canManageThread ? "Rename thread" : disabledReason}
+      aria-label="Rename thread"
     >
       <Pencil size={16} aria-hidden="true" />
     </button>
@@ -776,6 +785,7 @@
       onclick={() => threads.archive(thread.id)}
       disabled={!canManageThread}
       title={canManageThread ? "Archive thread" : disabledReason}
+      aria-label="Archive thread"
     >
       <Archive size={16} aria-hidden="true" />
     </button>
@@ -918,6 +928,12 @@
               aria-pressed={filters.provider === "claude"}
               onclick={() => (filters.provider = "claude")}
             >Claude ({threadCounts.claude})</button>
+            <button
+              class="filter-chip"
+              class:selected={filters.provider === "opencode"}
+              aria-pressed={filters.provider === "opencode"}
+              onclick={() => (filters.provider = "opencode")}
+            >OpenCode ({threadCounts.opencode})</button>
           </div>
         </div>
         <div class="filter-group row">
@@ -1341,7 +1357,7 @@
   }
 
   .legend-item {
-    --row-gap: var(--space-xs);
+    --row-gap: var(--space-1\.5);
     align-items: center;
     text-transform: lowercase;
     user-select: none;
@@ -1596,7 +1612,7 @@
 
   .thread-context {
     min-width: 0;
-    --row-gap: var(--space-xs);
+    --row-gap: var(--space-1\.5);
     align-items: center;
   }
 
@@ -1778,7 +1794,7 @@
   .filter-options {
     display: flex;
     flex-direction: row;
-    gap: var(--space-xs);
+    gap: var(--space-1\.5);
     flex-wrap: wrap;
   }
 

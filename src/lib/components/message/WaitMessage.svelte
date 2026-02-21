@@ -13,7 +13,7 @@
 <div class="flex items-center gap-sm">
   <span class="flex-shrink-0 font-semibold {colorClass}">{prefix}</span>
   <div class="flex items-center gap-sm">
-    <ShimmerDot color="--color-cli-prefix-tool" />
+    <ShimmerDot color="var(--color-cli-prefix-tool)" />
     <span class="text-cli-text-dim italic min-w-0 break-words">{text}</span>
   </div>
 </div>

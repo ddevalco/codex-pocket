@@ -760,4 +760,34 @@ describe("CopilotAcpAdapter - Approval handling", () => {
       clearTimeout(mockContext.timeout);
     });
   });
+
+  describe("normalizeSession – UUID fallback", () => {
+    const inst = new CopilotAcpAdapter();
+
+    it("returns a valid UUID when raw.id and raw.sessionId are missing", () => {
+      const result = (inst as any).normalizeSession({ title: "test" });
+      expect(result.sessionId).toBeDefined();
+      expect(result.sessionId).toMatch(
+        /^session-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+    });
+
+    it("produces different UUIDs on repeated calls", () => {
+      const a = (inst as any).normalizeSession({});
+      const b = (inst as any).normalizeSession({});
+      expect(a.sessionId).not.toBe(b.sessionId);
+    });
+
+    it("prefers raw.id over UUID fallback", () => {
+      const result = (inst as any).normalizeSession({ id: "explicit-id" });
+      expect(result.sessionId).toBe("explicit-id");
+    });
+
+    it("prefers raw.sessionId when raw.id is missing", () => {
+      const result = (inst as any).normalizeSession({
+        sessionId: "session-456",
+      });
+      expect(result.sessionId).toBe("session-456");
+    });
+  });
 });

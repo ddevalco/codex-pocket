@@ -52,6 +52,7 @@
 </script>
 
 <button
+  type="button"
   class="btn {variantClass} {sizeClass} {className}"
   {disabled}
   {...rest}

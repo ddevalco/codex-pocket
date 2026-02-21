@@ -189,7 +189,11 @@ function normalizeThreadInfo(input: any, options?: { applyDefaultCapabilities?: 
   
   // Normalize provider to canonical values
   const rawProvider = typeof thread.provider === "string" ? thread.provider : modelProvider;
-  const provider = rawProvider === "copilot-acp" ? "copilot-acp" : "codex";
+  const provider = rawProvider === "copilot-acp" ? "copilot-acp"
+    : rawProvider === "claude" ? "claude"
+    : rawProvider === "claude-mcp" ? "claude-mcp"
+    : rawProvider === "opencode" ? "opencode"
+    : "codex";
 
   // Normalize archived status from explicit flag or status string
   const archived = typeof thread.archived === "boolean" 
