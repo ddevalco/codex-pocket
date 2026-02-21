@@ -1430,6 +1430,32 @@
 </div>
 
 <style>
+  /* ── P5.2: Gradient scroll masks ── */
+  .transcript {
+    --scroll-mask-size: 2rem;
+    mask-image:
+      linear-gradient(to bottom, transparent, black var(--scroll-mask-size)),
+      linear-gradient(to bottom, black calc(100% - var(--scroll-mask-size)), transparent);
+    mask-composite: intersect;
+    -webkit-mask-image:
+      linear-gradient(to bottom, transparent, black var(--scroll-mask-size)),
+      linear-gradient(to bottom, black calc(100% - var(--scroll-mask-size)), transparent);
+    -webkit-mask-composite: source-in;
+  }
+
+  /* ── P5.3: Hover state polish ── */
+  .transcript :global(.message-block) {
+    transition: background-color var(--transition-fast);
+  }
+
+  .transcript :global(.timeline-item) {
+    transition: background-color var(--transition-fast);
+  }
+
+  .transcript :global(.timeline-item:hover) {
+    background-color: color-mix(in oklch, var(--cli-bg-hover), transparent 60%);
+  }
+
   /* ── P4.4: Timeline layout ── */
   .timeline-container {
     --timeline-gutter: 1.5rem;

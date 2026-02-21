@@ -12,19 +12,20 @@ Issues are canonical for work items:
 
 ## Recently Done
 
-### 2026-02-21: Farfield UI/UX Refresh — P1 through P4
+### 2026-02-21: Farfield UI/UX Refresh — P1 through P5
 
-**Epic:** #221 | **Status:** IN REVIEW (PRs #280, #281, #282, #283, #284)
+**Epic:** #221 | **Status:** IN REVIEW (PRs #280, #281, #282, #283, #284, #285)
 
-Implemented the first four phases of the Farfield-Inspired UI/UX Refresh:
+Implemented all five phases of the Farfield-Inspired UI/UX Refresh:
 
 - **P1 Design Tokens (PR #280):** Spacing, radius, typography, animation token system in `tokens.css` + Tailwind v4 theme extension
 - **P2 Component Library (PR #281):** Reusable `Button`, `Card`, `RadioGroup` components with barrel export
 - **P2.1 Message Block Refactor (PR #282):** Extracted 6 sub-components from monolithic MessageBlock.svelte
 - **P3 Composer Improvements (PR #283):** State-aware button, auto-resize textarea, chromeless styling
 - **P4 Conversation UI (PR #284):** User bubbles, tool grouping, reasoning collapse, timeline layout
+- **P5 Polish & Micro-interactions (PR #285):** Thinking shimmer, gradient scroll masks, hover state polish
 
-**Validation:** All 5 PRs pass svelte-check (0 errors), vite build, bun test (229 pass), bundle size, regression guards, Phase 4 guards.
+**Validation:** All 6 PRs pass svelte-check (0 errors), vite build, bun test (229 pass), bundle size, regression guards.
 
 ### 2026-02-20: Copilot Code Review Remediation
 
