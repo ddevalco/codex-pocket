@@ -1323,12 +1323,12 @@
   .btn.primary {
     background: rgba(64, 134, 255, 0.18);
     border-color: rgba(64, 134, 255, 0.4);
-    color: #cfe1ff;
+    color: oklch(0.87 0.06 250);
   }
   .btn.danger {
     background: rgba(178, 60, 60, 0.2);
     border-color: rgba(200, 80, 80, 0.6);
-    color: #ffd1d1;
+    color: oklch(0.88 0.05 15);
     margin-top: var(--space-sm);
   }
 
@@ -1450,7 +1450,7 @@
     image-rendering: pixelated;
     border: 1px solid var(--color-cli-border);
     border-radius: 10px;
-    background: #fff;
+    background: oklch(1 0 0);
     padding: 8px;
   }
   .status-pills {
@@ -1468,19 +1468,19 @@
     color: var(--color-cli-text-dim);
   }
   .pill.ok {
-    border-color: rgba(70, 200, 120, 0.35);
-    color: #9be3bf;
-    background: rgba(70, 200, 120, 0.08);
+    border-color: oklch(0.72 0.15 155 / 0.35);
+    color: oklch(0.85 0.12 155);
+    background: oklch(0.72 0.15 155 / 0.08);
   }
   .pill.warn {
-    border-color: rgba(240, 170, 70, 0.4);
-    color: #ffd79a;
-    background: rgba(240, 170, 70, 0.08);
+    border-color: oklch(0.78 0.14 75 / 0.4);
+    color: oklch(0.88 0.12 75);
+    background: oklch(0.78 0.14 75 / 0.08);
   }
   .pill.bad {
-    border-color: rgba(200, 80, 80, 0.6);
-    color: #ffd1d1;
-    background: rgba(200, 80, 80, 0.1);
+    border-color: oklch(0.55 0.18 25 / 0.6);
+    color: oklch(0.88 0.08 20);
+    background: oklch(0.55 0.18 25 / 0.1);
   }
   .pill.muted {
     border-color: rgba(255, 255, 255, 0.1);
