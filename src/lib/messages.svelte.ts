@@ -27,6 +27,14 @@ interface ReasoningState {
   header: string | null;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
 type TurnCompleteCallback = (threadId: string, finalText: string) => void;
 
 class MessagesStore {
@@ -73,15 +81,17 @@ class MessagesStore {
     // - "..."
     if (typeof value === "string") return value;
     if (Array.isArray(value)) {
-      for (const part of value as any[]) {
-        if (part && typeof part === "object" && (part as any).type === "text" && typeof (part as any).text === "string") {
-          return (part as any).text as string;
+      for (const part of value) {
+        const partRecord = asRecord(part);
+        if (partRecord?.type === "text" && typeof partRecord.text === "string") {
+          return partRecord.text;
         }
       }
       return "";
     }
     if (value && typeof value === "object") {
-      const v: any = value;
+      const v = asRecord(value);
+      if (!v) return "";
       if (typeof v.text === "string") return v.text;
       if (Array.isArray(v.content)) return this.#textFromContent(v.content);
     }
@@ -162,7 +172,7 @@ class MessagesStore {
     // "idle" means nothing is currently pending.
     const msgs = this.getThreadMessages(threadId);
     for (let i = msgs.length - 1; i >= 0; i--) {
-      const m = msgs[i] as any;
+      const m = msgs[i];
       if (m?.kind === "approval-request" && m?.approval?.status === "pending") return "blocked";
       if (m?.kind === "user-input-request" && m?.userInputRequest?.status === "pending") return "blocked";
     }
@@ -308,12 +318,14 @@ class MessagesStore {
         try {
           // local-orbit stores wrapper objects:
           // { ts, direction, message: <rpc> }
-          const parsed = JSON.parse(line) as any;
+          const parsed = JSON.parse(line) as unknown;
+          const parsedRecord = asRecord(parsed);
+          const nestedMessage = asRecord(parsedRecord?.message);
           const msg: RpcMessage | null =
-            parsed && typeof parsed === "object" && parsed.message && typeof parsed.message === "object"
-              ? (parsed.message as RpcMessage)
-              : parsed && typeof parsed === "object"
-                ? (parsed as RpcMessage)
+            nestedMessage
+              ? (nestedMessage as RpcMessage)
+              : parsedRecord
+                ? (parsedRecord as RpcMessage)
                 : null;
           if (msg) this.handleMessage(msg);
           // Stop early once we have any transcript. This avoids long synchronous parsing
@@ -733,10 +745,11 @@ class MessagesStore {
       const options: AcpApprovalRequest["options"] = [];
       const rawOptions = Array.isArray(payload.options) ? payload.options : [];
       for (const entry of rawOptions) {
-        if (!entry || typeof entry !== "object") continue;
-        const optionId = typeof (entry as any).optionId === "string" ? (entry as any).optionId : "";
-        const name = typeof (entry as any).name === "string" ? (entry as any).name : "";
-        const kind = typeof (entry as any).kind === "string" ? (entry as any).kind : "";
+        const option = asRecord(entry);
+        if (!option) continue;
+        const optionId = asString(option.optionId) ?? "";
+        const name = asString(option.name) ?? "";
+        const kind = asString(option.kind) ?? "";
         if (!optionId || !name || !allowedKinds.has(kind)) continue;
         options.push({ optionId, name, kind: kind as AcpApprovalRequest["options"][number]["kind"] });
       }
@@ -783,24 +796,22 @@ class MessagesStore {
     if (msg.result && (!msg.method || msg.method === "thread/read" || msg.method === "thread/get")) {
       // Thread history can come back in slightly different shapes depending on the upstream
       // Codex app-server version. Be permissive.
-      const result = msg.result as any;
+      const result = asRecord(msg.result);
+      const resultData = asRecord(result?.data);
       const thread =
-        result?.thread ??
-        result?.data?.thread ??
-        (result && typeof result === "object" && "id" in result && "turns" in result ? result : null);
+        asRecord(result?.thread) ??
+        asRecord(resultData?.thread) ??
+        (result && "id" in result && "turns" in result ? result : null);
+      const turnsRaw = thread?.turns ?? result?.turns ?? resultData?.turns ?? result?.items;
       const turns: Array<{ items?: unknown[] }> | null =
-        thread?.turns ??
-        result?.turns ??
-        result?.data?.turns ??
-        result?.items ??
-        null;
+        Array.isArray(turnsRaw) ? (turnsRaw as Array<{ items?: unknown[] }>) : null;
 
       const threadId: string | null =
-        (thread?.id as string | undefined) ??
-        (result?.threadId as string | undefined) ??
-        (result?.thread_id as string | undefined) ??
-        (result?.data?.threadId as string | undefined) ??
-        (result?.data?.thread_id as string | undefined) ??
+        asString(thread?.id) ??
+        asString(result?.threadId) ??
+        asString(result?.thread_id) ??
+        asString(resultData?.threadId) ??
+        asString(resultData?.thread_id) ??
         null;
 
       if (threadId && Array.isArray(turns)) {
@@ -841,7 +852,7 @@ class MessagesStore {
       const type = item.type as string;
       if (type === "userMessage") {
         const itemId = item.id as string;
-        const text = this.#textFromContent((item as any).content) || "";
+        const text = this.#textFromContent(item.content) || "";
 
         // Deduplicate against pending messages
         const existing = this.#byThread.get(threadId);
@@ -1224,36 +1235,41 @@ class MessagesStore {
 
     // Codex payload shapes vary by version. Sometimes the thread id is nested under `thread.id`
     // or under `turn.threadId` / `turn.thread.id` / `item.threadId` / `item.thread.id`.
-    const p: any = params;
+    const p = params;
+    const turn = asRecord(p.turn);
+    const thread = asRecord(p.thread);
+    const item = asRecord(p.item);
+    const turnThread = asRecord(turn?.thread);
+    const itemThread = asRecord(item?.thread);
     const fromTurnId =
-      typeof p?.turn?.threadId === "string"
-        ? (p.turn.threadId as string)
-        : typeof p?.turn?.thread_id === "string"
-          ? (p.turn.thread_id as string)
+      typeof turn?.threadId === "string"
+        ? turn.threadId
+        : typeof turn?.thread_id === "string"
+          ? turn.thread_id
           : null;
     if (fromTurnId) return fromTurnId;
 
     const fromThread =
-      p?.thread && typeof p.thread === "object" && typeof p.thread.id === "string" ? (p.thread.id as string) : null;
+      thread && typeof thread.id === "string" ? thread.id : null;
     if (fromThread) return fromThread;
 
     const fromTurnThread =
-      p?.turn?.thread && typeof p.turn.thread === "object" && typeof p.turn.thread.id === "string"
-        ? (p.turn.thread.id as string)
+      turnThread && typeof turnThread.id === "string"
+        ? turnThread.id
         : null;
     if (fromTurnThread) return fromTurnThread;
 
     const fromItemId =
-      typeof p?.item?.threadId === "string"
-        ? (p.item.threadId as string)
-        : typeof p?.item?.thread_id === "string"
-          ? (p.item.thread_id as string)
+      typeof item?.threadId === "string"
+        ? item.threadId
+        : typeof item?.thread_id === "string"
+          ? item.thread_id
           : null;
     if (fromItemId) return fromItemId;
 
     const fromItemThread =
-      p?.item?.thread && typeof p.item.thread === "object" && typeof p.item.thread.id === "string"
-        ? (p.item.thread.id as string)
+      itemThread && typeof itemThread.id === "string"
+        ? itemThread.id
         : null;
     if (fromItemThread) return fromItemThread;
 
@@ -1266,8 +1282,9 @@ class MessagesStore {
     // Some upstreams return `turns: [{items:[...]}]` while others return `items: [...]`
     // directly. Normalize to a flat list of items.
     const items: Array<Record<string, unknown>> = [];
-    const first = (turns as any[])[0];
-    if (first && typeof first === "object" && Array.isArray((first as any).items)) {
+    const first = turns[0];
+    const firstRecord = asRecord(first);
+    if (firstRecord && Array.isArray(firstRecord.items)) {
       for (const turn of turns as Array<{ items?: unknown[] }>) {
         if (!turn.items) continue;
         for (const it of turn.items as Array<Record<string, unknown>>) {
@@ -1275,9 +1292,10 @@ class MessagesStore {
         }
       }
     } else {
-      for (const it of turns as any[]) {
-        if (it && typeof it === "object" && typeof (it as any).type === "string") {
-          items.push(it as Record<string, unknown>);
+      for (const it of turns) {
+        const entry = asRecord(it);
+        if (entry && typeof entry.type === "string") {
+          items.push(entry);
         }
       }
     }
@@ -1289,7 +1307,7 @@ class MessagesStore {
 
         switch (type) {
           case "userMessage": {
-            const text = this.#textFromContent((item as any).content) || "";
+            const text = this.#textFromContent(item.content) || "";
             messages.push({ id, role: "user", text, threadId });
             break;
           }

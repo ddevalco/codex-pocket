@@ -243,6 +243,7 @@
     position: fixed;
     inset: 0;
     background: var(--modal-overlay-bg);
+    background: oklch(0.0273 0.0066 248.44 / 0.6);
     z-index: 40;
   }
 
@@ -257,6 +258,7 @@
     border-radius: var(--radius-md);
     z-index: 50;
     box-shadow: var(--shadow-modal);
+    box-shadow: 0 30px 80px oklch(0 0 0 / 0.35);
   }
 
   .modal-header {

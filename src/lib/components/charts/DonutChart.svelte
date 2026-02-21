@@ -29,6 +29,8 @@
         endAngle: currentAngle,
         /* Dynamic color generation - using oklch for computed hues */
         color: point.color || `oklch(0.7 0.16 ${i * 137.5})`
+        /* Dynamic color generation - intentionally using hsl for computed hues */
+        color: point.color || `hsl(${i * 137.5}, 70%, 60%)`
       };
     });
   });

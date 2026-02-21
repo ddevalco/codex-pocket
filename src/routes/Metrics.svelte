@@ -50,10 +50,12 @@
   });
   
   function formatCost(cost: number): string {
+    if (!Number.isFinite(cost)) return '—';
     return `$${cost.toFixed(4)}`;
   }
   
   function formatNumber(num: number): string {
+    if (!Number.isFinite(num)) return '—';
     return num.toLocaleString();
   }
   

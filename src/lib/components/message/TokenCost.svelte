@@ -7,6 +7,7 @@
   const { totalTokens, estimatedCost }: Props = $props();
 
   function formatTokenCount(tokens: number): string {
+    if (!Number.isFinite(tokens)) return '—';
     if (tokens >= 1000) {
       const compact = (tokens / 1000).toFixed(1);
       return `${compact.replace(/\.0$/, "")}K`;

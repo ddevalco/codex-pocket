@@ -112,6 +112,9 @@
   --modal-overlay-bg: oklch(0.0273 0.0066 248.44 / 0.6);
   --bg-overlay: oklch(0 0 0 / 0.25);
 
+  /* UI surfaces */
+  --cli-error-bg: oklch(0.55 0.22 25 / 0.1);
+
   /* Sizes */
   --size-progress-width: 100px;
   --size-progress-height: 4px;
@@ -186,6 +189,9 @@
     --cli-error-bg: oklch(0.65 0.18 25 / 0.15);
     --modal-overlay-bg: oklch(0 0 0 / 0.8);
     --bg-overlay: oklch(0 0 0 / 0.25);
+
+    /* UI surfaces */
+    --cli-error-bg: oklch(0.65 0.18 25 / 0.15);
 
     /* Sizes */
     --size-progress-width: 100px;

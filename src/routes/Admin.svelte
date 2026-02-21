@@ -128,11 +128,11 @@
       if (!res.ok) throw new Error(`status ${res.status}`);
       status = (await res.json()) as Status;
       try {
-        const rd = (status.db as any)?.uploadRetentionDays;
+        const rd = status.db?.uploadRetentionDays;
         if (typeof rd === "number" && Number.isFinite(rd)) {
           uploadRetentionDays = rd;
         }
-        const ph = (status.db as any)?.uploadPruneIntervalHours;
+        const ph = status.db?.uploadPruneIntervalHours;
         if (typeof ph === "number" && Number.isFinite(ph)) {
           uploadPruneIntervalHours = Math.max(1, Math.floor(ph));
         }
@@ -1212,6 +1212,14 @@
   .section-header {
     padding: var(--space-md) var(--space-lg);
     border-bottom: 1px solid color-mix(in oklch, var(--color-cli-text) 6%, transparent);
+    background: oklch(1 0 0 / 0.02);
+    border: 1px solid oklch(1 0 0 / 0.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px oklch(0 0 0 / 0.25);
+  }
+  .section-header {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid oklch(1 0 0 / 0.06);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1249,6 +1257,7 @@
     border-color: color-mix(in oklch, var(--color-cli-border) 85%, transparent);
     background: color-mix(in oklch, var(--color-cli-bg-elevated) 84%, var(--color-cli-bg));
     box-shadow: 0 16px 34px -30px color-mix(in oklch, var(--color-cli-bg) 90%, transparent);
+    box-shadow: 0 16px 34px -30px oklch(0 0 0 / 0.9);
   }
 
   .admin :global(.section-header) {
@@ -1313,6 +1322,8 @@
     border-radius: 10px;
     border: 1px solid color-mix(in oklch, var(--color-cli-text) 12%, transparent);
     background: color-mix(in oklch, var(--color-cli-text) 4%, transparent);
+    border: 1px solid oklch(1 0 0 / 0.12);
+    background: oklch(1 0 0 / 0.04);
     color: var(--color-cli-text);
     font-size: 13px;
   }
@@ -1329,6 +1340,18 @@
     background: color-mix(in oklch, var(--color-cli-error) 20%, transparent);
     border-color: color-mix(in oklch, var(--color-cli-error) 60%, transparent);
     color: var(--color-cli-error);
+    border-color: oklch(1 0 0 / 0.2);
+    background: oklch(1 0 0 / 0.08);
+  }
+  .btn.primary {
+    background: oklch(0.62 0.17 260 / 0.18);
+    border-color: oklch(0.62 0.17 260 / 0.4);
+    color: oklch(0.87 0.06 250);
+  }
+  .btn.danger {
+    background: oklch(0.5 0.15 25 / 0.2);
+    border-color: oklch(0.56 0.18 25 / 0.6);
+    color: oklch(0.88 0.05 15);
     margin-top: var(--space-sm);
   }
 
@@ -1497,6 +1520,7 @@
     max-height: 400px;
     overflow: auto;
     background: color-mix(in oklch, var(--color-cli-bg) 84%, oklch(0 0 0) 16%);
+    background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
     padding: var(--space-md);
     border-radius: 10px;
     border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
@@ -1584,6 +1608,7 @@
     margin: 0;
     padding: var(--space-sm);
     background: color-mix(in oklch, var(--color-cli-bg) 84%, oklch(0 0 0) 16%);
+    background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
     border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     border-radius: 8px;
     max-height: 200px;
@@ -1595,6 +1620,7 @@
     margin: 0;
     padding: var(--space-sm);
     background: color-mix(in oklch, var(--color-cli-bg) 84%, oklch(0 0 0) 16%);
+    background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
     border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     border-radius: 8px;
     max-height: 260px;

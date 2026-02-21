@@ -1,8 +1,8 @@
 /**
  * Codex Provider Adapter
  *
- * This is a Phase 1 placeholder for the Codex app-server provider.
- * Currently implements basic health reporting and empty results for session listing.
+ * Phase 1 placeholder — listSessions returns empty, all other methods throw 'not implemented'.
+ * Full implementation planned for Phase 2.
  */
 
 import type { ProviderAdapter } from "../contracts.js";

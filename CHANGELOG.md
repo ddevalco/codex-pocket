@@ -150,6 +150,40 @@ The following features were added during early development:
 - CI now smoke-tests token-session security behavior (pairing returns per-device token, read-only session write/WS mutating guards).
 - CI now also verifies pair codes are one-time consumable and revoked session tokens immediately lose auth.
 
+## 2026-02-21
+
+### Fixed
+
+- fix: Address 33 Copilot review comments from merged PRs #280-286 (#294)
+- fix: Replace insecure Math.random()/Date.now() session IDs with crypto.randomUUID() (#293)
+
+## 2026-02-20
+
+### Added
+
+- feat: P5.4 plan mode visualization (#286)
+- feat: P5 polish & micro-interactions (#285)
+- feat: P4 conversation UI refresh (#284)
+- feat: P3 composer improvements (#283)
+- feat: P2 component library (#282, #281)
+- feat: P1 design system foundation (#280)
+
+### Fixed
+
+- fix: Remediate Copilot code review findings (#279)
+
+## 2026-02-18
+
+### Added
+
+- feat: Multi-provider routing and UI support (#275)
+
+## 2026-02-16
+
+### Security
+
+- security: Authorization, sanitization, validation, schema hardening (#267)
+
 ## 2026-02-17 - Phase 2: Multi-provider & Reliability
 
 ### Providers (Phase 2)

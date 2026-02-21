@@ -452,20 +452,25 @@ class ThreadsStore {
       this.#pendingRequests.delete(msg.id as number);
 
       if (type === "list" && msg.result) {
-        const result = msg.result as any;
+        const result = msg.result as Record<string, unknown> | unknown[];
+        const resultObj = Array.isArray(result) ? null : result;
+        const nested =
+          resultObj && typeof resultObj.data === "object" && resultObj.data !== null && !Array.isArray(resultObj.data)
+            ? (resultObj.data as Record<string, unknown>)
+            : null;
         // Codex app-server thread/list response shape varies across versions.
         // Most common: { data: Thread[] }, but we've also seen:
         // - { threads: Thread[] }
         // - { items: Thread[] }
         // - { data: { data: Thread[] } } (double-wrapped)
         // - { data: { threads|items: Thread[] } }
-        const rawList: any[] =
-          Array.isArray(result?.data) ? result.data
-          : Array.isArray(result?.threads) ? result.threads
-          : Array.isArray(result?.items) ? result.items
-          : Array.isArray(result?.data?.data) ? result.data.data
-          : Array.isArray(result?.data?.threads) ? result.data.threads
-          : Array.isArray(result?.data?.items) ? result.data.items
+        const rawList: unknown[] =
+          Array.isArray(resultObj?.data) ? resultObj.data
+          : Array.isArray(resultObj?.threads) ? resultObj.threads
+          : Array.isArray(resultObj?.items) ? resultObj.items
+          : Array.isArray(nested?.data) ? nested.data
+          : Array.isArray(nested?.threads) ? nested.threads
+          : Array.isArray(nested?.items) ? nested.items
           : Array.isArray(result) ? result
           : [];
         this.list = rawList.map((item) => normalizeThreadInfo(item)).filter((t) => t.id);
@@ -517,10 +522,14 @@ class ThreadsStore {
       }
 
       if (typeof type === "string" && (type.startsWith("read:") || type.startsWith("meta:")) && msg.result) {
-        const result = msg.result as any;
+        const result = msg.result as Record<string, unknown>;
+        const data =
+          typeof result.data === "object" && result.data !== null
+            ? (result.data as Record<string, unknown>)
+            : null;
         const threadObj =
-          result?.thread ??
-          result?.data?.thread ??
+          result.thread ??
+          data?.thread ??
           (result && typeof result === "object" && "id" in result ? result : null);
         const thread = threadObj ? normalizeThreadInfo(threadObj, { applyDefaultCapabilities: false }) : null;
         if (thread?.id) {
