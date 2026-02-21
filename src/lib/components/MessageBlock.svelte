@@ -243,7 +243,9 @@
   {#if uiToggles.showMessageCopyButton}
     <button
       type="button"
-      class="absolute top-[6px] right-[10px] px-2.5 py-1 rounded-sm border border-cli-border bg-black/25 text-cli-text-muted font-mono text-2xs cursor-pointer opacity-0 transition-all duration-200 hover:text-cli-text max-[520px]:opacity-100 max-[520px]:px-3 max-[520px]:py-1.5 max-[520px]:text-xs group-hover:opacity-100 focus-within:opacity-100"
+      class="absolute top-[6px] right-[10px] px-2.5 py-1 rounded-sm border border-cli-border text-cli-text-muted font-mono text-2xs cursor-pointer opacity-0 transition-all duration-200 hover:text-cli-text max-[520px]:opacity-100 max-[520px]:px-3 max-[520px]:py-1.5 max-[520px]:text-xs group-hover:opacity-100 focus-within:opacity-100"
+      style="background-color: var(--bg-overlay)"
+      aria-label="Copy message"
       class:opacity-100={copyState !== "idle"}
       class:border-cli-success={copyState === "copied"}
       class:text-cli-success={copyState === "copied"}
@@ -254,7 +256,9 @@
         (copyMessage as any).__wantRaw = (e as MouseEvent).shiftKey;
         copyMessage();
       }}
-    />
+    >
+      {copyState === "copied" ? "Copied" : "Copy"}
+    </button>
   {/if}
     <MarkdownRenderer
       text={message.text}

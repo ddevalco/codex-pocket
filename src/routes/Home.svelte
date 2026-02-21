@@ -1448,7 +1448,7 @@
     padding: var(--space-sm);
     border: 1px solid var(--cli-border);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.02);
+    background: oklch(1 0 0 / 0.02);
   }
 
   .legend-row-text {

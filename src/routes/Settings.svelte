@@ -1474,7 +1474,7 @@ import { agents } from "../lib/agents.svelte";
 
 <!-- Confirmation Modal -->
 {#if showConfirmModal}
-  <div class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div class="modal-overlay fixed inset-0 z-50 flex items-center justify-center" style="background: var(--modal-overlay-bg)">
     <div class="modal max-w-[400px] rounded-md border border-cli-border bg-cli-bg-elevated p-6 text-cli-text shadow-popover">
       <h3 class="text-base font-semibold">Overwrite Existing Agent?</h3>
       <p class="mt-2 text-sm text-cli-text-muted">

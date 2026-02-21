@@ -1204,14 +1204,14 @@
     }
   }
   .section {
-    background: oklch(1 0 0 / 0.02);
-    border: 1px solid oklch(1 0 0 / 0.08);
+    background: color-mix(in oklch, var(--color-cli-text) 2%, transparent);
+    border: 1px solid color-mix(in oklch, var(--color-cli-text) 8%, transparent);
     border-radius: 16px;
-    box-shadow: 0 10px 30px oklch(0 0 0 / 0.25);
+    box-shadow: 0 10px 30px color-mix(in oklch, var(--color-cli-bg) 25%, transparent);
   }
   .section-header {
     padding: var(--space-md) var(--space-lg);
-    border-bottom: 1px solid oklch(1 0 0 / 0.06);
+    border-bottom: 1px solid color-mix(in oklch, var(--color-cli-text) 6%, transparent);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1248,7 +1248,7 @@
     border-radius: 12px;
     border-color: color-mix(in oklch, var(--color-cli-border) 85%, transparent);
     background: color-mix(in oklch, var(--color-cli-bg-elevated) 84%, var(--color-cli-bg));
-    box-shadow: 0 16px 34px -30px oklch(0 0 0 / 0.9);
+    box-shadow: 0 16px 34px -30px color-mix(in oklch, var(--color-cli-bg) 90%, transparent);
   }
 
   .admin :global(.section-header) {
@@ -1311,24 +1311,24 @@
   .btn {
     padding: 8px 12px;
     border-radius: 10px;
-    border: 1px solid oklch(1 0 0 / 0.12);
-    background: oklch(1 0 0 / 0.04);
+    border: 1px solid color-mix(in oklch, var(--color-cli-text) 12%, transparent);
+    background: color-mix(in oklch, var(--color-cli-text) 4%, transparent);
     color: var(--color-cli-text);
     font-size: 13px;
   }
   .btn:hover {
-    border-color: oklch(1 0 0 / 0.2);
-    background: oklch(1 0 0 / 0.08);
+    border-color: color-mix(in oklch, var(--color-cli-text) 20%, transparent);
+    background: color-mix(in oklch, var(--color-cli-text) 8%, transparent);
   }
   .btn.primary {
-    background: oklch(0.62 0.17 260 / 0.18);
-    border-color: oklch(0.62 0.17 260 / 0.4);
-    color: oklch(0.87 0.06 250);
+    background: color-mix(in oklch, var(--color-cli-prefix-agent) 18%, transparent);
+    border-color: color-mix(in oklch, var(--color-cli-prefix-agent) 40%, transparent);
+    color: var(--color-cli-prefix-agent);
   }
   .btn.danger {
-    background: oklch(0.5 0.15 25 / 0.2);
-    border-color: oklch(0.56 0.18 25 / 0.6);
-    color: oklch(0.88 0.05 15);
+    background: color-mix(in oklch, var(--color-cli-error) 20%, transparent);
+    border-color: color-mix(in oklch, var(--color-cli-error) 60%, transparent);
+    color: var(--color-cli-error);
     margin-top: var(--space-sm);
   }
 
@@ -1342,7 +1342,7 @@
     border: 1px solid color-mix(in oklch, var(--color-cli-border) 70%, transparent);
     background: linear-gradient(
       180deg,
-      color-mix(in oklch, var(--color-cli-bg-elevated) 95%, #fff 5%),
+      color-mix(in oklch, var(--color-cli-bg-elevated) 95%, oklch(1 0 0) 5%),
       color-mix(in oklch, var(--color-cli-bg-elevated) 80%, var(--color-cli-bg))
     );
     color: var(--color-cli-text);
@@ -1359,7 +1359,7 @@
     border-color: color-mix(in oklch, var(--color-cli-prefix-agent) 45%, var(--color-cli-border));
     background: linear-gradient(
       180deg,
-      color-mix(in oklch, var(--color-cli-bg-hover) 70%, #fff 8%),
+      color-mix(in oklch, var(--color-cli-bg-hover) 70%, oklch(1 0 0) 8%),
       color-mix(in oklch, var(--color-cli-bg-elevated) 88%, var(--color-cli-bg))
     );
   }
@@ -1381,7 +1381,7 @@
     background: linear-gradient(
       180deg,
       color-mix(in oklch, var(--color-cli-bg-elevated) 92%, var(--color-cli-bg)),
-      color-mix(in oklch, var(--color-cli-bg-elevated) 82%, #000 4%)
+      color-mix(in oklch, var(--color-cli-bg-elevated) 82%, oklch(0 0 0) 4%)
     );
     box-shadow: 0 14px 32px -30px oklch(0 0 0 / 0.85);
   }
@@ -1496,7 +1496,7 @@
   .logs {
     max-height: 400px;
     overflow: auto;
-    background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
+    background: color-mix(in oklch, var(--color-cli-bg) 84%, oklch(0 0 0) 16%);
     padding: var(--space-md);
     border-radius: 10px;
     border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
@@ -1583,7 +1583,7 @@
   .check-detail {
     margin: 0;
     padding: var(--space-sm);
-    background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
+    background: color-mix(in oklch, var(--color-cli-bg) 84%, oklch(0 0 0) 16%);
     border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     border-radius: 8px;
     max-height: 200px;
@@ -1594,7 +1594,7 @@
   .cli-output {
     margin: 0;
     padding: var(--space-sm);
-    background: color-mix(in oklch, var(--color-cli-bg) 84%, #000 16%);
+    background: color-mix(in oklch, var(--color-cli-bg) 84%, oklch(0 0 0) 16%);
     border: 1px solid color-mix(in oklch, var(--color-cli-border) 82%, transparent);
     border-radius: 8px;
     max-height: 260px;

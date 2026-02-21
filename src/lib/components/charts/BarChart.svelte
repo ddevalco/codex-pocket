@@ -31,7 +31,7 @@
         y={height - barHeight - 20}
         width={barWidth}
         height={barHeight}
-        fill="var(--accent-color, #3b82f6)"
+        fill="var(--accent-color, var(--color-assistant, oklch(0.6 0.18 145)))"
         opacity="0.8"
       />
       

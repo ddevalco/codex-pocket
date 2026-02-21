@@ -235,13 +235,13 @@
   .empty-state {
     text-align: center;
     padding: calc(var(--space-xl) * 2) var(--space-xl);
-    color: var(--text-secondary);
+    color: var(--cli-text-dim);
   }
   
   .error {
-    color: var(--error-color);
+    color: var(--cli-error);
     padding: var(--space-md);
-    border: 1px solid var(--error-color);
+    border: 1px solid var(--cli-error);
     border-radius: var(--radius-lg);
   }
 </style>
