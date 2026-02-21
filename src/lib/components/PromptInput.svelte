@@ -664,4 +664,13 @@
       transform: translateY(0);
     }
   }
+
+  .hint {
+    color: var(--color-cli-text-muted);
+    line-height: 1.55;
+  }
+
+  .hint-error {
+    color: var(--color-cli-error, oklch(0.65 0.2 25));
+  }
 </style>

@@ -768,6 +768,7 @@
       onclick={() => renameThread(thread)}
       disabled={!canManageThread}
       title={canManageThread ? "Rename thread" : disabledReason}
+      aria-label="Rename thread"
     >
       <Pencil size={16} aria-hidden="true" />
     </button>
@@ -776,6 +777,7 @@
       onclick={() => threads.archive(thread.id)}
       disabled={!canManageThread}
       title={canManageThread ? "Archive thread" : disabledReason}
+      aria-label="Archive thread"
     >
       <Archive size={16} aria-hidden="true" />
     </button>
