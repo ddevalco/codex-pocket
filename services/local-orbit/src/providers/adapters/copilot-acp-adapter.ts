@@ -142,6 +142,18 @@ export class CopilotAcpAdapter implements ProviderAdapter {
     listSessions: false,  // Probed during handshake
   };
 
+  /** Local session tracking for CLIs that don't support list_sessions (Fixes #273) */
+  private localSessions = new Map<string, {
+    sessionId: string;
+    title: string;
+    status: string;
+    project?: string;
+    repo?: string;
+    preview?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>();
+
   constructor(config: CopilotAcpConfig = {}) {
     this.config = {
       timeout: 5000,
@@ -394,10 +406,25 @@ export class CopilotAcpAdapter implements ProviderAdapter {
 
     // Check if list_sessions capability is available
     if (!this.detectedCapabilities.listSessions) {
+      // Fall back to locally tracked sessions (Fixes #273)
+      const localSessions: NormalizedSession[] = Array.from(this.localSessions.values())
+        .map((s) => ({
+          provider: this.providerId as "copilot-acp",
+          sessionId: s.sessionId,
+          title: s.title,
+          status: s.status as NormalizedSession["status"],
+          project: s.project,
+          repo: s.repo,
+          preview: s.preview,
+          capabilities: this.capabilities,
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
+        }))
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
       return {
-        sessions: [],
+        sessions: localSessions,
         hasMore: false,
-        error: "Session listing not supported by this Copilot CLI version. Update CLI to view sessions.",
       };
     }
 
@@ -875,5 +902,39 @@ export class CopilotAcpAdapter implements ProviderAdapter {
     }
 
     return false;
+  }
+
+  /**
+   * Track a session locally for CLIs that don't support list_sessions.
+   * Called by local-orbit when ACP activity is observed (sendPrompt, events).
+   */
+  trackSession(sessionId: string, update: {
+    title?: string;
+    status?: string;
+    project?: string;
+    repo?: string;
+    preview?: string;
+  }): void {
+    const now = new Date().toISOString();
+    const existing = this.localSessions.get(sessionId);
+
+    if (existing) {
+      this.localSessions.set(sessionId, {
+        ...existing,
+        ...update,
+        updatedAt: now,
+      });
+    } else {
+      this.localSessions.set(sessionId, {
+        sessionId,
+        title: update.title || "Copilot Session",
+        status: update.status || "active",
+        project: update.project,
+        repo: update.repo,
+        preview: update.preview,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
   }
 }
