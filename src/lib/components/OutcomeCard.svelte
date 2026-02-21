@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { HelperAgentOutcome } from '../types';
+  import Button from './ui/Button.svelte';
   
   interface Props {
     outcome: HelperAgentOutcome;
@@ -92,12 +93,9 @@
   
   {#if outcome.suggestedNextStep}
     <div class="outcome-actions">
-      <button
-        class="continue-button"
-        onclick={handleContinue}
-      >
+      <Button onclick={handleContinue}>
         Continue with: {outcome.suggestedNextStep}
-      </button>
+      </Button>
     </div>
   {/if}
 </div>
@@ -233,19 +231,5 @@
     gap: var(--space-sm);
     margin-top: var(--space-sm);
   }
-  
-  .continue-button {
-    background: var(--color-cli-prefix-agent);
-    color: white;
-    border: none;
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-medium);
-  }
-  
-  .continue-button:hover {
-    opacity: 0.9;
-  }
+
 </style>
