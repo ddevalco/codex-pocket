@@ -662,7 +662,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
       throw new Error("Copilot adapter not started or not available");
     }
 
-    const subscriptionId = `copilot-acp-${sessionId}-${Date.now()}`;
+    const subscriptionId = `copilot-acp-${sessionId}-${crypto.randomUUID()}`;
 
     // Create event handler that processes notifications through normalizer
     const handler = (notification: any) => {
