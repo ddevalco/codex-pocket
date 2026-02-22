@@ -784,6 +784,8 @@
             <span class="thread-provider-badge thread-provider-badge--copilot">Copilot</span>
           {:else if thread.provider === "claude" || thread.provider === "claude-mcp"}
             <span class="thread-provider-badge thread-provider-badge--claude">Claude</span>
+          {:else if thread.provider === "codex"}
+            <span class="thread-provider-badge thread-provider-badge--codex">Codex</span>
           {/if}
           {#if thread.providerAgent}
             <span class="thread-agent-badge" title="Agent: {thread.providerAgent}">{thread.providerAgent}</span>
@@ -1816,6 +1818,10 @@
   .thread-provider-badge--claude {
     color: oklch(0.72 0.14 60);
     border-color: oklch(0.72 0.14 60 / 40%);
+  }
+  .thread-provider-badge--codex {
+    color: oklch(0.72 0.15 145);
+    border-color: oklch(0.72 0.15 145 / 40%);
   }
 
   .thread-agent-badge {
