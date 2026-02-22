@@ -11,6 +11,7 @@
   import { uiToggles } from "../lib/uiToggles.svelte";
   import { canSendPrompt, getCapabilityTooltip } from "../lib/thread-capabilities";
   import { api } from "../lib/api";
+  import { getProviderConfig } from "../lib/api/config";
   import Archive from "lucide-svelte/icons/archive";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
@@ -476,6 +477,24 @@
       threads.fetch();
       threads.fetchCollaborationPresets();
     }
+  });
+
+  // Track which providers are enabled in config — used to hide tabs for disabled providers
+  let enabledProviders = $state<Record<string, boolean>>({});
+
+  $effect(() => {
+    if (!auth.token) return;
+    getProviderConfig(auth.token).then((cfg) => {
+      const map: Record<string, boolean> = {};
+      for (const [key, val] of Object.entries(cfg.providers ?? {})) {
+        map[key] = val.enabled === true;
+      }
+      enabledProviders = map;
+      // Reset provider filter if the selected provider is no longer enabled
+      if (filters.provider !== "all" && !map[filters.provider]) {
+        filters.provider = "all";
+      }
+    }).catch(() => {/* silently ignore — fall back to showing all tabs */});
   });
 
   // Subscribe to a small window of recent threads so activity + status indicators are live in the list view.
@@ -971,30 +990,38 @@
               aria-pressed={filters.provider === "all"}
               onclick={() => (filters.provider = "all")}
             >All ({threadCounts.all})</button>
+            {#if enabledProviders.codex !== false}
             <button
               class="filter-chip"
               class:selected={filters.provider === "codex"}
               aria-pressed={filters.provider === "codex"}
               onclick={() => (filters.provider = "codex")}
             >Codex ({threadCounts.codex})</button>
+            {/if}
+            {#if enabledProviders["copilot-acp"]}
             <button
               class="filter-chip"
               class:selected={filters.provider === "copilot-acp"}
               aria-pressed={filters.provider === "copilot-acp"}
               onclick={() => (filters.provider = "copilot-acp")}
             >Copilot ({threadCounts.copilot})</button>
+            {/if}
+            {#if enabledProviders.claude}
             <button
               class="filter-chip"
               class:selected={filters.provider === "claude"}
               aria-pressed={filters.provider === "claude"}
               onclick={() => (filters.provider = "claude")}
             >Claude ({threadCounts.claude})</button>
+            {/if}
+            {#if enabledProviders.opencode}
             <button
               class="filter-chip"
               class:selected={filters.provider === "opencode"}
               aria-pressed={filters.provider === "opencode"}
               onclick={() => (filters.provider = "opencode")}
             >OpenCode ({threadCounts.opencode})</button>
+            {/if}
           </div>
         </div>
         <div class="filter-group row">
