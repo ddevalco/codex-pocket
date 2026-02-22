@@ -1449,6 +1449,9 @@
     border-radius: var(--radius-md);
     background: var(--cli-bg-elevated);
     box-shadow: var(--shadow-card);
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    background: oklch(1 0 0 / 0.02);
   }
 
   .legend-row-text {

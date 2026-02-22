@@ -1113,7 +1113,7 @@
                             >
                                 share html
                             </button>
-                            <hr style="margin: 4px 0; border: none; border-top: 1px solid #e5e7eb;" />
+                            <hr style="margin: 4px 0; border: none; border-top: 1px solid var(--color-border);" />
                             <button
                                 type="button"
                                 role="menuitem"
