@@ -108,7 +108,7 @@ Prioritized engineering recommendations are maintained in:
 
 - 📱 Remote control for Codex on Mac from your iPhone
 - 🔐 Secure E2E connection via Tailscale
-- 🎨 Dual provider support (Codex + GitHub Copilot ACP)
+- 🎨 Quad provider support (Codex, OpenCode, GitHub Copilot+, Claude)
 - 💾 Local-first SQLite persistence
 - ⚡ Real-time WebSocket relay
 - 🧪 Bundle size guardrails and CI smoke tests
@@ -149,8 +149,16 @@ CodeRelay supports multiple AI providers through a unified adapter interface:
 - All capabilities enabled by default
 - Thread title sync with Codex Desktop
 - Vision-capable model support
+- Connected via local Anchor bridge process
 
-**GitHub Copilot ACP**
+**OpenCode**
+
+- Connects to local OpenCode server (default: `http://127.0.0.1:4096`)
+- REST API communication
+- Full send, streaming, attachments support
+- Configurable via `config.json` (`providers["opencode"].enabled`, `serverUrl`, `model`)
+
+**GitHub Copilot+**
 
 - Spawns `gh copilot --acp` or `copilot --acp` child process
 - JSON-RPC over stdio via `AcpClient`
@@ -158,16 +166,25 @@ CodeRelay supports multiple AI providers through a unified adapter interface:
 - Full send, streaming, attachments, and approvals support
 - Configurable via `config.json` (`providers["copilot-acp"].enabled`)
 
+**Claude (Web API)**
+
+- Direct API calls to Anthropic's Claude API
+- Configurable model (claude-3-5-sonnet, claude-3-opus, claude-3-haiku)
+- Full streaming support
+- Configurable via `config.json` (`providers["claude"].enabled`, `apiKey`, `model`, `baseUrl`)
+
 ### Capability Matrix
 
-| Capability | Codex | Copilot ACP |
-|------------|-------|-------------|
-| `CAN_ATTACH_FILES` | ✅ | ✅ |
-| `CAN_FILTER_HISTORY` | ✅ | ❌ |
-| `SUPPORTS_APPROVALS` | ✅ | ✅ (dynamic) |
-| `SUPPORTS_STREAMING` | ✅ | ✅ |
+| Capability | Codex | OpenCode | Copilot+ | Claude |
+|------------|-------|----------|-----------|--------|
+| `CAN_ATTACH_FILES` | ✅ | ✅ | ✅ | ❌ |
+| `CAN_FILTER_HISTORY` | ✅ | ✅ | ❌ | ✅ |
+| `SUPPORTS_APPROVALS` | ✅ | ✅ | ✅ (dynamic) | ❌ |
+| `SUPPORTS_STREAMING` | ✅ | ✅ | ✅ | ✅ |
 
-**Note:** Copilot `SUPPORTS_APPROVALS` is `false` when started with `--allow-all-tools` flag (tools are auto-approved at provider level).
+**Notes:** 
+- Copilot+ `SUPPORTS_APPROVALS` is `false` when started with `--allow-all-tools` flag (tools are auto-approved at provider level).
+- OpenCode capabilities depend on the OpenCode server version and model used.
 
 ### Adding More Providers
 
@@ -249,7 +266,10 @@ CodeRelay is a **local-first, multi-provider AI interface** with secure Tailscal
 
 - **Provider Adapters**: Pluggable AI provider backends
   - `CodexAdapter`: Codex Desktop integration (via Anchor)
-  - `CopilotAcpAdapter`: GitHub Copilot ACP process spawning
+  - `OpenCodeAdapter`: OpenCode server REST API
+  - `CopilotAcpAdapter`: GitHub Copilot+ ACP process spawning
+  - `ClaudeAdapter`: Anthropic Claude Web API
+  - `ClaudeMcpAdapter`: Claude via MCP (local CLI)
   - Capability-driven feature declaration
   - Health monitoring and graceful degradation
 
@@ -305,7 +325,7 @@ See [docs/DIFFERENCES_FROM_ZANE.md](docs/DIFFERENCES_FROM_ZANE.md) for a complet
 
 **Key differences:**
 
-- **Dual provider support**: Codex + GitHub Copilot ACP with unified interface (Zane is Codex-only)
+- **Quad provider support**: Codex, OpenCode, GitHub Copilot+, Claude with unified interface (Zane is Codex-only)
 - **Capability matrix**: Dynamic feature detection with graceful UI degradation (Zane assumes all features available)
 - **Approval system**: Interactive tool permission prompts with persistent policies (Zane has no approval workflows)
 - **Advanced filtering**: Provider + status filters with localStorage persistence (Zane has basic filtering)

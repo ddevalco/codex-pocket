@@ -21,7 +21,7 @@ CodeRelay’s goal is narrower and more opinionated:
 
 **CodeRelay:**
 
-- Dual provider support: Codex + GitHub Copilot ACP (extensible to more)
+- Quad provider support: Codex + OpenCode + GitHub Copilot+ + Claude (extensible to more)
 - Unified adapter interface (`ProviderAdapter` contract)
 - **Dynamic Capability Matrix**: Each provider declares four capability flags:
   - `CAN_ATTACH_FILES`: File/image attachment support
