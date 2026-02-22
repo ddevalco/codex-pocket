@@ -22,18 +22,16 @@
       const startAngle = currentAngle;
       currentAngle += angle;
       
-      return {
-        ...point,
-        percentage: Math.round(percentage * 100),
-        startAngle,
-        endAngle: currentAngle,
-        /* Dynamic color generation - using oklch for computed hues */
-        color: point.color || `oklch(0.7 0.16 ${i * 137.5})`
-        /* Dynamic color generation - intentionally using hsl for computed hues */
-        color: point.color || `hsl(${i * 137.5}, 70%, 60%)`
-      };
-    });
-  });
+       return {
+         ...point,
+         percentage: Math.round(percentage * 100),
+         startAngle,
+         endAngle: currentAngle,
+         /* Dynamic color generation - using oklch for computed hues */
+         color: point.color || `oklch(0.7 0.16 ${i * 137.5})`,
+       };
+     });
+   });
   
   function polarToCartesian(angle: number, radius: number = 40): {x: number, y: number} {
     const angleRad = (angle - 90) * Math.PI / 180;
