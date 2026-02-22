@@ -30,6 +30,7 @@ export interface ThreadInfo {
   lastActiveAt?: number;
   modelProvider?: string;
   provider: "codex" | "copilot-acp" | "claude" | "claude-mcp" | "opencode";
+  providerAgent?: string;
   status?: string;
   archived: boolean;
   capabilities?: ProviderCapabilities & Partial<ThreadCapabilities>;

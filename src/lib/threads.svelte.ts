@@ -231,6 +231,12 @@ function normalizeThreadInfo(input: any, options?: { applyDefaultCapabilities?: 
   const project = lastPathSegment(cwd);
   const repo = repoNameFromOrigin(gitOriginUrl);
 
+  const providerAgent = typeof thread.providerAgent === "string" && thread.providerAgent
+    ? thread.providerAgent
+    : typeof thread.provider_agent === "string" && thread.provider_agent
+      ? thread.provider_agent
+      : undefined;
+
   return {
     id,
     ...(preview ? { preview } : {}),
@@ -247,6 +253,7 @@ function normalizeThreadInfo(input: any, options?: { applyDefaultCapabilities?: 
     ...(lastActiveAt != null ? { lastActiveAt } : {}),
     ...(modelProvider ? { modelProvider } : {}),
     provider,
+    ...(providerAgent ? { providerAgent } : {}),
     status,
     archived,
     ...(capabilities ? { capabilities } : {}),

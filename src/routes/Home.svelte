@@ -776,7 +776,19 @@
             {/if}
           </span>
         {/if}
-        <span class="thread-meta">{formatTime(threadTime(thread.createdAt, thread.id))}</span>
+        <span class="thread-meta row">
+          {formatTime(threadTime(thread.createdAt, thread.id))}
+          {#if thread.provider === "opencode"}
+            <span class="thread-provider-badge thread-provider-badge--opencode">◈ OpenCode</span>
+          {:else if thread.provider === "copilot-acp"}
+            <span class="thread-provider-badge thread-provider-badge--copilot">Copilot</span>
+          {:else if thread.provider === "claude" || thread.provider === "claude-mcp"}
+            <span class="thread-provider-badge thread-provider-badge--claude">Claude</span>
+          {/if}
+          {#if thread.providerAgent}
+            <span class="thread-agent-badge" title="Agent: {thread.providerAgent}">{thread.providerAgent}</span>
+          {/if}
+        </span>
       </span>
     </a>
     {#if uiToggles.showThreadListExports}
@@ -1774,8 +1786,51 @@
 
   .thread-meta {
     flex-shrink: 0;
+    gap: var(--space-xs);
+    align-items: center;
     font-size: var(--text-xs);
     color: var(--cli-text-muted);
+  }
+
+  .thread-provider-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.3em;
+    border-radius: var(--radius-sm);
+    font-size: 0.65rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    background: var(--cli-bg);
+    border: 1px solid var(--cli-border);
+    color: var(--cli-text-muted);
+  }
+  .thread-provider-badge--opencode {
+    color: var(--cli-prefix-agent);
+    border-color: color-mix(in oklch, var(--cli-prefix-agent) 40%, transparent);
+  }
+  .thread-provider-badge--copilot {
+    color: oklch(0.72 0.15 260);
+    border-color: oklch(0.72 0.15 260 / 40%);
+  }
+  .thread-provider-badge--claude {
+    color: oklch(0.72 0.14 60);
+    border-color: oklch(0.72 0.14 60 / 40%);
+  }
+
+  .thread-agent-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.3em;
+    border-radius: var(--radius-sm);
+    font-size: 0.65rem;
+    line-height: 1.5;
+    background: color-mix(in oklch, var(--cli-prefix-agent) 10%, transparent);
+    color: var(--cli-prefix-agent);
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .thread-indicator {
