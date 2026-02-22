@@ -221,7 +221,7 @@ import { agents } from "../lib/agents.svelte";
   }
 
   function formatStatusLabel(status?: string): string {
-    if (!status) return "unknown";
+    if (!status || status === "disabled") return "disabled";
     return status;
   }
 
@@ -980,6 +980,17 @@ import { agents } from "../lib/agents.svelte";
                       type="number"
                       bind:value={providerConfig.opencode.timeout}
                       placeholder="60000"
+                      class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
+                    />
+                  </div>
+                  <div class="field flex flex-col gap-1">
+                    <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-opencode-password">server password (OPENCODE_SERVER_PASSWORD)</label>
+                    <input
+                      id="provider-opencode-password"
+                      type="password"
+                      bind:value={providerConfig.opencode.password}
+                      placeholder="Leave blank if no auth"
+                      autocomplete="off"
                       class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                     />
                   </div>

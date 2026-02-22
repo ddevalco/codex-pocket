@@ -203,7 +203,7 @@ export interface ProviderHealthStatus {
   /**
    * Overall health state
    */
-  status: "healthy" | "degraded" | "unhealthy" | "unknown";
+  status: "healthy" | "degraded" | "unhealthy" | "unknown" | "disabled";
 
   /**
    * Human-readable status message

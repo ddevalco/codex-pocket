@@ -208,6 +208,19 @@ export class ProviderRegistry implements IProviderRegistry {
 
     const healthPromises: Array<{ id: string; promise: Promise<ProviderHealthStatus> }> = [];
 
+    // Seed the map with 'disabled' status for all registered-but-not-started providers
+    // so the UI never receives undefined and shows "Unknown"
+    const healthMap: Record<string, ProviderHealthStatus> = {};
+    for (const [providerId, entry] of this.entries) {
+      if (!entry.adapter) {
+        healthMap[providerId] = {
+          status: "disabled",
+          message: "Provider is disabled",
+          lastCheck: new Date().toISOString(),
+        };
+      }
+    }
+
     for (const [providerId, entry] of this.entries) {
       if (entry.adapter) {
         healthPromises.push({
@@ -219,7 +232,7 @@ export class ProviderRegistry implements IProviderRegistry {
 
     if (healthPromises.length === 0) {
       this.logger.info("[ProviderRegistry] No active providers to check");
-      return {};
+      return healthMap;
     }
 
     // Wait for all health checks (errors are caught and converted to unhealthy status)
@@ -230,7 +243,6 @@ export class ProviderRegistry implements IProviderRegistry {
       })),
     );
 
-    const healthMap: Record<string, ProviderHealthStatus> = {};
     for (const { id, status } of results) {
       healthMap[id] = status;
     }
