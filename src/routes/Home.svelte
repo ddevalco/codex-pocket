@@ -491,7 +491,7 @@
       }
       enabledProviders = map;
       // Reset provider filter if the selected provider is no longer enabled
-      if (filters.provider !== "all" && !map[filters.provider]) {
+      if (filters.provider !== "all" && map[filters.provider] === false) {
         filters.provider = "all";
       }
     }).catch(() => {/* silently ignore — fall back to showing all tabs */});
@@ -998,7 +998,7 @@
               onclick={() => (filters.provider = "codex")}
             >Codex ({threadCounts.codex})</button>
             {/if}
-            {#if enabledProviders["copilot-acp"]}
+            {#if enabledProviders["copilot-acp"] !== false}
             <button
               class="filter-chip"
               class:selected={filters.provider === "copilot-acp"}
@@ -1006,7 +1006,7 @@
               onclick={() => (filters.provider = "copilot-acp")}
             >Copilot ({threadCounts.copilot})</button>
             {/if}
-            {#if enabledProviders.claude}
+            {#if enabledProviders.claude !== false}
             <button
               class="filter-chip"
               class:selected={filters.provider === "claude"}
@@ -1014,7 +1014,7 @@
               onclick={() => (filters.provider = "claude")}
             >Claude ({threadCounts.claude})</button>
             {/if}
-            {#if enabledProviders.opencode}
+            {#if enabledProviders.opencode !== false}
             <button
               class="filter-chip"
               class:selected={filters.provider === "opencode"}

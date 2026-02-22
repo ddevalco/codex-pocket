@@ -1,5 +1,6 @@
 {
   "chunks": {
+    "config.js": 1586,
     "Admin.css": 11322,
     "Admin.js": 36208,
     "AppHeader.css": 5688,
@@ -9,7 +10,7 @@
     "Device.css": 786,
     "Device.js": 496,
     "Home.css": 12987,
-    "Home.js": 44624,
+    "Home.js": 48838,
     "Landing.css": 4445,
     "Landing.js": 5951,
     "Metrics.css": 3069,
@@ -23,7 +24,7 @@
     "Review.css": 3281,
     "Review.js": 11669,
     "Settings.css": 1373,
-    "Settings.js": 57216,
+    "Settings.js": 59698,
     "Thread.css": 13245,
     "Thread.js": 93914,
     "abap.js": 15852,
