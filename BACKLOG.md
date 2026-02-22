@@ -12,6 +12,40 @@ Issues are canonical for work items:
 
 ## Recently Done
 
+### 2026-02-22: Provider-Native New Task Creation + OpenCode Credential Auto-Detection
+
+**Epic:** #315 | **PRs:** #323 (merged), #324 (open, pending merge) | **Status:** Implementation complete
+
+#### Epic #315: Provider-Native New Task Creation — All child issues DONE
+
+- ✅ #314 — OpenCode port mismatch fix
+- ✅ #316 — `getAgentCapabilities()` / `listModels()` added to `ProviderAdapter` interface (`contracts.ts`)
+- ✅ #317 — OpenCode capabilities adapter: reads `~/.config/opencode/oh-my-opencode.json` with 5-min TTL cache; served via `GET /api/providers/opencode/capabilities`
+- ✅ #318 — Copilot ACP capabilities adapter: static well-known model list (ACP protocol has no dynamic RPC)
+- ✅ #319 — Codex capabilities adapter: queries Anchor API for agents + static GPT model list
+- ✅ #320 — `thread/start` routes to correct provider (codex→Anchor, opencode→OpenCode adapter, claude→Claude adapter); provider/agent/model persisted in `thread_metadata` DB
+- ✅ #321 — Frontend new task picker UI: provider tabs (Codex / OpenCode) + agent dropdown + model selector
+- ✅ #322 — Thread list: provider badges (Codex/OpenCode/Copilot/Claude) + agent name from `thread_metadata`
+
+#### OpenCode Credential Auto-Detection (PR #324)
+
+- **Problem:** `coderelay status` showed OpenCode as degraded/401 because CodeNomad injects `OPENCODE_SERVER_USERNAME`/`OPENCODE_SERVER_PASSWORD` dynamically into the `opencode serve` process. Credentials never persist to disk.
+- **Fix:** `tryDetectCredentials()` in `opencode-adapter.ts` reads live credentials via `ps eww -A`, extracts them with regex, and updates in-memory config. Runs proactively on `start()` and reactively on 401 health check.
+- **Result:** OpenCode shows `"healthy"` automatically when CodeNomad is running — no manual credential setup needed.
+
+#### Thread List Provider Badges (PR #323 + #324)
+
+- **Backend** (`index.ts`): `injectThreadProviderMetadata()` reads `provider`/`agent`/`model` from `thread_metadata` DB and injects as `provider`/`providerAgent`/`model` onto Codex thread list objects.
+- **Frontend** (`Home.svelte`): Provider badge rendered for all four providers including new `thread-provider-badge--codex` CSS variant (green).
+
+**Known follow-up items (open issues):**
+- #325 — Bug: frontend sends `providerAgent` but backend reads `params.agent` → selected agent not persisted
+- #326 — Bug: `fetchOpenCodeCapabilities()` uses bare `fetch()` without auth token
+- #327 — Security: `tryDetectCredentials()` logs username + regex fails for quoted credential values
+- #328 — Refactor: duplicate health check parsing + `readFileSync` blocking + missing test coverage
+
+---
+
 ### 2026-02-21: Farfield UI/UX Refresh — P1 through P5
 
 **Epic:** #221 | **Status:** IN REVIEW (PRs #280, #281, #282, #283, #284, #285)

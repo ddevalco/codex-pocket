@@ -2228,7 +2228,7 @@ function parseProviderThreadId(threadId: string): { providerId: string; sessionI
 function extractThreadSelectionFromParams(params: any): ThreadSelection {
   const provider = normalizeSelectionValue(params?.provider);
   const agent = normalizeSelectionValue(
-    params?.agent ?? params?.collaborationMode?.settings?.agent ?? params?.settings?.agent,
+    params?.agent ?? params?.providerAgent ?? params?.collaborationMode?.settings?.agent ?? params?.settings?.agent,
   );
   const model = normalizeSelectionValue(
     params?.model ?? params?.collaborationMode?.settings?.model ?? params?.settings?.model,
@@ -3382,6 +3382,40 @@ const server = Bun.serve<WsData>({
           { success: false, error: message },
           { status: 500 }
         );
+      }
+    }
+
+
+    if (url.pathname === "/api/config/opencode/detect-credentials" && method === "GET") {
+      if (!authorised(req)) return unauth();
+      try {
+        // Run the same ps-based detection as OpenCodeAdapter.tryDetectCredentials()
+        const psResult = Bun.spawnSync(
+          ["sh", "-c", "ps eww -A 2>/dev/null || ps ewwx 2>/dev/null"],
+          { stdout: "pipe", stderr: "pipe" }
+        );
+        const psOutput = psResult.stdout?.toString("utf8") ?? "";
+        let detectedUsername: string | undefined;
+        let detectedPassword: string | undefined;
+        for (const line of psOutput.split("\n")) {
+          if (line.includes("opencode") && line.includes("serve")) {
+            const usernameMatch = line.match(/OPENCODE_SERVER_USERNAME=([^\s]+)/);
+            const passwordMatch = line.match(/OPENCODE_SERVER_PASSWORD=([^\s]+)/);
+            if (usernameMatch) detectedUsername = usernameMatch[1];
+            if (passwordMatch) detectedPassword = passwordMatch[1];
+            if (detectedUsername && detectedPassword) break;
+          }
+        }
+        const detected = !!(detectedUsername || detectedPassword);
+        logAdmin(`opencode credential detection: ${detected ? "found credentials" : "no credentials found"}`);
+        return okJson({
+          detected,
+          ...(detectedUsername ? { username: detectedUsername } : {}),
+          ...(detectedPassword ? { password: detectedPassword } : {}),
+        });
+      } catch (error) {
+        console.error("[opencode-detect] Credential detection error:", error);
+        return okJson({ detected: false });
       }
     }
 

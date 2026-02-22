@@ -9,7 +9,7 @@
   import SectionCard from "../lib/components/system/SectionCard.svelte";
   import StatusChip from "../lib/components/system/StatusChip.svelte";
   import DangerZone from "../lib/components/system/DangerZone.svelte";
-  import { getProviderConfig, updateProviderConfig, type ProviderConfig } from "../lib/api/config";
+  import { getProviderConfig, updateProviderConfig, detectOpenCodeCredentials, type ProviderConfig } from "../lib/api/config";
   import {
     DEFAULT_QUICK_REPLIES,
     MAX_QUICK_REPLIES,
@@ -282,6 +282,34 @@ import { agents } from "../lib/agents.svelte";
       configError = "Failed to save configuration.";
     } finally {
       savingConfig = false;
+    }
+  }
+
+  /**
+   * When the user enables OpenCode, auto-detect CodeNomad credentials from the
+   * running opencode process environment (via ps eww scan on the backend).
+   * Only populates fields that are currently empty to avoid overwriting user edits.
+   */
+  async function handleOpenCodeToggle(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    providerConfig.opencode.enabled = checked;
+    if (!checked || !auth.token) return;
+    // Only auto-detect if both credential fields are empty
+    const usernameEmpty = !providerConfig.opencode.username?.trim();
+    const passwordEmpty = !providerConfig.opencode.password?.trim();
+    if (!usernameEmpty && !passwordEmpty) return;
+    try {
+      const detected = await detectOpenCodeCredentials(auth.token);
+      if (detected.detected) {
+        if (usernameEmpty && detected.username) {
+          providerConfig.opencode.username = detected.username;
+        }
+        if (passwordEmpty && detected.password) {
+          providerConfig.opencode.password = detected.password;
+        }
+      }
+    } catch {
+      // Silently ignore — user can enter credentials manually
     }
   }
 
@@ -952,7 +980,7 @@ import { agents } from "../lib/agents.svelte";
                   {formatStatusLabel(providerHealth.opencode?.status)}
                 </StatusChip>
                 <label class="provider-toggle inline-flex items-center gap-1.5 text-xs text-cli-text-dim">
-                  <input type="checkbox" bind:checked={providerConfig.opencode.enabled} />
+                  <input type="checkbox" checked={providerConfig.opencode.enabled} onclick={handleOpenCodeToggle} />
                   <span>Enabled</span>
                 </label>
               </div>

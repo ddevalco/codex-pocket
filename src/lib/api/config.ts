@@ -40,3 +40,24 @@ export async function updateProviderConfig(
   });
   return res.json();
 }
+
+
+export interface DetectOpenCodeCredentialsResponse {
+  detected: boolean;
+  username?: string;
+  password?: string;
+}
+
+export async function detectOpenCodeCredentials(
+  token: string
+): Promise<DetectOpenCodeCredentialsResponse> {
+  try {
+    const res = await fetch("/api/config/opencode/detect-credentials", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return { detected: false };
+    return res.json();
+  } catch {
+    return { detected: false };
+  }
+}
