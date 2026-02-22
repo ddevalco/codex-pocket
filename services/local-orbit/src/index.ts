@@ -1951,6 +1951,57 @@ async function injectThreadCapabilities(msg: Record<string, unknown>): Promise<v
   }
 }
 
+// Helper: Inject provider/agent/model metadata from thread_metadata DB into thread list items (Phase 4: #322)
+async function injectThreadProviderMetadata(msg: Record<string, unknown>): Promise<void> {
+  const method = typeof (msg as any).method === "string" ? ((msg as any).method as string) : null;
+  const params = (msg as any).params && typeof (msg as any).params === "object" ? (msg as any).params : null;
+  const result = (msg as any).result && typeof (msg as any).result === "object" ? (msg as any).result : null;
+
+  const applyToThread = (t: any) => {
+    if (!t || typeof t !== "object") return;
+    const threadId = typeof t.id === "string" ? t.id : typeof t.threadId === "string" ? t.threadId : null;
+    if (!threadId) return;
+    // Skip threads that already have provider info (ACP/opencode/claude threads self-report it)
+    if (t.provider !== undefined) return;
+    // Look up thread_metadata for Codex threads
+    try {
+      const row = getThreadSelectionStmt.get(threadId) as ThreadSelection | undefined;
+      if (!row) return;
+      const norm = normalizeThreadSelection(row);
+      if (norm.provider) t.provider = norm.provider;
+      if (norm.agent) t.providerAgent = norm.agent;
+      if (norm.model) t.model = norm.model;
+    } catch {
+      // DB may not be ready; skip silently
+    }
+  };
+
+  if (method === "thread/started" && params?.thread) {
+    applyToThread(params.thread);
+    return;
+  }
+
+  if (method === "thread/list" || !method) {
+    const rawList: any[] = Array.isArray(result?.data)
+      ? result.data
+      : Array.isArray(result?.threads)
+        ? result.threads
+        : Array.isArray(result?.items)
+          ? result.items
+          : Array.isArray(result)
+            ? result
+            : [];
+    for (const t of rawList) applyToThread(t);
+    return;
+  }
+
+  if ((method === "thread/get" || method === "thread/read" || !method) && result) {
+    if (result.thread) applyToThread(result.thread);
+    if (typeof result.id === "string") applyToThread(result);
+    return;
+  }
+}
+
 // State
 const pendingThreadStartSelections = new Map<string | number, ThreadSelection>();
 const clientSockets = new Map<WebSocket, Set<string>>();
@@ -2656,6 +2707,7 @@ async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
       let cloned = JSON.parse(msgText) as any;
       await injectThreadTitles(cloned);
       await injectThreadCapabilities(cloned);
+      await injectThreadProviderMetadata(cloned);
 
       if (isThreadListResponse(cloned, true)) {
         cloned = await augmentThreadList(cloned);
