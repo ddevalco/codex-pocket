@@ -5,8 +5,9 @@
  * Full implementation planned for Phase 2.
  */
 
-import type { ProviderAdapter } from "../contracts.js";
+import { defaultAgentCapabilities, type ProviderAdapter } from "../contracts.js";
 import type {
+  ProviderAgentCapabilities,
   ProviderCapabilities,
   ProviderHealthStatus,
   SessionListResult,
@@ -49,6 +50,20 @@ export class CodexAdapter implements ProviderAdapter {
 
   constructor(_config: CodexConfig = {}) {
     // Placeholder config usage
+  }
+
+  async getAgentCapabilities(): Promise<ProviderAgentCapabilities> {
+    return {
+      ...defaultAgentCapabilities(),
+      canCreateNew: true,
+      models: [
+        { id: "gpt-4.1", name: "GPT-4.1" },
+        { id: "gpt-4o", name: "GPT-4o" },
+        { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+        { id: "o3-mini", name: "o3-mini" },
+        { id: "o4-mini", name: "o4-mini" },
+      ],
+    };
   }
 
   async start(): Promise<void> {

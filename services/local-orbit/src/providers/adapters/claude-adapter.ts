@@ -13,8 +13,9 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import type { ProviderAdapter } from "../contracts.js";
+import { defaultAgentCapabilities, type ProviderAdapter } from "../contracts.js";
 import type {
+  ProviderAgentCapabilities,
   ProviderCapabilities,
   ProviderHealthStatus,
   SessionListResult,
@@ -93,6 +94,10 @@ export class ClaudeAdapter implements ProviderAdapter {
     };
     this.sessionNormalizer = new ClaudeSessionNormalizer();
     this.eventNormalizer = new ClaudeEventNormalizer();
+  }
+
+  async getAgentCapabilities(): Promise<ProviderAgentCapabilities> {
+    return defaultAgentCapabilities();
   }
 
   /**

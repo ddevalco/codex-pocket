@@ -8,7 +8,7 @@ import QRCode from "qrcode";
 import { createRegistry } from "./providers/registry.js";
 import { CodexAdapter, CopilotAcpAdapter, ClaudeAdapter, ClaudeMcpAdapter, OpenCodeAdapter } from "./providers/adapters/index.js";
 import { AgentStore } from "./agents/agent-store.js";
-import type { PromptInput, PromptAttachment, NormalizedEvent, AcpApprovalPayload } from "./providers/provider-types.js";
+import type { PromptInput, PromptAttachment, PromptOptions, NormalizedEvent, AcpApprovalPayload } from "./providers/provider-types.js";
 import { normalizeAttachment, isValidAttachment } from "./providers/provider-types.js";
 
 // Track thread/list requests for response augmentation
@@ -225,7 +225,12 @@ registry.register(
 const opencodeCfg = providersConfig["opencode"] || {};
 registry.register(
   "opencode",
-  (cfg) => new OpenCodeAdapter(cfg.extra),
+  (cfg) => new OpenCodeAdapter({
+    ...(cfg.extra ?? {}),
+    ...(typeof opencodeCfg.serverUrl === "string" && opencodeCfg.serverUrl.trim()
+      ? { serverUrl: opencodeCfg.serverUrl.trim() }
+      : {}),
+  }),
   {
     enabled: opencodeCfg.enabled === true, // Disabled by default (explicit opt-in)
     extra: opencodeCfg,
@@ -844,6 +849,27 @@ try {
   // already migrated
 }
 
+db.exec(
+  "CREATE TABLE IF NOT EXISTS thread_metadata (" +
+    "thread_id TEXT PRIMARY KEY," +
+    "archived INTEGER NOT NULL DEFAULT 0," +
+    "archived_at INTEGER," +
+    "updated_at INTEGER NOT NULL," +
+    "provider TEXT," +
+    "agent TEXT," +
+    "model TEXT" +
+  ");" +
+  "CREATE INDEX IF NOT EXISTS idx_thread_metadata_archived ON thread_metadata(archived, archived_at);"
+);
+
+for (const column of ["provider", "agent", "model"] as const) {
+  try {
+    db.exec(`ALTER TABLE thread_metadata ADD COLUMN ${column} TEXT;`);
+  } catch {
+    // already migrated
+  }
+}
+
 // Run FTS5 and thread metadata migrations
 try {
   const fts5Migration = Bun.file(join(process.cwd(), "migrations", "002_add_fts5_search.sql"));
@@ -897,6 +923,69 @@ const countTokenSessions = db.prepare(
 const countActiveTokenSessions = db.prepare(
   "SELECT COUNT(*) as n FROM token_sessions WHERE revoked_at IS NULL"
 );
+
+const upsertThreadSelection = db.prepare(
+  "INSERT INTO thread_metadata (thread_id, archived, archived_at, updated_at, provider, agent, model) " +
+    "VALUES (?, COALESCE((SELECT archived FROM thread_metadata WHERE thread_id = ?), 0), " +
+    "(SELECT archived_at FROM thread_metadata WHERE thread_id = ?), ?, ?, ?, ?) " +
+    "ON CONFLICT(thread_id) DO UPDATE SET " +
+    "updated_at = excluded.updated_at, " +
+    "provider = COALESCE(excluded.provider, thread_metadata.provider), " +
+    "agent = COALESCE(excluded.agent, thread_metadata.agent), " +
+    "model = COALESCE(excluded.model, thread_metadata.model)"
+);
+
+const getThreadSelectionStmt = db.prepare(
+  "SELECT provider, agent, model FROM thread_metadata WHERE thread_id = ? LIMIT 1"
+);
+
+type ThreadSelection = {
+  provider?: string;
+  agent?: string;
+  model?: string;
+};
+
+function normalizeSelectionValue(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function normalizeThreadSelection(selection: ThreadSelection): ThreadSelection {
+  return {
+    ...(normalizeSelectionValue(selection.provider) ? { provider: normalizeSelectionValue(selection.provider) } : {}),
+    ...(normalizeSelectionValue(selection.agent) ? { agent: normalizeSelectionValue(selection.agent) } : {}),
+    ...(normalizeSelectionValue(selection.model) ? { model: normalizeSelectionValue(selection.model) } : {}),
+  };
+}
+
+function persistThreadSelection(threadId: string, selection: ThreadSelection): void {
+  const normalized = normalizeThreadSelection(selection);
+  if (!threadId.trim()) return;
+  if (!normalized.provider && !normalized.agent && !normalized.model) return;
+  upsertThreadSelection.run(
+    threadId,
+    threadId,
+    threadId,
+    nowSec(),
+    normalized.provider ?? null,
+    normalized.agent ?? null,
+    normalized.model ?? null,
+  );
+}
+
+function getStoredThreadSelection(threadId: string): ThreadSelection {
+  if (!threadId.trim()) return {};
+  const row = getThreadSelectionStmt.get(threadId) as
+    | { provider?: string | null; agent?: string | null; model?: string | null }
+    | undefined;
+  if (!row) return {};
+  return normalizeThreadSelection({
+    provider: row.provider ?? undefined,
+    agent: row.agent ?? undefined,
+    model: row.model ?? undefined,
+  });
+}
 
 function nowSec(): number {
   return Math.floor(Date.now() / 1000);
@@ -1863,6 +1952,7 @@ async function injectThreadCapabilities(msg: Record<string, unknown>): Promise<v
 }
 
 // State
+const pendingThreadStartSelections = new Map<string | number, ThreadSelection>();
 const clientSockets = new Map<WebSocket, Set<string>>();
 const anchorSockets = new Map<WebSocket, Set<string>>();
 const threadToClients = new Map<string, Set<WebSocket>>();
@@ -2084,6 +2174,45 @@ function parseProviderThreadId(threadId: string): { providerId: string; sessionI
   return null;
 }
 
+function extractThreadSelectionFromParams(params: any): ThreadSelection {
+  const provider = normalizeSelectionValue(params?.provider);
+  const agent = normalizeSelectionValue(
+    params?.agent ?? params?.collaborationMode?.settings?.agent ?? params?.settings?.agent,
+  );
+  const model = normalizeSelectionValue(
+    params?.model ?? params?.collaborationMode?.settings?.model ?? params?.settings?.model,
+  );
+  return normalizeThreadSelection({ provider, agent, model });
+}
+
+function buildPromptOptions(selection: ThreadSelection): PromptOptions | undefined {
+  const normalized = normalizeThreadSelection(selection);
+  if (!normalized.model && !normalized.agent) return undefined;
+
+  const options: PromptOptions = {
+    ...(normalized.model ? { model: normalized.model } : {}),
+    ...(normalized.agent
+      ? {
+          custom: {
+            agent: normalized.agent,
+          },
+        }
+      : {}),
+  };
+
+  return options;
+}
+
+function extractStartedThreadId(msg: any): string | null {
+  const fromResult =
+    msg?.result?.thread?.id ??
+    msg?.result?.thread?.threadId ??
+    msg?.result?.threadId ??
+    msg?.result?.id ??
+    null;
+  return typeof fromResult === "string" && fromResult.trim() ? fromResult.trim() : null;
+}
+
 async function routeGenericSendPrompt(msg: any, ws: any): Promise<void> {
   const threadId = msg.params?.threadId || msg.params?.thread_id || msg.params?.id;
   const parsed = parseProviderThreadId(threadId);
@@ -2140,9 +2269,17 @@ async function routeGenericSendPrompt(msg: any, ws: any): Promise<void> {
     promptInput.attachments = attachments;
   }
 
+  const requestSelection = extractThreadSelectionFromParams(msg?.params ?? {});
+  const mergedSelection = {
+    ...getStoredThreadSelection(threadId),
+    ...requestSelection,
+  };
+  const promptOptions = buildPromptOptions(mergedSelection);
+  persistThreadSelection(threadId, mergedSelection);
+
   try {
     const startTime = Date.now();
-    const result = await adapter.sendPrompt(sessionId, promptInput);
+    const result = await adapter.sendPrompt(sessionId, promptInput, promptOptions);
     const elapsed = Date.now() - startTime;
 
     if (elapsed > 15000) {
@@ -2320,6 +2457,14 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
     ...(attachments.length > 0 && { attachments }),
   };
 
+  const requestSelection = extractThreadSelectionFromParams(params);
+  const mergedSelection = {
+    ...getStoredThreadSelection(threadId),
+    ...requestSelection,
+  };
+  const promptOptions = buildPromptOptions(mergedSelection);
+  persistThreadSelection(threadId, mergedSelection);
+
   const startTime = Date.now();
   try {
     const adapter = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
@@ -2332,7 +2477,7 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
       return;
     }
     const sessionId = acpSessionIdFromThreadId(threadId);
-    const result = await adapter.sendPrompt(sessionId, promptInput);
+    const result = await adapter.sendPrompt(sessionId, promptInput, promptOptions);
     
     // Track session locally for CLIs without list_sessions (Fixes #273)
     if (hasTrackSession(adapter)) {
@@ -2429,6 +2574,27 @@ function broadcastApprovalRequest(sessionId: string, event: NormalizedEvent): vo
 async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
   const msg = parseJsonMessage(msgText);
   if (!msg) return;
+
+  if (fromRole === "client" && msg.method === "thread/start") {
+    const requestId = msg.id;
+    if (typeof requestId === "string" || typeof requestId === "number") {
+      pendingThreadStartSelections.set(requestId, extractThreadSelectionFromParams(msg.params ?? {}));
+    }
+  }
+
+  if (fromRole === "anchor") {
+    const requestId = msg.id;
+    if ((typeof requestId === "string" || typeof requestId === "number") && pendingThreadStartSelections.has(requestId)) {
+      const selection = pendingThreadStartSelections.get(requestId) ?? {};
+      const startedThreadId = extractStartedThreadId(msg);
+      if (startedThreadId) {
+        persistThreadSelection(startedThreadId, selection);
+      }
+      if (msg.result || msg.error) {
+        pendingThreadStartSelections.delete(requestId);
+      }
+    }
+  }
 
   // Local orbit control messages
   if (typeof msg.type === "string" && (msg.type as string).startsWith("orbit.")) {
@@ -3090,6 +3256,30 @@ const server = Bun.serve<WsData>({
     }
 
     // Provider Configuration API
+    if (url.pathname.match(/^\/api\/providers\/[^/]+\/capabilities$/) && method === "GET") {
+      if (!authorised(req)) return unauth();
+
+      const providerId = decodeURIComponent(url.pathname.split("/")[3] ?? "").trim();
+      if (!providerId) {
+        return okJson({ error: "providerId is required" }, { status: 400 });
+      }
+
+      const adapter = registry.get(providerId);
+      if (!adapter) {
+        return okJson({ error: `Provider '${providerId}' is not available` }, { status: 404 });
+      }
+
+      try {
+        const capabilities = adapter.getAgentCapabilities
+          ? await adapter.getAgentCapabilities()
+          : { agents: [], models: [], canCreateNew: false };
+        return okJson(capabilities);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to load provider capabilities";
+        return okJson({ error: message }, { status: 500 });
+      }
+    }
+
     if (url.pathname === "/api/config/providers" && method === "GET") {
       if (!authorised(req)) return unauth();
       

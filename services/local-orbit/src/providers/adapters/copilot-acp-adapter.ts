@@ -17,8 +17,9 @@
 
 import type { ChildProcess } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import type { ProviderAdapter } from "../contracts.js";
+import { defaultAgentCapabilities, type ProviderAdapter } from "../contracts.js";
 import type {
+  ProviderAgentCapabilities,
   ProviderCapabilities,
   ProviderHealthStatus,
   SessionListResult,
@@ -31,7 +32,15 @@ import type {
 } from "../provider-types.js";
 import { AcpClient } from "./acp-client.js";
 import { ACPStreamingNormalizer } from "../normalizers/acp-event-normalizer.js";
+import type { AcpPermissionRequestParams } from "../normalizers/acp-event-normalizer.js";
 import { findExecutable, spawnProcess, killProcess, processHealth } from "./process-utils.js";
+
+function toPermissionRequestParams(input: unknown): AcpPermissionRequestParams {
+  if (!input || typeof input !== "object") {
+    return { sessionId: "" };
+  }
+  return input as AcpPermissionRequestParams;
+}
 
 /**
  * Helper to read and encode attachment content
@@ -165,6 +174,20 @@ export class CopilotAcpAdapter implements ProviderAdapter {
     this.normalizer = new ACPStreamingNormalizer();
   }
 
+  async getAgentCapabilities(): Promise<ProviderAgentCapabilities> {
+    return {
+      ...defaultAgentCapabilities(),
+      canCreateNew: false,
+      models: [
+        { id: "gpt-4.1", name: "GPT-4.1" },
+        { id: "gpt-4o", name: "GPT-4o" },
+        { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5 (via Copilot)" },
+        { id: "o3-mini", name: "o3-mini" },
+        { id: "o4-mini", name: "o4-mini" },
+      ],
+    };
+  }
+
   /**
    * Start the Copilot process and perform handshake/authentication.
    */
@@ -211,12 +234,13 @@ export class CopilotAcpAdapter implements ProviderAdapter {
 
       // Register server→client approval request handler
       this.client.onRequest("session/request_permission", async (params, rpcId) => {
-        const event = this.normalizer.normalizePermissionRequest(rpcId, params);
+        const requestParams = toPermissionRequestParams(params);
+        const event = this.normalizer.normalizePermissionRequest(rpcId, requestParams);
 
         return new Promise<unknown>((resolve) => {
           const key = String(rpcId);
-          const sessionId = typeof params.sessionId === "string" && params.sessionId
-            ? params.sessionId
+          const sessionId = typeof requestParams.sessionId === "string" && requestParams.sessionId
+            ? requestParams.sessionId
             : `anon-${crypto.randomUUID()}`;
           const threadId = `copilot-acp:${sessionId}`;
 

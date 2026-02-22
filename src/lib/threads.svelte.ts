@@ -231,6 +231,12 @@ function normalizeThreadInfo(input: any, options?: { applyDefaultCapabilities?: 
   const project = lastPathSegment(cwd);
   const repo = repoNameFromOrigin(gitOriginUrl);
 
+  const providerAgent = typeof thread.providerAgent === "string" && thread.providerAgent
+    ? thread.providerAgent
+    : typeof thread.provider_agent === "string" && thread.provider_agent
+      ? thread.provider_agent
+      : undefined;
+
   return {
     id,
     ...(preview ? { preview } : {}),
@@ -247,6 +253,7 @@ function normalizeThreadInfo(input: any, options?: { applyDefaultCapabilities?: 
     ...(lastActiveAt != null ? { lastActiveAt } : {}),
     ...(modelProvider ? { modelProvider } : {}),
     provider,
+    ...(providerAgent ? { providerAgent } : {}),
     status,
     archived,
     ...(capabilities ? { capabilities } : {}),
@@ -378,6 +385,8 @@ class ThreadsStore {
       suppressNavigation?: boolean;
       onThreadStarted?: (threadId: string) => void;
       collaborationMode?: CollaborationMode;
+      provider?: string;
+      providerAgent?: string;
     }
   ) {
     this.#startThread(cwd, input, options);
@@ -601,6 +610,8 @@ class ThreadsStore {
       suppressNavigation?: boolean;
       onThreadStarted?: (threadId: string) => void;
       collaborationMode?: CollaborationMode;
+      provider?: string;
+      providerAgent?: string;
     }
   ) {
     const id = this.#nextId++;
@@ -616,6 +627,8 @@ class ThreadsStore {
         cwd,
         ...(options?.approvalPolicy ? { approvalPolicy: options.approvalPolicy } : {}),
         ...(options?.sandbox ? { sandbox: options.sandbox } : {}),
+        ...(options?.provider ? { provider: options.provider } : {}),
+        ...(options?.providerAgent ? { providerAgent: options.providerAgent } : {}),
       },
     });
   }

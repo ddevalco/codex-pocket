@@ -19,8 +19,9 @@
 
 import type { ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
-import type { ProviderAdapter } from "../contracts.js";
+import { defaultAgentCapabilities, type ProviderAdapter } from "../contracts.js";
 import type {
+  ProviderAgentCapabilities,
   ProviderCapabilities,
   ProviderHealthStatus,
   SessionListResult,
@@ -121,6 +122,10 @@ export class ClaudeMcpAdapter implements ProviderAdapter {
     };
     this.eventNormalizer = new ClaudeEventNormalizer();
     this.sessionNormalizer = new ClaudeSessionNormalizer();
+  }
+
+  async getAgentCapabilities(): Promise<ProviderAgentCapabilities> {
+    return defaultAgentCapabilities();
   }
 
   /**

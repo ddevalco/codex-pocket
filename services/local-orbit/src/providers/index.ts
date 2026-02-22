@@ -15,7 +15,7 @@ export type {
   ProviderAdapter,
   ProviderFactory,
   ProviderConfig,
-  ProviderRegistry,
+  ProviderRegistry as ProviderRegistryInterface,
 } from "./contracts.js";
 
 // Type definitions
@@ -85,9 +85,13 @@ export {
 export {
   BaseEventNormalizer,
   CodexEventNormalizer,
-  ACPStreamingNormalizer,
+  ACPEventNormalizer,
   createEventNormalizer,
 } from "./normalizers/event-normalizer.js";
+
+export {
+  ACPStreamingNormalizer,
+} from "./normalizers/acp-event-normalizer.js";
 
 export { ClaudeSessionNormalizer } from "./normalizers/claude-session-normalizer.js";
 export { ClaudeEventNormalizer } from "./normalizers/claude-event-normalizer.js";
