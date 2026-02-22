@@ -4,6 +4,7 @@
   import { marked } from "marked";
   import DOMPurify from "dompurify";
   import { uiToggles } from "../uiToggles.svelte";
+  import PierreDiff from "./PierreDiff.svelte";
   import { fade } from "svelte/transition";
 
   interface Props {
@@ -305,6 +306,14 @@
       <span class="opacity-90">{statusConfig.label}</span>
     </span>
 
+    {#if message.kind === 'file' && (message.metadata?.linesAdded || message.metadata?.linesRemoved)}
+      <span class="flex shrink-0 items-center gap-xs text-xs font-mono ml-xs">
+        {#if message.metadata?.linesAdded}<span class="text-cli-success">+{message.metadata.linesAdded}</span>{/if}
+        {#if message.metadata?.linesRemoved}<span class="text-cli-error">−{message.metadata.linesRemoved}</span>{/if}
+        <span class="text-cli-text-muted">modified</span>
+      </span>
+    {/if}
+
     {#if hasContent}
       <svg
         class="h-4 w-4 shrink-0 text-cli-text-dim transition-transform duration-200"
@@ -322,7 +331,7 @@
     {#if hasContent && uiToggles.showToolOutputCopy}
       <button
         type="button"
-        class="absolute right-2.5 top-2 z-[1] cursor-pointer rounded-sm border border-cli-border bg-black/25 px-sm py-1 font-mono text-2xs text-cli-text-muted opacity-0 shadow-none transition-all duration-150 hover:text-cli-text group-hover:opacity-100 group-focus-within:opacity-100 max-[520px]:px-3 max-[520px]:py-1.5 max-[520px]:text-xs max-[520px]:opacity-100 {copyState === 'copied' ? 'border-cli-success text-cli-success !opacity-100' : ''} {copyState === 'error' ? 'border-cli-error text-cli-error !opacity-100' : ''}"
+        class="absolute right-2.5 top-2 z-[1] cursor-pointer rounded-sm border border-cli-border bg-black/25 px-sm py-1 font-mono text-2xs text-cli-text-muted opacity-0 shadow-none transition-all duration-150 hover:text-cli-text group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden {copyState === 'copied' ? 'border-cli-success text-cli-success !opacity-100' : ''} {copyState === 'error' ? 'border-cli-error text-cli-error !opacity-100' : ''}"
         onclick={(e) => {
           e.stopPropagation();
           copyToolOutput();
@@ -340,7 +349,7 @@
       {#if renderMarkdown}
         <div class="m-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words px-md py-sm text-xs leading-relaxed text-cli-text-dim markdown">{@html renderedToolHtml}</div>
       {:else}
-        <pre class="m-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words px-md py-sm text-xs leading-relaxed text-cli-text-dim">{toolInfo.content}</pre>
+        {#if message.kind === 'file'}<PierreDiff diff={toolInfo.content} />{:else}<pre class="m-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words px-md py-sm text-xs leading-relaxed text-cli-text-dim">{toolInfo.content}</pre>{/if}
       {/if}
     </div>
   {/if}
