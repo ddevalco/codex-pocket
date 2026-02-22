@@ -44,7 +44,7 @@ Responsibilities:
 
 ## Provider Abstraction Layer
 
-CodeRelay supports multiple AI provider backends through a unified adapter interface. This enables viewing and interacting with sessions from different providers (Codex, GitHub Copilot, etc.) in one UI.
+CodeRelay supports multiple AI provider backends through a unified adapter interface. This enables viewing and interacting with sessions from different providers (Codex, OpenCode, GitHub Copilot+, Claude, etc.) in one UI.
 
 ### Architecture
 
@@ -63,10 +63,10 @@ CodeRelay supports multiple AI provider backends through a unified adapter inter
 │  │   - Adapter lookup                            │  │
 │  └───┬───────────────────────────────────────┬───┘  │
 │      │                                       │      │
-│  ┌───▼──────────┐                   ┌────────▼────┐ │
-│  │CodexAdapter  │                   │CopilotACP   │ │
-│  │(placeholder) │                   │Adapter      │ │
-│  └───┬──────────┘                   └────────┬────┘ │
+│  ┌───▼──────────┐ ┌──────────▼───────┐ ┌──────▼────────┐ │
+│  │CodexAdapter │ │ OpenCodeAdapter   │ │CopilotACP     │ │
+│  │(via Anchor) │ │ (REST API)        │ │Adapter        │ │
+│  └───┬──────────┘ └───────────────────┘ └───────┬────┘ │
 │      │                                       │      │
 └──────┼───────────────────────────────────────┼──────┘
        │                                       │
@@ -102,7 +102,7 @@ Provider-specific session formats are normalized to a common schema:
 ```typescript
 interface NormalizedSession {
   sessionId: string;
-  provider: string;  // 'codex', 'copilot-acp', etc.
+  provider: string;  // 'codex', 'opencode', 'copilot-acp', 'claude', 'claude-mcp', etc.
   title: string;
   preview: string;
   createdAt?: string;
@@ -120,14 +120,39 @@ interface NormalizedSession {
 4. **Read-Only Enforcement**: `isAcpWriteOperation()` blocks writes to non-Codex providers in Phase 1
 5. **Health Checks**: `/admin/health` endpoint aggregates provider health
 
-### Copilot ACP Adapter
+### Provider Adapters
 
-The `CopilotAcpAdapter` implements GitHub Copilot ACP (Agent Control Protocol):
+CodeRelay implements five provider adapters:
 
-- **Process Management**: Spawns `gh copilot --acp` or `copilot --acp` child process
+#### CodexAdapter
+
+- **Connection**: Via Anchor bridge process (spawns `codex app-server`)
+- **Communication**: JSON-RPC over stdio
+- **Full Capabilities**: All features enabled by default, thread title sync with Codex Desktop
+
+#### OpenCodeAdapter
+
+- **Connection**: REST API to local OpenCode server (default: `http://127.0.0.1:4096`)
+- **Communication**: HTTP REST
+- **Full Capabilities**: Send prompts, stream responses, attachments support
+
+#### CopilotAcpAdapter
+
+- **Connection**: Spawns `gh copilot --acp` or `copilot --acp` child process
 - **Communication**: Bidirectional JSON-RPC over stdio using `AcpClient`
-- **Graceful Degradation**: Returns degraded health if CLI not installed
 - **Full Capabilities**: Send prompts, stream responses, handle approvals, process attachments
+
+#### ClaudeAdapter (Web API)
+
+- **Connection**: Direct API calls to Anthropic's Claude API
+- **Communication**: HTTPS REST
+- **Full Capabilities**: Streaming responses, configurable models (claude-3-5-sonnet, claude-3-opus, claude-3-haiku)
+
+#### ClaudeMcpAdapter
+
+- **Connection**: Local Claude CLI via MCP
+- **Communication**: stdio
+- **Full Capabilities**: Full Claude access locally without API costs
 
 ### Phase 4 Complete: Full ACP Integration
 
@@ -265,7 +290,9 @@ Thread list filtering state is persisted across sessions.
 
 - `all` (default)
 - `codex`
+- `opencode`
 - `copilot-acp`
+- `claude`
 
 **Status Filter:**
 
