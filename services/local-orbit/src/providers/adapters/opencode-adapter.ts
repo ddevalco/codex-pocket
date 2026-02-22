@@ -45,6 +45,21 @@ export interface OpenCodeConfig {
    * Default: false (not implemented in Phase 1)
    */
   autoStart?: boolean;
+
+  /**
+   * HTTP Basic auth username for opencode serve.
+   * Corresponds to the OPENCODE_SERVER_USERNAME env var used by opencode.
+   * Defaults to OPENCODE_SERVER_USERNAME env var, then "opencode" as fallback.
+   */
+  username?: string;
+
+  /**
+   * HTTP Basic auth password for opencode serve.
+   * Corresponds to the OPENCODE_SERVER_PASSWORD env var used by opencode.
+   * Defaults to OPENCODE_SERVER_PASSWORD env var.
+   * If neither is set, no Authorization header is sent.
+   */
+  password?: string;
 }
 
 /**
@@ -74,6 +89,8 @@ export class OpenCodeAdapter implements ProviderAdapter {
       serverUrl: "http://127.0.0.1:4096",
       requestTimeout: 30000,
       autoStart: false,
+      username: process.env.OPENCODE_SERVER_USERNAME ?? "opencode",
+      password: process.env.OPENCODE_SERVER_PASSWORD ?? "",
       ...config,
     };
     this.validateServerUrl(this.config.serverUrl);
@@ -367,13 +384,21 @@ export class OpenCodeAdapter implements ProviderAdapter {
   }
 
   private async request(path: string, init?: RequestInit): Promise<Response> {
-    const url = `${this.config.serverUrl.replace(/\/$/, "")}${path}`;
+    const url = `${this.config.serverUrl.replace(/\/$$/, "")}${path}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.requestTimeout);
+
+    // Build headers, injecting Basic auth if a password is configured
+    const headers = new Headers(init?.headers as HeadersInit | undefined);
+    if (this.config.password) {
+      const credentials = btoa(`${this.config.username}:${this.config.password}`);
+      headers.set("Authorization", `Basic ${credentials}`);
+    }
 
     try {
       return await fetch(url, {
         ...init,
+        headers,
         signal: controller.signal,
       });
     } finally {

@@ -8,6 +8,10 @@ export interface ProviderConfig {
   maxTokens?: number;
   promptTimeout?: number;
   debug?: boolean;
+  /** HTTP Basic auth username (used by opencode provider) */
+  username?: string;
+  /** HTTP Basic auth password (used by opencode provider) */
+  password?: string;
 }
 
 export interface ProvidersConfigResponse {
