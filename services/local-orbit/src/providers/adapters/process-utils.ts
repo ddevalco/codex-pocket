@@ -18,7 +18,28 @@ import { join, delimiter } from "node:path";
  */
 export async function findExecutable(name: string): Promise<string | null> {
   const pathEnv = process.env.PATH || "";
-  const paths = pathEnv.split(delimiter);
+  const systemPaths = pathEnv.split(delimiter).filter(Boolean);
+
+  // Augment with common user-local bin directories that may not be in the
+  // server process's PATH (e.g. ~/.local/bin where tools like `claude` install).
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const extraPaths = home
+    ? [
+        join(home, ".local", "bin"),
+        join(home, "bin"),
+        join(home, ".npm-global", "bin"),
+        join(home, ".yarn", "bin"),
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+      ]
+    : [];
+
+  // Deduplicate: system paths first (respect user's ordering), then extras
+  const seen = new Set(systemPaths);
+  const paths = [
+    ...systemPaths,
+    ...extraPaths.filter((p) => !seen.has(p)),
+  ];
 
   // On Windows, check with .exe extension
   const isWindows = process.platform === "win32";

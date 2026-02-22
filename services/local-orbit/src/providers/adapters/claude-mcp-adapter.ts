@@ -198,7 +198,17 @@ export class ClaudeMcpAdapter implements ProviderAdapter {
         lastCheck: now,
         details: {
           reason: "executable_not_found",
-          searchedPaths: process.env.PATH?.split(":") || [],
+          searchedPaths: [
+            ...(process.env.PATH?.split(":") || []),
+            ...(process.env.HOME ? [
+              `${process.env.HOME}/.local/bin`,
+              `${process.env.HOME}/bin`,
+              `${process.env.HOME}/.npm-global/bin`,
+              `${process.env.HOME}/.yarn/bin`,
+            ] : []),
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+          ].filter((v, i, a) => a.indexOf(v) === i),
           installUrl: "https://docs.anthropic.com/claude/docs/cli",
         },
       };
