@@ -349,7 +349,7 @@ export class CopilotAcpAdapter implements ProviderAdapter {
     
     try {
       // Attempt to list sessions as a health check with short timeout
-      await this.client?.sendRequest("list_sessions", {}, 2000);
+      await this.client?.sendRequest("session/list", {}, 2000);
       const elapsed = Date.now() - healthCheckStart;
 
       // Reset failure counter on success
@@ -431,8 +431,8 @@ export class CopilotAcpAdapter implements ProviderAdapter {
     }
 
     try {
-      // Call list_sessions via JSON-RPC
-      const result = await this.client.sendRequest("list_sessions", {
+      // Call session/list via JSON-RPC (Copilot ACP uses session/list, not list_sessions)
+      const result = await this.client.sendRequest("session/list", {
         cursor,
         filters,
       });
@@ -809,28 +809,47 @@ export class CopilotAcpAdapter implements ProviderAdapter {
    * The actual protocol may vary - this is a placeholder.
    */
   private async performHandshake(): Promise<void> {
-    // Probe for list_sessions capability
-    // Older Copilot CLI versions may not support this method
+    // Step 1: Send initialize with protocolVersion (required by Copilot ACP)
     try {
-      await this.client?.sendRequest("list_sessions", { limit: 0 }, 2000);
-      this.detectedCapabilities.listSessions = true;
-      console.log("[copilot-acp] Detected list_sessions capability: supported");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (message.includes("Method not found") || message.includes("-32601")) {
-        this.detectedCapabilities.listSessions = false;
-        console.warn(
-          "[copilot-acp] Detected list_sessions capability: NOT supported (CLI version incompatibility)"
-        );
-      } else {
-        // Other errors (timeout, etc.) - assume capability exists but call failed
+      const initResult = await this.client?.sendRequest(
+        "initialize",
+        { protocolVersion: 1, capabilities: {} },
+        3000,
+      ) as any;
+      if (initResult?.agentCapabilities?.sessionCapabilities?.list !== undefined) {
+        console.log("[copilot-acp] initialize OK, sessionCapabilities.list supported");
         this.detectedCapabilities.listSessions = true;
-        console.warn(
-          `[copilot-acp] list_sessions probe failed but assuming supported: ${message}`
-        );
+      } else {
+        // Probe with actual session/list call
+        console.log("[copilot-acp] initialize OK, probing session/list capability");
+      }
+    } catch (err) {
+      console.warn("[copilot-acp] initialize failed:", err instanceof Error ? err.message : String(err));
+    }
+
+    // Step 2: Probe session/list (the correct method name in Copilot ACP)
+    if (!this.detectedCapabilities.listSessions) {
+      try {
+        await this.client?.sendRequest("session/list", {}, 2000);
+        this.detectedCapabilities.listSessions = true;
+        console.log("[copilot-acp] Detected session/list capability: supported");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes("Method not found") || message.includes("-32601")) {
+          this.detectedCapabilities.listSessions = false;
+          console.warn(
+            "[copilot-acp] session/list not supported by CLI version"
+          );
+        } else {
+          // Other errors (timeout, etc.) - assume capability exists but call failed
+          this.detectedCapabilities.listSessions = true;
+          console.warn(
+            `[copilot-acp] session/list probe failed but assuming supported: ${message}`
+          );
+        }
       }
     }
-    
+
     console.log("[copilot-acp] Handshake complete");
   }
 
@@ -840,9 +859,11 @@ export class CopilotAcpAdapter implements ProviderAdapter {
   private normalizeSession(raw: any): NormalizedSession {
     return {
       provider: this.providerId,
-      sessionId: raw.id || raw.sessionId || `session-${crypto.randomUUID()}`,
+      // Copilot ACP session/list returns { sessionId, cwd, title, updatedAt }
+      sessionId: raw.sessionId || raw.id || `session-${crypto.randomUUID()}`,
       title: raw.title || raw.name || "Untitled Session",
-      project: raw.project || raw.workspace,
+      // cwd is the working directory — use as project path
+      project: raw.project || raw.workspace || raw.cwd,
       repo: raw.repo || raw.repository,
       status: this.normalizeStatus(raw.status),
       createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
