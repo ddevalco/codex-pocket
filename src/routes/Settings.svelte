@@ -182,7 +182,7 @@ import { agents } from "../lib/agents.svelte";
   let uiToggleNote = $state<string>("");
 
   type ProviderKey = "codex" | "copilot-acp" | "claude" | "claude-mcp" | "opencode";
-  type ProviderHealth = { status?: string; message?: string };
+  type ProviderHealth = { status?: string; message?: string; details?: Record<string, unknown> };
 
   const providerKeys: ProviderKey[] = ["codex", "copilot-acp", "claude", "claude-mcp", "opencode"];
   const defaultProviderConfig: Record<ProviderKey, ProviderConfig> = {
@@ -255,7 +255,7 @@ import { agents } from "../lib/agents.svelte";
   async function pollHealth() {
     if (!auth.token) return;
     try {
-      const res = await fetch("/admin/health", {
+      const res = await fetch("/admin/status", {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
       if (!res.ok) return;
@@ -785,7 +785,7 @@ import { agents } from "../lib/agents.svelte";
               </div>
               <p class="provider-subtitle m-0 text-xs text-cli-text-muted">Local CLI via Anchor (always enabled)</p>
               <div class="provider-status text-xs text-cli-text-muted">
-                {providerHealth.codex?.message || "Unknown"}
+                {providerHealth.codex?.message || "checking…"}
               </div>
             </div>
 
@@ -810,8 +810,11 @@ import { agents } from "../lib/agents.svelte";
                   class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                 />
               </div>
+              {#if !providerConfig["copilot-acp"].executablePath && providerHealth["copilot-acp"]?.details?.executable}
+                <p class="provider-detected m-0 font-mono text-xs text-cli-text-muted">detected: {providerHealth["copilot-acp"].details.executable as string}</p>
+              {/if}
               <div class="provider-status text-xs text-cli-text-muted">
-                {providerHealth["copilot-acp"]?.message || "Unknown"}
+                {providerHealth["copilot-acp"]?.message || (providerConfig["copilot-acp"].enabled ? "starting…" : "disabled")}
               </div>
             </div>
 
@@ -871,7 +874,7 @@ import { agents } from "../lib/agents.svelte";
                 </details>
               {/if}
               <div class="provider-status text-xs text-cli-text-muted">
-                {providerHealth.claude?.message || "Not configured"}
+                {providerHealth.claude?.message || (providerConfig.claude.enabled ? "starting…" : "not enabled")}
               </div>
             </div>
 
@@ -935,8 +938,11 @@ import { agents } from "../lib/agents.svelte";
                   </label>
                 </details>
               {/if}
+              {#if !providerConfig["claude-mcp"].executablePath && (providerHealth["claude-mcp"]?.details?.searchedPaths as string[] | undefined)?.length}
+                <p class="provider-detected m-0 font-mono text-xs text-cli-error">not found in: {(providerHealth["claude-mcp"].details?.searchedPaths as string[]).slice(0, 3).join(", ")}…</p>
+              {/if}
               <div class="provider-status text-xs text-cli-text-muted">
-                {providerHealth["claude-mcp"]?.message || "Not configured"}
+                {providerHealth["claude-mcp"]?.message || (providerConfig["claude-mcp"].enabled ? "starting…" : "not enabled")}
               </div>
             </div>
             <div class="provider-card flex flex-col gap-2 rounded-md border border-cli-border bg-cli-bg-elevated p-4">
@@ -957,9 +963,12 @@ import { agents } from "../lib/agents.svelte";
                     id="provider-opencode-base-url"
                     type="text"
                     bind:value={providerConfig.opencode.baseUrl}
-                    placeholder="http://localhost:3000"
+                    placeholder="http://127.0.0.1:4096"
                     class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
                   />
+                  {#if providerHealth.opencode?.details?.serverUrl}
+                    <p class="provider-detected m-0 font-mono text-xs text-cli-text-muted">connected: {providerHealth.opencode.details.serverUrl as string}{providerHealth.opencode.details.version ? ` (v${providerHealth.opencode.details.version as string})` : ""}</p>
+                  {/if}
                 </div>
                 <div class="field flex flex-col gap-1">
                   <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-opencode-model">model (optional)</label>
@@ -984,6 +993,17 @@ import { agents } from "../lib/agents.svelte";
                     />
                   </div>
                   <div class="field flex flex-col gap-1">
+                    <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-opencode-username">server username (OPENCODE_SERVER_USERNAME)</label>
+                    <input
+                      id="provider-opencode-username"
+                      type="text"
+                      bind:value={providerConfig.opencode.username}
+                      placeholder="opencode"
+                      autocomplete="off"
+                      class="rounded-md border border-cli-border bg-cli-bg-elevated p-2 font-mono text-sm text-cli-text transition-all duration-200 focus:border-cli-prefix-agent focus:outline-none"
+                    />
+                  </div>
+                  <div class="field flex flex-col gap-1">
                     <label class="text-xs font-sans lowercase text-cli-text-dim" for="provider-opencode-password">server password (OPENCODE_SERVER_PASSWORD)</label>
                     <input
                       id="provider-opencode-password"
@@ -997,7 +1017,7 @@ import { agents } from "../lib/agents.svelte";
                 </details>
               {/if}
               <div class="provider-status text-xs text-cli-text-muted">
-                {providerHealth.opencode?.message || "Not configured"}
+                {providerHealth.opencode?.message || (providerConfig.opencode.enabled ? "starting…" : "disabled")}
               </div>
             </div>
             </div>
