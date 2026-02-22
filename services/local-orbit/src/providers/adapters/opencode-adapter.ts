@@ -13,6 +13,7 @@
 
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { execSync } from "node:child_process";
 import { defaultAgentCapabilities, type ProviderAdapter } from "../contracts.js";
 import type {
   ProviderAgentCapabilities,
@@ -63,6 +64,15 @@ export interface OpenCodeConfig {
    * If neither is set, no Authorization header is sent.
    */
   password?: string;
+
+  /**
+   * Whether to auto-detect credentials from the running opencode serve process.
+   * When true (default), CodeRelay will probe `ps eww` to find OPENCODE_SERVER_USERNAME
+   * and OPENCODE_SERVER_PASSWORD set by the launcher (e.g. CodeNomad) on the opencode process.
+   * This is necessary because CodeNomad generates a fresh password each launch.
+   * Default: true
+   */
+  autoDetect?: boolean;
 }
 
 /**
@@ -87,6 +97,7 @@ export class OpenCodeAdapter implements ProviderAdapter {
   private config: Required<OpenCodeConfig>;
   private lastHealthCheck: ProviderHealthStatus | null = null;
   private agentCapabilitiesCache: { value: ProviderAgentCapabilities; expiresAt: number } | null = null;
+  private credentialsDetected = false;
 
   constructor(config: OpenCodeConfig = {}) {
     const serverUrl = typeof config.serverUrl === "string" && config.serverUrl.trim()
@@ -96,6 +107,7 @@ export class OpenCodeAdapter implements ProviderAdapter {
       serverUrl,
       requestTimeout: 30000,
       autoStart: false,
+      autoDetect: true,
       username: process.env.OPENCODE_SERVER_USERNAME ?? "opencode",
       password: process.env.OPENCODE_SERVER_PASSWORD ?? "",
       ...config,
@@ -184,10 +196,65 @@ export class OpenCodeAdapter implements ProviderAdapter {
   }
 
   /**
+   * Attempt to auto-detect credentials from the running opencode serve process.
+   * Reads OPENCODE_SERVER_USERNAME and OPENCODE_SERVER_PASSWORD from the process environment
+   * using `ps eww`, which exposes env vars for processes owned by the current user.
+   * This handles the case where CodeNomad launches opencode with a dynamically generated password
+   * that is not stored in any config file.
+   * Returns true if credentials were found and applied.
+   */
+  private tryDetectCredentials(): boolean {
+    if (!this.config.autoDetect) return false;
+    if (this.credentialsDetected) return false;
+
+    try {
+      // `ps eww -A` lists all processes with their full environment on macOS/Linux.
+      // We search for any process running the opencode binary with serve args.
+      const output = execSync("ps eww -A 2>/dev/null || ps ewwx 2>/dev/null", {
+        encoding: "utf8",
+        timeout: 3000,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      // Find lines that look like opencode serve processes
+      const lines = output.split("\n");
+      for (const line of lines) {
+        if (!line.includes("opencode") || !line.includes("serve")) continue;
+
+        // Extract OPENCODE_SERVER_USERNAME
+        const usernameMatch = line.match(/OPENCODE_SERVER_USERNAME=([^\s]+)/);
+        const passwordMatch = line.match(/OPENCODE_SERVER_PASSWORD=([^\s]+)/);
+
+        if (usernameMatch && passwordMatch) {
+          const username = usernameMatch[1];
+          const password = passwordMatch[1];
+
+          if (username && password) {
+            this.config.username = username;
+            this.config.password = password;
+            this.credentialsDetected = true;
+            console.log(`[opencode] Auto-detected credentials for user "${username}" from running process`);
+            return true;
+          }
+        }
+      }
+    } catch {
+      // ps may not be available or may fail — silently ignore
+    }
+
+    return false;
+  }
+
+  /**
    * Start the OpenCode adapter by probing server availability.
    * Gracefully degrades if the server is not running.
    */
   async start(): Promise<void> {
+    // Attempt credential auto-detection before first health check
+    if (this.config.autoDetect && !this.credentialsDetected) {
+      this.tryDetectCredentials();
+    }
+
     try {
       const health = await this.health();
       if (health.status !== "healthy") {
@@ -219,6 +286,32 @@ export class OpenCodeAdapter implements ProviderAdapter {
     try {
       const response = await this.request("/global/health", { method: "GET" });
       if (!response.ok) {
+        // On 401, attempt credential auto-detection and retry once
+        if (response.status === 401 && this.config.autoDetect && !this.credentialsDetected) {
+          const detected = this.tryDetectCredentials();
+          if (detected) {
+            // Retry with newly detected credentials
+            const retryResponse = await this.request("/global/health", { method: "GET" });
+            if (retryResponse.ok) {
+              const body = (await this.safeJson(retryResponse)) as Record<string, unknown> | null;
+              const healthy = Boolean(body?.healthy);
+              const status: ProviderHealthStatus = {
+                status: healthy ? "healthy" : "degraded",
+                message: healthy ? "OpenCode server is healthy" : "OpenCode server responded without healthy=true",
+                lastCheck: now,
+                details: {
+                  serverUrl: this.config.serverUrl,
+                  version: typeof body?.version === "string" ? body.version : undefined,
+                  raw: body,
+                  credentialsAutoDetected: true,
+                },
+              };
+              this.lastHealthCheck = status;
+              return status;
+            }
+          }
+        }
+
         const status: ProviderHealthStatus = {
           status: response.status >= 500 ? "unhealthy" : "degraded",
           message: `OpenCode health check failed (${response.status})`,
