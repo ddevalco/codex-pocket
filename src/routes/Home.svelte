@@ -10,6 +10,7 @@
   import { auth } from "../lib/auth.svelte";
   import { uiToggles } from "../lib/uiToggles.svelte";
   import { canSendPrompt, getCapabilityTooltip } from "../lib/thread-capabilities";
+  import { api } from "../lib/api";
   import Archive from "lucide-svelte/icons/archive";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
@@ -119,10 +120,10 @@
     if (openCodeCapabilities !== null || isOpenCodeLoading) return;
     isOpenCodeLoading = true;
     try {
-      const res = await fetch("/api/providers/opencode/capabilities");
-      if (res.ok) {
-        openCodeCapabilities = await res.json();
-        if (openCodeCapabilities?.agents.length && !taskOpenCodeAgent) {
+      const data = await api.get<{ agents: { id: string; name: string; description?: string; model?: string }[]; models: { id: string; name: string }[]; canCreateNew: boolean }>("/api/providers/opencode/capabilities");
+      if (data) {
+        openCodeCapabilities = data;
+        if (openCodeCapabilities.agents.length && !taskOpenCodeAgent) {
           taskOpenCodeAgent = openCodeCapabilities.agents[0].id;
         }
       }
@@ -136,6 +137,9 @@
   $effect(() => {
     if (showTaskModal) {
       agents.load();
+      if (taskProvider === "opencode") {
+        fetchOpenCodeCapabilities();
+      }
     }
   });
 

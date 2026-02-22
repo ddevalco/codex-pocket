@@ -2228,7 +2228,7 @@ function parseProviderThreadId(threadId: string): { providerId: string; sessionI
 function extractThreadSelectionFromParams(params: any): ThreadSelection {
   const provider = normalizeSelectionValue(params?.provider);
   const agent = normalizeSelectionValue(
-    params?.agent ?? params?.collaborationMode?.settings?.agent ?? params?.settings?.agent,
+    params?.agent ?? params?.providerAgent ?? params?.collaborationMode?.settings?.agent ?? params?.settings?.agent,
   );
   const model = normalizeSelectionValue(
     params?.model ?? params?.collaborationMode?.settings?.model ?? params?.settings?.model,
