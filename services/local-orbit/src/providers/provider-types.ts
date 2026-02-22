@@ -10,6 +10,25 @@
  */
 export type ProviderId = "codex" | "copilot-acp" | "claude" | string;
 
+export interface ProviderAgent {
+  id: string;
+  name: string;
+  description?: string;
+  model?: string;
+}
+
+export interface ProviderModel {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface ProviderAgentCapabilities {
+  agents: ProviderAgent[];
+  models: ProviderModel[];
+  canCreateNew: boolean;
+}
+
 /**
  * Session/thread status across providers
  */

@@ -11,8 +11,11 @@
  * - No-op subscription/event normalization stubs
  */
 
-import type { ProviderAdapter } from "../contracts.js";
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { defaultAgentCapabilities, type ProviderAdapter } from "../contracts.js";
 import type {
+  ProviderAgentCapabilities,
   ProviderCapabilities,
   ProviderHealthStatus,
   SessionListResult,
@@ -83,10 +86,14 @@ export class OpenCodeAdapter implements ProviderAdapter {
 
   private config: Required<OpenCodeConfig>;
   private lastHealthCheck: ProviderHealthStatus | null = null;
+  private agentCapabilitiesCache: { value: ProviderAgentCapabilities; expiresAt: number } | null = null;
 
   constructor(config: OpenCodeConfig = {}) {
+    const serverUrl = typeof config.serverUrl === "string" && config.serverUrl.trim()
+      ? config.serverUrl.trim()
+      : "http://127.0.0.1:4096";
     this.config = {
-      serverUrl: "http://127.0.0.1:4096",
+      serverUrl,
       requestTimeout: 30000,
       autoStart: false,
       username: process.env.OPENCODE_SERVER_USERNAME ?? "opencode",
@@ -94,6 +101,65 @@ export class OpenCodeAdapter implements ProviderAdapter {
       ...config,
     };
     this.validateServerUrl(this.config.serverUrl);
+  }
+
+  async getAgentCapabilities(): Promise<ProviderAgentCapabilities> {
+    const now = Date.now();
+    if (this.agentCapabilitiesCache && this.agentCapabilitiesCache.expiresAt > now) {
+      return this.agentCapabilitiesCache.value;
+    }
+
+    const fallback: ProviderAgentCapabilities = {
+      ...defaultAgentCapabilities(),
+      canCreateNew: true,
+    };
+
+    try {
+      const configPath = `${homedir()}/.config/opencode/oh-my-opencode.json`;
+      const raw = readFileSync(configPath, "utf8");
+      const parsed = JSON.parse(raw) as { agents?: Record<string, unknown> };
+      const agentMap = parsed?.agents && typeof parsed.agents === "object" ? parsed.agents : {};
+
+      const agents = Object.entries(agentMap)
+        .map(([id, value]) => {
+          if (!value || typeof value !== "object") {
+            return {
+              id,
+              name: id,
+            };
+          }
+
+          const record = value as Record<string, unknown>;
+          const name = typeof record.name === "string" && record.name.trim() ? record.name.trim() : id;
+          const description = typeof record.description === "string" && record.description.trim()
+            ? record.description.trim()
+            : undefined;
+          const model = typeof record.model === "string" && record.model.trim() ? record.model.trim() : undefined;
+
+          return {
+            id,
+            name,
+            ...(description ? { description } : {}),
+            ...(model ? { model } : {}),
+          };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const resolved: ProviderAgentCapabilities = {
+        agents,
+        models: [],
+        canCreateNew: true,
+      };
+      this.agentCapabilitiesCache = { value: resolved, expiresAt: now + 60_000 };
+      return resolved;
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err?.code !== "ENOENT") {
+        console.warn("[opencode] Failed to read oh-my-opencode agent config:", err.message);
+      }
+      this.agentCapabilitiesCache = { value: fallback, expiresAt: now + 60_000 };
+      return fallback;
+    }
   }
 
   private validateServerUrl(url: string): void {
@@ -389,7 +455,7 @@ export class OpenCodeAdapter implements ProviderAdapter {
     const timeout = setTimeout(() => controller.abort(), this.config.requestTimeout);
 
     // Build headers, injecting Basic auth if a password is configured
-    const headers = new Headers(init?.headers as HeadersInit | undefined);
+    const headers = new Headers(init?.headers as any);
     if (this.config.password) {
       const credentials = btoa(`${this.config.username}:${this.config.password}`);
       headers.set("Authorization", `Basic ${credentials}`);

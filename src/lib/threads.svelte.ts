@@ -378,6 +378,8 @@ class ThreadsStore {
       suppressNavigation?: boolean;
       onThreadStarted?: (threadId: string) => void;
       collaborationMode?: CollaborationMode;
+      provider?: string;
+      providerAgent?: string;
     }
   ) {
     this.#startThread(cwd, input, options);
@@ -601,6 +603,8 @@ class ThreadsStore {
       suppressNavigation?: boolean;
       onThreadStarted?: (threadId: string) => void;
       collaborationMode?: CollaborationMode;
+      provider?: string;
+      providerAgent?: string;
     }
   ) {
     const id = this.#nextId++;
@@ -616,6 +620,8 @@ class ThreadsStore {
         cwd,
         ...(options?.approvalPolicy ? { approvalPolicy: options.approvalPolicy } : {}),
         ...(options?.sandbox ? { sandbox: options.sandbox } : {}),
+        ...(options?.provider ? { provider: options.provider } : {}),
+        ...(options?.providerAgent ? { providerAgent: options.providerAgent } : {}),
       },
     });
   }

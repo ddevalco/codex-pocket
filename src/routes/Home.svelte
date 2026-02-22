@@ -109,6 +109,30 @@
   let isCreating = $state(false);
   let legendOpen = $state(false);
 
+  // Provider selection in task modal
+  let taskProvider = $state<"codex" | "opencode">("codex");
+  let taskOpenCodeAgent = $state("");
+  let openCodeCapabilities = $state<{ agents: { id: string; name: string; description?: string; model?: string }[]; models: { id: string; name: string }[]; canCreateNew: boolean } | null>(null);
+  let isOpenCodeLoading = $state(false);
+
+  async function fetchOpenCodeCapabilities() {
+    if (openCodeCapabilities !== null || isOpenCodeLoading) return;
+    isOpenCodeLoading = true;
+    try {
+      const res = await fetch("/api/providers/opencode/capabilities");
+      if (res.ok) {
+        openCodeCapabilities = await res.json();
+        if (openCodeCapabilities?.agents.length && !taskOpenCodeAgent) {
+          taskOpenCodeAgent = openCodeCapabilities.agents[0].id;
+        }
+      }
+    } catch {
+      // ignore — capabilities endpoint may not be available
+    } finally {
+      isOpenCodeLoading = false;
+    }
+  }
+
   $effect(() => {
     if (showTaskModal) {
       agents.load();
@@ -157,6 +181,16 @@
 
     isCreating = true;
     try {
+      if (taskProvider === "opencode") {
+        threads.start(taskProject, taskNote, {
+          provider: "opencode",
+          providerAgent: taskOpenCodeAgent || undefined,
+          suppressNavigation: false,
+        });
+        closeTaskModal();
+        return;
+      }
+
       const preset = permissionPresets[permissionLevel];
       
       let collaborationMode: any = undefined;
@@ -374,25 +408,29 @@
     };
   }
 
-  // Group threads by provider (Codex vs Copilot)
+  // Group threads by provider (Codex vs Copilot vs OpenCode)
   const providerGroups = $derived.by(() => {
     const codex: ThreadInfo[] = [];
     const copilot: ThreadInfo[] = [];
+    const opencode: ThreadInfo[] = [];
 
     for (const thread of visibleThreads) {
       if (thread.provider === "copilot-acp") {
         copilot.push(thread);
+      } else if (thread.provider === "opencode") {
+        opencode.push(thread);
       } else {
         codex.push(thread); // undefined provider = Codex default
       }
     }
 
-    return { codex, copilot };
+    return { codex, copilot, opencode };
   });
 
   // Group each provider's threads by repo/project
   const codexGrouped = $derived(groupThreadsByProject(providerGroups.codex));
   const copilotGrouped = $derived(groupThreadsByProject(providerGroups.copilot));
+  const opencodeGrouped = $derived(groupThreadsByProject(providerGroups.opencode));
 
   let collapsedGroups = $state<Record<string, boolean>>({});
   const expandedGroups = $state<Record<string, boolean>>({});
@@ -1051,6 +1089,26 @@
             <div class="empty-state">No Copilot sessions detected</div>
           {/if}
         </div>
+
+        <!-- OpenCode Provider Section -->
+        <div class="provider-section">
+          <div class="provider-header">
+            <div class="provider-title">
+              <span class="provider-badge">OpenCode</span>
+            </div>
+            <button class="new-thread-btn" onclick={() => { taskProvider = "opencode"; openTaskModal(); }}>◈ New task</button>
+          </div>
+
+          {#if opencodeGrouped.groups.length > 0}
+            {#if uiToggles.showProjectGrouping}
+              {@render groupedThreadList(opencodeGrouped.groups)}
+            {:else}
+              {@render flatThreadList(providerGroups.opencode)}
+            {/if}
+          {:else}
+            <div class="empty-state">No OpenCode sessions yet</div>
+          {/if}
+        </div>
       {/if}
     </div>
   {/if}
@@ -1064,6 +1122,22 @@
         <button class="modal-close" type="button" onclick={closeTaskModal}>×</button>
       </div>
       <form class="modal-body stack" onsubmit={handleCreateTask}>
+        <!-- Provider Tabs -->
+        <div class="provider-tabs row">
+          <button
+            type="button"
+            class="provider-tab"
+            class:active={taskProvider === "codex"}
+            onclick={() => (taskProvider = "codex")}
+          >✦ Codex</button>
+          <button
+            type="button"
+            class="provider-tab"
+            class:active={taskProvider === "opencode"}
+            onclick={() => { taskProvider = "opencode"; fetchOpenCodeCapabilities(); }}
+          >◈ OpenCode</button>
+        </div>
+
         <div class="field stack">
           <label for="task-note">task</label>
           <textarea
@@ -1079,49 +1153,68 @@
           <ProjectPicker bind:value={taskProject} />
         </div>
 
-        <div class="field stack">
-          <label for="task-agent">agent (optional)</label>
-          <select id="task-agent" bind:value={taskAgent}>
-            <option value="">None (Standard Assistant)</option>
-            {#each agents.list as agent}
-              <option value={agent.id}>{agent.name}</option>
-            {/each}
-          </select>
-        </div>
-
-        <div class="field stack">
-          <label for="task-model">model</label>
-          <select id="task-model" bind:value={taskModel} disabled={!!taskAgent}>
-            {#if models.status === "loading"}
-              <option value="">Loading...</option>
-            {:else if models.options.length === 0}
-              <option value="">No models available</option>
+        {#if taskProvider === "opencode"}
+          <div class="field stack">
+            <label for="task-opencode-agent">agent</label>
+            {#if isOpenCodeLoading}
+              <select disabled><option>Loading agents...</option></select>
+            {:else if openCodeCapabilities && openCodeCapabilities.agents.length > 0}
+              <select id="task-opencode-agent" bind:value={taskOpenCodeAgent}>
+                {#each openCodeCapabilities.agents as agent}
+                  <option value={agent.id} title={agent.description ?? ""}>
+                    {agent.name}{agent.model ? ` — ${agent.model}` : ""}
+                  </option>
+                {/each}
+              </select>
             {:else}
-              {#each models.options as option}
-                <option value={option.value}>{option.label}</option>
-              {/each}
+              <select><option value="">Default agent</option></select>
             {/if}
-          </select>
-        </div>
+          </div>
+        {:else}
+          <div class="field stack">
+            <label for="task-agent">agent (optional)</label>
+            <select id="task-agent" bind:value={taskAgent}>
+              <option value="">None (Standard Assistant)</option>
+              {#each agents.list as agent}
+                <option value={agent.id}>{agent.name}</option>
+              {/each}
+            </select>
+          </div>
 
-        <div class="field stack">
-          <label for="task-permissions">permissions</label>
-          <select id="task-permissions" bind:value={permissionLevel}>
-            {#each Object.entries(permissionPresets) as [key, preset]}
-              <option value={key}>{preset.label} — {preset.detail}</option>
-            {/each}
-          </select>
-        </div>
+          <div class="field stack">
+            <label for="task-model">model</label>
+            <select id="task-model" bind:value={taskModel} disabled={!!taskAgent}>
+              {#if models.status === "loading"}
+                <option value="">Loading...</option>
+              {:else if models.options.length === 0}
+                <option value="">No models available</option>
+              {:else}
+                {#each models.options as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              {/if}
+            </select>
+          </div>
 
-        <label class="checkbox-field">
-          <input type="checkbox" bind:checked={taskPlanFirst} />
-          <span>Plan first</span>
-        </label>
+          <div class="field stack">
+            <label for="task-permissions">permissions</label>
+            <select id="task-permissions" bind:value={permissionLevel}>
+              {#each Object.entries(permissionPresets) as [key, preset]}
+                <option value={key}>{preset.label} — {preset.detail}</option>
+              {/each}
+            </select>
+          </div>
+
+          <label class="checkbox-field">
+            <input type="checkbox" bind:checked={taskPlanFirst} />
+            <span>Plan first</span>
+          </label>
+        {/if}
 
         <div class="modal-actions row">
           <button type="button" class="ghost-btn" onclick={closeTaskModal} disabled={isCreating}>Cancel</button>
           <button type="submit" class="primary-btn" disabled={!taskNote.trim() || !taskProject.trim() || isCreating}>
-            {isCreating ? "Starting..." : taskPlanFirst ? "Start planning" : "Start task"}
+            {isCreating ? "Starting..." : taskProvider === "opencode" ? "Start on OpenCode" : taskPlanFirst ? "Start planning" : "Start task"}
           </button>
         </div>
       </form>
@@ -1178,6 +1271,32 @@
     font-family: var(--font-body);
     font-size: var(--text-xs);
     font-weight: var(--font-weight-semibold);
+  }
+
+  .provider-tabs {
+    display: flex;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+  }
+
+  .provider-tab {
+    flex: 1;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--cli-bg);
+    color: var(--cli-text-muted);
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .provider-tab.active {
+    background: var(--cli-prefix-agent);
+    color: var(--cli-bg);
+    border-color: var(--cli-prefix-agent);
   }
 
   .empty-state {

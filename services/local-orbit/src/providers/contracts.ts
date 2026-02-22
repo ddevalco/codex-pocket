@@ -17,6 +17,7 @@ import type {
   NormalizedEvent,
   ProviderHealthStatus,
   ProviderCapabilities,
+  ProviderAgentCapabilities,
   SessionFilters,
   SessionListResult,
   PromptInput,
@@ -45,6 +46,8 @@ export interface ProviderAdapter {
    * Provider capabilities declaration for graceful feature degradation
    */
   readonly capabilities: ProviderCapabilities;
+
+  getAgentCapabilities?(): Promise<ProviderAgentCapabilities>;
 
   /**
    * Start the provider adapter and any required subprocesses.
@@ -130,6 +133,14 @@ export interface ProviderAdapter {
    * @returns Normalized event envelope (or null if event should be filtered)
    */
   normalizeEvent(rawEvent: unknown): Promise<NormalizedEvent | null>;
+}
+
+export function defaultAgentCapabilities(): ProviderAgentCapabilities {
+  return {
+    agents: [],
+    models: [],
+    canCreateNew: false,
+  };
 }
 
 /**
