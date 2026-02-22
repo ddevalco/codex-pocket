@@ -204,8 +204,8 @@
         width: 100vw;
         margin-left: calc(50% - 50vw);
         background: var(--cli-bg-elevated);
-        border-bottom: 1px solid var(--cli-border);
-        font-family: var(--font-mono);
+        box-shadow: var(--shadow-card);
+        font-family: var(--font-body);
         font-size: var(--text-sm);
         color: var(--cli-text);
     }
@@ -279,11 +279,11 @@
     .sandbox-btn {
         --row-gap: var(--space-xs);
         padding: var(--space-xs) var(--space-sm);
-        background: transparent;
-        border: 1px solid var(--cli-border);
-        border-radius: var(--radius-sm);
+        background: var(--cli-bg);
+        border: none;
+        border-radius: var(--radius-md);
         color: var(--cli-text-dim);
-        font-family: var(--font-mono);
+        font-family: var(--font-body);
         font-size: var(--text-xs);
         cursor: pointer;
         transition: all var(--transition-fast);
@@ -336,9 +336,8 @@
         margin-top: var(--space-xs);
         padding: var(--space-xs);
         background: var(--cli-bg-elevated);
-        border: 1px solid var(--cli-border);
         border-radius: var(--radius-md);
-        box-shadow: var(--shadow-popover);
+        box-shadow: var(--shadow-popover), var(--shadow-card);
         z-index: 100;
         animation: fadeIn 0.1s ease;
     }
@@ -362,7 +361,7 @@
         border: none;
         border-radius: var(--radius-sm);
         color: var(--cli-text);
-        font-family: var(--font-mono);
+        font-family: var(--font-body);
         font-size: var(--text-xs);
         text-align: left;
         cursor: pointer;
@@ -402,11 +401,11 @@
     .desktop-actions :global(a),
     .desktop-actions :global(button) {
         padding: var(--space-xs) var(--space-sm);
-        border: 1px solid var(--cli-border);
-        border-radius: var(--radius-sm);
-        background: transparent;
+        border: none;
+        border-radius: var(--radius-md);
+        background: var(--cli-bg);
         color: var(--cli-text-dim);
-        font-family: var(--font-mono);
+        font-family: var(--font-body);
         font-size: var(--text-xs);
         text-decoration: none;
         cursor: pointer;
@@ -426,9 +425,9 @@
         width: 2rem;
         height: 2rem;
         padding: 0;
-        background: transparent;
-        border: 1px solid var(--cli-border);
-        border-radius: var(--radius-sm);
+        background: var(--cli-bg);
+        border: none;
+        border-radius: var(--radius-md);
         color: var(--cli-text-dim);
         cursor: pointer;
         transition: all var(--transition-fast);
@@ -458,7 +457,7 @@
         left: 0;
         right: 0;
         background: var(--cli-bg-elevated);
-        border-bottom: 1px solid var(--cli-border);
+        box-shadow: var(--shadow-card);
         z-index: 100;
         animation: slideDown 0.15s ease;
         --stack-gap: 0;
@@ -482,10 +481,9 @@
         padding: var(--space-md);
         background: transparent;
         border: none;
-        border-top: 1px solid var(--cli-border);
         border-radius: 0;
         color: var(--cli-text);
-        font-family: var(--font-mono);
+        font-family: var(--font-body);
         font-size: var(--text-sm);
         text-decoration: none;
         text-align: left;
