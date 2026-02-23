@@ -1096,7 +1096,7 @@
           </div>
         {/if}
 
-        <!-- Codex Provider Section -->
+        {#if filters.provider === "all" || filters.provider === "codex" || filters.provider === "claude"}
         <div class="provider-section">
           <div class="provider-header">
             <div class="provider-title">
@@ -1115,8 +1115,9 @@
             <div class="empty-state">No Codex threads yet</div>
           {/if}
         </div>
+        {/if}
 
-        <!-- Copilot Provider Section -->
+        {#if filters.provider === "all" || filters.provider === "copilot-acp"}
         <div class="provider-section">
           <div class="provider-header">
             <div class="provider-title">
@@ -1134,8 +1135,9 @@
             <div class="empty-state">No Copilot sessions detected</div>
           {/if}
         </div>
+        {/if}
 
-        <!-- OpenCode Provider Section -->
+        {#if filters.provider === "all" || filters.provider === "opencode"}
         <div class="provider-section">
           <div class="provider-header">
             <div class="provider-title">
@@ -1154,6 +1156,7 @@
             <div class="empty-state">No OpenCode sessions yet</div>
           {/if}
         </div>
+        {/if}
       {/if}
     </div>
   {/if}
