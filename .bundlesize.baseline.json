@@ -19,6 +19,8 @@
     "NewTask.js": 3174,
     "Pair.css": 564,
     "Pair.js": 1616,
+    "PierreDiff.css": 119,
+    "PierreDiff.js": 1484,
     "ProjectPicker.css": 2430,
     "ProjectPicker.js": 2582,
     "Review.css": 3281,
@@ -291,5 +293,5 @@
     "zig.js": 5340
   },
   "generatedAt": "2026-02-21T16:53:09.560775Z",
-  "total": 10181498
+  "total": 10183101
 }
