@@ -110,6 +110,7 @@
   let permissionLevel = $state<keyof typeof permissionPresets>("standard");
   let isCreating = $state(false);
   let legendOpen = $state(false);
+  let filtersExpanded = $state(false);
 
   // Provider selection in task modal
   let taskProvider = $state<"codex" | "opencode">("codex");
@@ -459,12 +460,7 @@
     };
   }
 
-  function threadContextTitle(
-    thread: { cwd?: string; path?: string },
-    label: string,
-  ): string {
-    return thread.cwd || thread.path || label;
-  }
+
 
   function indicatorTitle(ind: "blocked" | "working" | "idle"): string {
     if (ind === "blocked") return "Waiting for your action";
@@ -781,26 +777,9 @@
         title={indicatorTitle(threadIndicator(thread))}
         aria-label={"Thread status: " + indicatorTitle(threadIndicator(thread))}
       >●</span>
-      <span class="thread-main stack">
+      <span class="thread-main">
         <span class="thread-preview">{thread.title || thread.name || thread.preview || "New thread"}</span>
-        {#if repoLabel || projectLabel}
-          <span
-            class="thread-context row"
-            title={threadContextTitle(
-              thread,
-              repoLabel && projectLabel ? `${repoLabel}/${projectLabel}` : repoLabel || projectLabel || ""
-            )}
-          >
-            {#if repoLabel}
-              <span class="thread-repo-pill">{repoLabel}</span>
-            {/if}
-            {#if projectLabel}
-              <span class="thread-project-pill">{projectLabel}</span>
-            {/if}
-          </span>
-        {/if}
-        <span class="thread-meta row">
-          {formatTime(threadTime(thread.createdAt, thread.id))}
+        <span class="thread-tags row">
           {#if thread.provider === "opencode"}
             <span class="thread-provider-badge thread-provider-badge--opencode">◈ OpenCode</span>
           {:else if thread.provider === "copilot-acp"}
@@ -810,11 +789,21 @@
           {:else if thread.provider === "codex"}
             <span class="thread-provider-badge thread-provider-badge--codex">Codex</span>
           {/if}
+          {#if repoLabel}
+            <span class="thread-repo-pill">{repoLabel}</span>
+          {/if}
+          {#if projectLabel}
+            <span class="thread-project-pill">{projectLabel}</span>
+          {/if}
+        </span>
+        <span class="thread-meta row">
+          {formatTime(threadTime(thread.createdAt, thread.id))}
           {#if thread.providerAgent}
             <span class="thread-agent-badge" title="Agent: {thread.providerAgent}">{thread.providerAgent}</span>
           {/if}
         </span>
       </span>
+
     </a>
     {#if uiToggles.showThreadListExports}
       <button
@@ -980,6 +969,23 @@
         </div>
       </div>
 
+      <div class="filter-row row">
+        <button class="filter-toggle" type="button" onclick={() => (filtersExpanded = !filtersExpanded)}>
+          <span class="filter-toggle-caret">{filtersExpanded ? '▾' : '▸'}</span>
+          Filters
+        </button>
+        {#if !filtersExpanded && (filters.provider !== "all" || filters.status !== "all")}
+          <span class="filter-summary row">
+            {#if filters.provider !== "all"}
+              <span class="filter-active-chip">{filters.provider === "codex" ? "Codex" : filters.provider === "copilot-acp" ? "Copilot" : filters.provider === "claude" ? "Claude" : "OpenCode"}</span>
+            {/if}
+            {#if filters.status !== "all"}
+              <span class="filter-active-chip">{filters.status === "active" ? "Active" : "Archived"}</span>
+            {/if}
+          </span>
+        {/if}
+      </div>
+      {#if filtersExpanded}
       <div class="filter-bar split">
         <div class="filter-group row">
           <span class="filter-label" id="filter-provider-label">Provider:</span>
@@ -1048,6 +1054,7 @@
           </div>
         </div>
       </div>
+      {/if}
 
       {#if threads.loading}
         <div class="loading row">
@@ -1102,7 +1109,7 @@
             <div class="provider-title">
               <span class="provider-badge">Codex</span>
             </div>
-            <button class="new-thread-btn" onclick={openTaskModal}> ✨ New task </button>
+
           </div>
 
           {#if codexGrouped.groups.length > 0}
@@ -1141,7 +1148,7 @@
             <div class="provider-title">
               <span class="provider-badge">OpenCode</span>
             </div>
-            <button class="new-thread-btn" onclick={() => { taskProvider = "opencode"; openTaskModal(); }}>◈ New task</button>
+
           </div>
 
           {#if opencodeGrouped.groups.length > 0}
@@ -1278,18 +1285,18 @@
   }
 
   .provider-section {
-    margin-bottom: var(--space-xl);
+    margin-bottom: var(--space-md);
     border-radius: var(--radius-lg);
     background: var(--cli-bg-elevated);
     box-shadow: var(--shadow-card);
-    padding: var(--space-md);
+    padding: var(--space-sm);
   }
 
   .provider-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-xs);
     padding-bottom: var(--space-sm);
     opacity: 0.85;
   }
@@ -1733,8 +1740,7 @@
     --row-gap: 0;
     background: var(--cli-bg-elevated);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card);
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
   }
 
   .thread-item:last-child {
@@ -1745,7 +1751,7 @@
     flex: 1;
     min-width: 0;
     --row-gap: var(--space-sm);
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
     text-decoration: none;
     color: inherit;
     transition: box-shadow var(--transition-fast);
@@ -1778,7 +1784,10 @@
   .thread-main {
     flex: 1;
     min-width: 0;
-    --stack-gap: 2px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
   }
 
   .thread-context {
@@ -1786,6 +1795,13 @@
     --row-gap: var(--space-1\.5);
     align-items: center;
   }
+
+  .thread-tags {
+    flex-shrink: 0;
+    gap: var(--space-xs);
+    align-items: center;
+  }
+
 
   .thread-repo-pill {
     display: inline-block;
@@ -1982,6 +1998,60 @@
       padding: 0 var(--space-xs);
       font-size: 13px;
     }
+  }
+
+  /* Desktop: single-row thread layout. Mobile: wrap to 2 lines. */
+  @media (max-width: 640px) {
+    .thread-main {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+  }
+
+  .filter-row {
+    --row-gap: var(--space-sm);
+    align-items: center;
+    padding: var(--space-xs) var(--space-md);
+  }
+
+  .filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background: transparent;
+    border: 1px solid var(--cli-border);
+    border-radius: var(--radius-sm);
+    color: var(--cli-text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .filter-toggle:hover {
+    color: var(--cli-text);
+    border-color: var(--cli-text-muted);
+  }
+
+  .filter-toggle-caret {
+    font-size: 0.6rem;
+    line-height: 1;
+  }
+
+  .filter-summary {
+    --row-gap: var(--space-xs);
+    align-items: center;
+  }
+
+  .filter-active-chip {
+    padding: 2px var(--space-sm);
+    background: color-mix(in oklch, var(--cli-prefix-agent) 15%, transparent);
+    border-radius: var(--radius-full);
+    color: var(--cli-prefix-agent);
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-medium);
   }
 
   /* Filter Bar */
