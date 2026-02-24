@@ -34,12 +34,12 @@ CodeRelay’s goal is narrower and more opinionated:
 
 **Current Provider Matrix:**
 
-| Capability | Codex | Copilot ACP |
-|------------|-------|-------------|
-| `CAN_ATTACH_FILES` | ✅ | ✅ |
-| `CAN_FILTER_HISTORY` | ✅ | ❌ |
-| `SUPPORTS_APPROVALS` | ✅ | ✅ (dynamic) |
-| `SUPPORTS_STREAMING` | ✅ | ✅ |
+| Capability | Codex | Copilot ACP | OpenCode | Claude |
+|------------|-------|-------------|----------|--------|
+| `CAN_ATTACH_FILES` | ✅ | ✅ | ❌ | ❌ |
+| `CAN_FILTER_HISTORY` | ✅ | ❌ | ❌ | ❌ |
+| `SUPPORTS_APPROVALS` | ✅ | ✅ (dynamic) | ❌ | ❌ |
+| `SUPPORTS_STREAMING` | ✅ | ✅ | ✅ | ✅ |
 
 **Benefits:**
 

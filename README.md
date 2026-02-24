@@ -230,6 +230,8 @@ Filter your thread list with dual-axis filtering:
 - `all` (default): Show all threads
 - `codex`: Show Codex threads only
 - `copilot-acp`: Show Copilot ACP sessions only
+- `opencode`: Show OpenCode sessions only
+- `claude`: Show Claude sessions only
 
 **Status Filter:**
 
