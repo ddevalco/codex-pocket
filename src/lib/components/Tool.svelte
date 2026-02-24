@@ -349,7 +349,7 @@
       {#if renderMarkdown}
         <div class="m-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words px-md py-sm text-xs leading-relaxed text-cli-text-dim markdown">{@html renderedToolHtml}</div>
       {:else}
-        {#if message.kind === 'file'}<PierreDiff diff={toolInfo.content} />{:else}<pre class="m-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words px-md py-sm text-xs leading-relaxed text-cli-text-dim">{toolInfo.content}</pre>{/if}
+        {#if message.kind === 'file'}<div class="max-h-[300px] overflow-y-auto"><PierreDiff diff={toolInfo.content} /></div>{:else}<pre class="m-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words px-md py-sm text-xs leading-relaxed text-cli-text-dim">{toolInfo.content}</pre>{/if}
       {/if}
     </div>
   {/if}

@@ -27,6 +27,15 @@ interface ReasoningState {
   header: string | null;
 }
 
+function countDiffLines(text: string): { linesAdded: number; linesRemoved: number } {
+  let linesAdded = 0;
+  let linesRemoved = 0;
+  for (const line of text.split("\n")) {
+    if (line.startsWith("+") && !line.startsWith("++")) linesAdded++;
+    else if (line.startsWith("-") && !line.startsWith("--")) linesRemoved++;
+  }
+  return { linesAdded, linesRemoved };
+}
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
@@ -1176,7 +1185,8 @@ class MessagesStore {
         case "fileChange": {
           const changes = item.changes as Array<{ path: string; diff?: string }>;
           const text = changes?.map((c) => `${c.path}\n${c.diff || ""}`).join("\n\n") || "";
-          this.#upsert(threadId, { id: itemId, role: "tool", kind: "file", text, threadId });
+          const { linesAdded, linesRemoved } = countDiffLines(text);
+          this.#upsert(threadId, { id: itemId, role: "tool", kind: "file", text, threadId, metadata: { linesAdded, linesRemoved } });
           this.#clearStreaming(threadId, itemId);
           return;
         }
@@ -1361,6 +1371,11 @@ class MessagesStore {
               kind: "file",
               text: changes?.map((c) => `${c.path}\n${c.diff || ""}`).join("\n\n") || "",
               threadId,
+              metadata: (() => {
+                const t = changes?.map((c) => `${c.path}\n${c.diff || ""}`).join("\n\n") || "";
+                const { linesAdded, linesRemoved } = countDiffLines(t);
+                return { linesAdded, linesRemoved };
+              })(),
             });
             break;
           }
