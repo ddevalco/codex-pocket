@@ -290,20 +290,23 @@ class MessagesStore {
     // (especially if `thread/read` results are persisted repeatedly). Keep this lightweight:
     // - ask local-orbit for a bounded number of recent events
     // - iterate without pre-splitting
-    // - stop early once we successfully hydrate any messages
+    // - stop early once we successfully hydrate any messages (Codex threads only)
+    //
+    // Non-Codex threads (Copilot ACP, OpenCode, Claude) store many small individual
+    // events rather than large thread/read snapshots, so we use a larger limit and
+    // process all events to reconstruct the full conversation.
+    const isNonCodex = threadId.includes(":");
     const before = this.getThreadMessages(threadId).length;
     try {
       // local-orbit accepts token via query string as well as Authorization header.
       const tokenParam = encodeURIComponent(auth.token);
-      // Prefer newest-first so we are more likely to encounter a recent `thread/read` snapshot early.
-      // Keep the limit small: a single `thread/read` snapshot can be several MB, and large threads
-      // can accumulate many of them over time.
-      // Default to a small number of events for performance.
-      // "Force" mode is still bounded, but large enough to find a recent thread/read snapshot
-      // for older threads that have little/no cached history.
-      const limit = opts?.force ? 250 : 30;
+      // For Codex threads: prefer newest-first to find a thread/read snapshot early.
+      // For non-Codex threads: use ASC order to replay events chronologically, since
+      // these threads have many small item/* events rather than a single snapshot.
+      const limit = opts?.force ? 500 : (isNonCodex ? 200 : 30);
+      const order = isNonCodex ? "asc" : "desc";
       const text = await api.getText(
-        `/threads/${threadId}/events?token=${tokenParam}&order=desc&limit=${limit}`
+        `/threads/${threadId}/events?token=${tokenParam}&order=${order}&limit=${limit}`
       );
       if (!text.trim()) return;
 
@@ -328,9 +331,13 @@ class MessagesStore {
                 ? (parsedRecord as RpcMessage)
                 : null;
           if (msg) this.handleMessage(msg);
-          // Stop early once we have any transcript. This avoids long synchronous parsing
-          // loops on large threads and prevents UI freezes that break navigation.
-          if (this.getThreadMessages(threadId).length > before) break;
+          // For Codex threads: stop early once we have any transcript.
+          // This avoids long synchronous parsing loops on large threads
+          // (which accumulate huge thread/read snapshots) and prevents UI freezes.
+          //
+          // For non-Codex threads: process ALL events since each one is small
+          // and we need them all to reconstruct the full conversation.
+          if (!isNonCodex && this.getThreadMessages(threadId).length > before) break;
         } catch {
           // ignore malformed line
         }

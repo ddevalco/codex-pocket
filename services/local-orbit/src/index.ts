@@ -2225,6 +2225,281 @@ function parseProviderThreadId(threadId: string): { providerId: string; sessionI
   return null;
 }
 
+// All non-Codex provider prefixes (ACP + generic)
+const ALL_NON_CODEX_PREFIXES = ["copilot-acp:", ...GENERIC_PROVIDER_PREFIXES] as const;
+
+/**
+ * Detect whether a threadId belongs to a non-Codex provider.
+ * Non-Codex threads use a provider prefix (e.g., "copilot-acp:session123", "opencode:xyz").
+ */
+function isNonCodexThread(threadId: string): boolean {
+  return ALL_NON_CODEX_PREFIXES.some((prefix) => threadId.startsWith(prefix));
+}
+
+/**
+ * Handle thread/read, thread/resume, and thread/get for non-Codex provider threads.
+ *
+ * Since these RPCs normally relay to the Codex anchor (which knows nothing about
+ * non-Codex sessions), we intercept them here and synthesize a response from:
+ *   1. The provider adapter (if it supports openSession)
+ *   2. SQLite event history (always available for threads that had real-time activity)
+ *
+ * This fixes the "blank thread" bug for Copilot ACP, OpenCode, and Claude threads.
+ */
+async function handleNonCodexThreadRead(msg: any, threadId: string, ws: any): Promise<void> {
+  const requestId = msg.id;
+
+  // Determine provider and session ID from thread prefix
+  let providerId: string | null = null;
+  let _sessionId: string | null = null;
+
+  if (threadId.startsWith("copilot-acp:")) {
+    providerId = "copilot-acp";
+    _sessionId = threadId.slice("copilot-acp:".length).trim();
+  } else {
+    const parsed = parseProviderThreadId(threadId);
+    if (parsed) {
+      providerId = parsed.providerId;
+      _sessionId = parsed.sessionId;
+    }
+  }
+
+  // For thread/resume, simply acknowledge — non-Codex providers don't have
+  // a persistent connection that replays turns on resume. The client will
+  // follow up with thread/read or fall back to rehydrateFromEvents().
+  if (msg.method === "thread/resume") {
+    if (ws && (typeof requestId === "string" || typeof requestId === "number")) {
+      send(ws, {
+        jsonrpc: "2.0",
+        id: requestId,
+        result: { ok: true },
+      });
+    }
+    return;
+  }
+
+  // For thread/read and thread/get: build a response from SQLite event history.
+  // This mirrors what the REST /threads/:id/events endpoint does, but formatted
+  // as a thread/read JSON-RPC response with turns extracted from stored events.
+  try {
+    // Fetch events from SQLite (newest first, generous limit for full history)
+    const rows = db
+      .prepare("SELECT payload FROM events WHERE thread_id = ? ORDER BY id ASC LIMIT ?")
+      .all(threadId, 2000) as Array<{ payload: string }>;
+
+    // Parse events and reconstruct turns from stored sendPrompt request/response pairs.
+    // Events are stored by logEvent() in routeGenericSendPrompt() and routeAcpSendPrompt().
+    // Client requests (role=client) contain the user's prompt text.
+    // Server responses (role=anchor) contain the provider's reply or error.
+    const turns: any[] = [];
+    const seenItems = new Set<string>();
+
+    // Separate client requests and server responses for pairing
+    const clientRequests: Array<{ rpcId: any; text: string; timestamp?: number }> = [];
+    const serverResponses: Map<string | number, { result?: any; error?: any }> = new Map();
+    const itemEvents: any[] = [];
+
+    for (const row of rows) {
+      try {
+        const wrapper = JSON.parse(row.payload);
+        const rpcMsg = wrapper?.message ?? wrapper;
+        if (!rpcMsg) continue;
+
+        const method = rpcMsg.method;
+        const params = rpcMsg.params;
+        const result = rpcMsg.result;
+        const error = rpcMsg.error;
+        const rpcId = rpcMsg.id;
+
+        // Case 1: item/started, item/completed, item/updated — streaming item events
+        if (method && params && (method === "item/started" || method === "item/completed" || method === "item/updated")) {
+          const item = params.item ?? params;
+          const itemId = item?.id;
+          if (itemId && !seenItems.has(itemId)) {
+            seenItems.add(itemId);
+            itemEvents.push(item);
+          }
+          continue;
+        }
+
+        // Case 2: Client request with prompt text (sendPrompt, turn/start, etc.)
+        if (method && params) {
+          // Extract prompt text using the same logic as extractPromptText()
+          const direct = [params.message, params.text, params.prompt];
+          let text = "";
+          for (const candidate of direct) {
+            if (typeof candidate === "string" && candidate.trim()) {
+              text = candidate.trim();
+              break;
+            }
+          }
+          if (!text && Array.isArray(params.input)) {
+            for (const item of params.input) {
+              if (item && typeof item === "object" && item.type === "text" && typeof item.text === "string" && item.text.trim()) {
+                text = item.text.trim();
+                break;
+              }
+            }
+          }
+          if (text) {
+            clientRequests.push({ rpcId, text });
+          }
+          continue;
+        }
+
+        // Case 3: Server response (success or error) — has result or error, no method
+        if ((result || error) && rpcId !== undefined) {
+          const key = rpcId;
+          if (!serverResponses.has(key)) {
+            serverResponses.set(key, { result, error });
+          }
+          continue;
+        }
+      } catch {
+        // Skip malformed events
+      }
+    }
+
+    // Build turns from paired client requests and server responses.
+    // Each request becomes a userMessage; its paired response becomes an agentMessage.
+    for (const req of clientRequests) {
+      const turnItems: any[] = [];
+
+      // User message from the client request
+      turnItems.push({
+        type: "userMessage",
+        id: `user-${req.rpcId ?? Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        content: [{ type: "text", text: req.text }],
+      });
+
+      // Try to find a matching server response by JSON-RPC id
+      if (req.rpcId !== undefined && serverResponses.has(req.rpcId)) {
+        const resp = serverResponses.get(req.rpcId)!;
+        if (resp.result) {
+          // Extract response text from various shapes returned by adapters
+          const r = resp.result;
+          const respText =
+            (typeof r.text === "string" ? r.text : null) ||
+            (typeof r.message === "string" ? r.message : null) ||
+            (typeof r.response === "string" ? r.response : null) ||
+            (typeof r.content === "string" ? r.content : null) ||
+            null;
+          if (respText) {
+            turnItems.push({
+              type: "agentMessage",
+              id: `agent-${req.rpcId ?? Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              text: respText,
+            });
+          } else if (r.turnId || r.requestId || r.status) {
+            // Provider acknowledged the request but response text was streamed separately.
+            // Add a minimal agentMessage indicating the provider processed the request.
+            turnItems.push({
+              type: "agentMessage",
+              id: `agent-${req.rpcId ?? Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              text: `*(${providerId ?? "provider"} processed this request)*`,
+            });
+          }
+        } else if (resp.error) {
+          // Show the error as an agent message so the user sees what happened
+          turnItems.push({
+            type: "agentMessage",
+            id: `agent-err-${req.rpcId ?? Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            text: `Error: ${resp.error.message || "Unknown error"}`,
+          });
+        }
+      }
+
+      turns.push({ items: turnItems });
+    }
+
+    // Append any standalone item/* events that weren't part of request/response pairs
+    for (const item of itemEvents) {
+      turns.push({ items: [item] });
+    }
+
+    // Also look for any thread/read snapshot that was previously stored
+    // (e.g., from a Codex thread that was later re-associated with a provider)
+    for (const row of rows) {
+      try {
+        const wrapper = JSON.parse(row.payload);
+        const rpcMsg = wrapper?.message ?? wrapper;
+        if (!rpcMsg?.result) continue;
+        const result = rpcMsg.result;
+        // If we find a stored thread/read response with turns, use it directly
+        const storedTurns = result?.thread?.turns ?? result?.turns;
+        if (Array.isArray(storedTurns) && storedTurns.length > 0) {
+          // Found a snapshot — prefer it over reconstructed turns
+          const response: any = {
+            jsonrpc: "2.0",
+            id: requestId,
+            method: "thread/read",
+            result: {
+              thread: {
+                id: threadId,
+                provider: providerId,
+                turns: storedTurns,
+              },
+            },
+          };
+          if (ws) send(ws, response);
+          return;
+        }
+      } catch {
+        // Skip
+      }
+    }
+
+    // Build thread metadata from thread_metadata table
+    const threadMeta: any = { id: threadId, provider: providerId };
+    try {
+      const metaRow = getThreadSelectionStmt.get(threadId) as ThreadSelection | undefined;
+      if (metaRow) {
+        const norm = normalizeThreadSelection(metaRow);
+        if (norm.provider) threadMeta.provider = norm.provider;
+        if (norm.agent) threadMeta.providerAgent = norm.agent;
+        if (norm.model) threadMeta.model = norm.model;
+      }
+    } catch {
+      // DB lookup failed; use defaults
+    }
+
+    // Send the synthetic thread/read response
+    const response: any = {
+      jsonrpc: "2.0",
+      id: requestId,
+      method: "thread/read",
+      result: {
+        thread: {
+          ...threadMeta,
+          turns,
+        },
+      },
+    };
+
+    // Inject capabilities for consistency
+    try {
+      await injectThreadCapabilities(response);
+    } catch {
+      // Non-critical
+    }
+
+    if (ws) send(ws, response);
+  } catch (err) {
+    // If anything fails, send an error response so the client can fall back
+    if (ws && (typeof requestId === "string" || typeof requestId === "number")) {
+      send(ws, {
+        jsonrpc: "2.0",
+        id: requestId,
+        error: {
+          code: -32000,
+          message: `Failed to read non-Codex thread history: ${err instanceof Error ? err.message : String(err)}`,
+        },
+      });
+    }
+  }
+}
+
+
 function extractThreadSelectionFromParams(params: any): ThreadSelection {
   const provider = normalizeSelectionValue(params?.provider);
   const agent = normalizeSelectionValue(
@@ -2264,6 +2539,127 @@ function extractStartedThreadId(msg: any): string | null {
   return typeof fromResult === "string" && fromResult.trim() ? fromResult.trim() : null;
 }
 
+/**
+ * Subscribe to a provider adapter's streaming events and forward them to the
+ * connected WebSocket client as JSON-RPC notifications. Also logs the final
+ * accumulated agent message to SQLite so thread history survives reload.
+ *
+ * Returns the EventSubscription (so the caller can unsubscribe when done).
+ * Returns null if the adapter does not support subscribe().
+ */
+async function setupStreamingForwarding(
+  adapter: any,
+  sessionId: string,
+  threadId: string,
+  ws: any,
+): Promise<any | null> {
+  if (typeof adapter.subscribe !== "function") return null;
+
+  let accumulatedText = "";
+  let agentItemId: string | null = null;
+  let startedSent = false;
+
+  let subscription: any;
+  try {
+    subscription = await adapter.subscribe(sessionId, (event: any) => {
+      try {
+        const isAgentMessage = event?.category === "agent_message";
+        if (!isAgentMessage) return;
+
+        const isStreamingDelta = event?.payload?.streamingDelta === true;
+        const textChunk: string = typeof event.text === "string" ? event.text : "";
+
+        if (!agentItemId) {
+          agentItemId = `agent-stream-${sessionId}-${Date.now()}`;
+        }
+
+        if (isStreamingDelta) {
+          // Forward incremental delta to client
+          if (!startedSent) {
+            // Send item/started so frontend creates a placeholder message
+            startedSent = true;
+            const startedNotif = {
+              jsonrpc: "2.0",
+              method: "item/started",
+              params: {
+                threadId,
+                item: { type: "agentMessage", id: agentItemId, text: "" },
+              },
+            };
+            ws.send(JSON.stringify(startedNotif));
+          }
+          accumulatedText += textChunk;
+          const deltaNotif = {
+            jsonrpc: "2.0",
+            method: "item/agentMessage/delta",
+            params: { threadId, itemId: agentItemId, delta: textChunk },
+          };
+          ws.send(JSON.stringify(deltaNotif));
+        } else if (textChunk) {
+          // Final (non-streaming) agent message — send started + completed
+          accumulatedText = textChunk;
+          if (!agentItemId) {
+            agentItemId = `agent-final-${sessionId}-${Date.now()}`;
+          }
+          if (!startedSent) {
+            startedSent = true;
+            const startedNotif = {
+              jsonrpc: "2.0",
+              method: "item/started",
+              params: {
+                threadId,
+                item: { type: "agentMessage", id: agentItemId, text: "" },
+              },
+            };
+            ws.send(JSON.stringify(startedNotif));
+          }
+          const completedNotif = {
+            jsonrpc: "2.0",
+            method: "item/completed",
+            params: {
+              threadId,
+              item: { type: "agentMessage", id: agentItemId, text: accumulatedText },
+            },
+          };
+          ws.send(JSON.stringify(completedNotif));
+          // Log completed agent message to SQLite for history replay
+          logEvent("server", "anchor", JSON.stringify(completedNotif));
+        }
+      } catch (callbackErr) {
+        console.error("[streaming-forward] Error in event callback:", callbackErr);
+      }
+    });
+  } catch (subscribeErr) {
+    console.warn("[streaming-forward] Failed to subscribe to adapter events:", subscribeErr);
+    return null;
+  }
+
+  // Attach finalise() so caller can flush accumulated text + unsubscribe
+  subscription._streamingContext = {
+    getAccumulatedText: () => accumulatedText,
+    getAgentItemId: () => agentItemId,
+    startedSent: () => startedSent,
+    flush: (finalText?: string) => {
+      // If streaming happened but item/completed was never sent (e.g. only deltas came through)
+      // send the final completed event now
+      if (startedSent && accumulatedText && !finalText) {
+        const finalAccumulated = accumulatedText;
+        const completedNotif = {
+          jsonrpc: "2.0",
+          method: "item/completed",
+          params: {
+            threadId,
+            item: { type: "agentMessage", id: agentItemId, text: finalAccumulated },
+          },
+        };
+        ws.send(JSON.stringify(completedNotif));
+        logEvent("server", "anchor", JSON.stringify(completedNotif));
+      }
+    },
+  };
+
+  return subscription;
+}
 async function routeGenericSendPrompt(msg: any, ws: any): Promise<void> {
   const threadId = msg.params?.threadId || msg.params?.thread_id || msg.params?.id;
   const parsed = parseProviderThreadId(threadId);
@@ -2328,6 +2724,12 @@ async function routeGenericSendPrompt(msg: any, ws: any): Promise<void> {
   const promptOptions = buildPromptOptions(mergedSelection);
   persistThreadSelection(threadId, mergedSelection);
 
+  // Persist the client request to SQLite so thread history survives reload
+  logEvent("client", "client", JSON.stringify(msg));
+
+  // Subscribe to adapter streaming events BEFORE sendPrompt so we capture all emitted events
+  const streamSub = await setupStreamingForwarding(adapter, sessionId, threadId, ws);
+
   try {
     const startTime = Date.now();
     const result = await adapter.sendPrompt(sessionId, promptInput, promptOptions);
@@ -2348,6 +2750,8 @@ async function routeGenericSendPrompt(msg: any, ws: any): Promise<void> {
       result: { ...result, provider: providerId, threadId, sessionId },
     };
     ws.send(JSON.stringify(successResp));
+    // Persist the provider response to SQLite for thread history replay
+    logEvent("server", "anchor", JSON.stringify(successResp));
   } catch (err: any) {
     console.error(`[${providerId}] sendPrompt error:`, err?.message || err);
     const isTimeout = err?.message?.includes("timeout") || err?.message?.includes("ETIMEDOUT");
@@ -2360,6 +2764,15 @@ async function routeGenericSendPrompt(msg: any, ws: any): Promise<void> {
       },
     };
     ws.send(JSON.stringify(errResp));
+    // Persist error response too, so history shows the failed turn
+    logEvent("server", "anchor", JSON.stringify(errResp));
+  } finally {
+    // Flush any accumulated streaming text that never got a final item/completed event,
+    // then unsubscribe to prevent memory leaks.
+    if (streamSub) {
+      try { streamSub._streamingContext?.flush(); } catch {}
+      try { adapter.unsubscribe?.(streamSub); } catch {}
+    }
   }
 }
 
@@ -2516,7 +2929,11 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
   const promptOptions = buildPromptOptions(mergedSelection);
   persistThreadSelection(threadId, mergedSelection);
 
+  // Persist the client request to SQLite so thread history survives reload
+  logEvent("client", "client", JSON.stringify(msg));
+
   const startTime = Date.now();
+  let streamSub: any = null;
   try {
     const adapter = registry.get("copilot-acp") as CopilotAcpAdapter | undefined;
     if (!adapter) {
@@ -2528,6 +2945,8 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
       return;
     }
     const sessionId = acpSessionIdFromThreadId(threadId);
+    // Subscribe to adapter streaming events BEFORE sendPrompt so we capture all emitted events
+    streamSub = await setupStreamingForwarding(adapter, sessionId, threadId, ws);
     const result = await adapter.sendPrompt(sessionId, promptInput, promptOptions);
     
     // Track session locally for CLIs without list_sessions (Fixes #273)
@@ -2552,7 +2971,7 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
       );
     }
     
-    send(ws, {
+    const acpSuccessResp = {
       jsonrpc: "2.0",
       id: requestId,
       result: {
@@ -2561,7 +2980,10 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
         threadId,
         sessionId,
       },
-    });
+    };
+    // Persist the provider response to SQLite for thread history replay
+    logEvent("server", "anchor", JSON.stringify(acpSuccessResp));
+    send(ws, acpSuccessResp);
   } catch (err) {
     const elapsed = Date.now() - startTime;
     const errorMessage = err instanceof Error ? err.message : "Failed to send prompt";
@@ -2577,7 +2999,7 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
       errorMessage
     );
     
-    send(ws, {
+    const acpErrResp = {
       jsonrpc: "2.0",
       id: requestId,
       error: {
@@ -2590,7 +3012,16 @@ async function routeAcpSendPrompt(msg: any, ws?: WebSocket): Promise<void> {
           timeout: isTimeout,
         },
       },
-    });
+    };
+    // Persist error response too, so history shows the failed turn
+    logEvent("server", "anchor", JSON.stringify(acpErrResp));
+    send(ws, acpErrResp);
+  } finally {
+    // Flush any accumulated streaming text and unsubscribe to prevent memory leaks.
+    if (typeof streamSub !== "undefined" && streamSub) {
+      try { streamSub._streamingContext?.flush(); } catch {}
+      try { (registry.get("copilot-acp") as any)?.unsubscribe?.(streamSub); } catch {}
+    }
   }
 }
 
@@ -2658,6 +3089,19 @@ async function relay(fromRole: Role, msgText: string, ws?: any): Promise<void> {
   if (fromRole === "client" && shouldDropDuplicateClientRequest(msg)) {
     return;
   }
+
+  // --- Route thread/read and thread/resume for non-Codex provider threads ---
+  // These RPCs should not be forwarded to the Codex anchor for threads belonging to
+  // other providers (Copilot ACP, OpenCode, Claude, Claude MCP). Instead, serve history
+  // from SQLite events and send a synthetic response back to the client.
+  if (fromRole === "client" && (msg.method === "thread/read" || msg.method === "thread/resume" || msg.method === "thread/get")) {
+    const threadId = (msg.params as any)?.threadId || (msg.params as any)?.thread_id || (msg.params as any)?.id;
+    if (typeof threadId === "string" && isNonCodexThread(threadId)) {
+      await handleNonCodexThreadRead(msg, threadId, ws);
+      return;
+    }
+  }
+
 
   // Track thread/list requests in client message handler (where messages go to anchor)
   const parsed = msg as any;
