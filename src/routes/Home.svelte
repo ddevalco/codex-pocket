@@ -101,6 +101,13 @@
     },
   } as const;
 
+  const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
+    "codex": "Codex",
+    "copilot-acp": "Copilot",
+    "claude": "Claude",
+    "opencode": "OpenCode",
+  };
+
   let showTaskModal = $state(false);
   let taskNote = $state("");
   let taskProject = $state("");
@@ -970,14 +977,14 @@
       </div>
 
       <div class="filter-row row">
-        <button class="filter-toggle" type="button" onclick={() => (filtersExpanded = !filtersExpanded)}>
+        <button class="filter-toggle" type="button" onclick={() => (filtersExpanded = !filtersExpanded)} aria-expanded={filtersExpanded}>
           <span class="filter-toggle-caret">{filtersExpanded ? '▾' : '▸'}</span>
           Filters
         </button>
         {#if !filtersExpanded && (filters.provider !== "all" || filters.status !== "all")}
           <span class="filter-summary row">
             {#if filters.provider !== "all"}
-              <span class="filter-active-chip">{filters.provider === "codex" ? "Codex" : filters.provider === "copilot-acp" ? "Copilot" : filters.provider === "claude" ? "Claude" : "OpenCode"}</span>
+              <span class="filter-active-chip">{PROVIDER_DISPLAY_NAMES[filters.provider] ?? filters.provider}</span>
             {/if}
             {#if filters.status !== "all"}
               <span class="filter-active-chip">{filters.status === "active" ? "Active" : "Archived"}</span>
