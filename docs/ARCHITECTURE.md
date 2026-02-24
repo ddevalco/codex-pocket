@@ -63,10 +63,10 @@ CodeRelay supports multiple AI provider backends through a unified adapter inter
 │  │   - Adapter lookup                            │  │
 │  └───┬───────────────────────────────────────┬───┘  │
 │      │                                       │      │
-│  ┌───▼──────────┐ ┌──────────▼───────┐ ┌──────▼────────┐ │
-│  │CodexAdapter │ │ OpenCodeAdapter   │ │CopilotACP     │ │
-│  │(via Anchor) │ │ (REST API)        │ │Adapter        │ │
-│  └───┬──────────┘ └───────────────────┘ └───────┬────┘ │
+|  ┌───▼──────────┐ ┌──────────▼───────┐ ┌──────▼────────┐ ┌──────▼────────┐ |
+|  │CodexAdapter │ │ OpenCodeAdapter   │ │CopilotACP     │ │ClaudeAdapter  │ |
+|  │(via Anchor) │ │ (REST API)        │ │Adapter        │ │(REST API)     │ |
+|  └───┬──────────┘ └───────────────────┘ └───────┬────┘ └───────────────┘ |
 │      │                                       │      │
 └──────┼───────────────────────────────────────┼──────┘
        │                                       │
